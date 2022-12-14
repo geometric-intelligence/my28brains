@@ -1,0 +1,12 @@
+name: 28andme
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - matplotlib>=3.5.1
+  - pip:
+    - jupyter
+    - jupyterlab-code-formatter
+    - numpy>=1.23.0
+    - -r dev-requirements.txt
