@@ -5,11 +5,9 @@ import os
 
 import matplotlib
 import matplotlib.pyplot as plt
-from IPython.display import HTML
-from matplotlib import animation
-import numpy as np
-
 import nibabel
+import numpy as np
+from matplotlib import animation
 
 DATA_DIR = "/home/data/28andme/"
 
@@ -27,9 +25,10 @@ def init_matplotlib():
         monospace=["Arial"],
     )
 
+
 def animate(img_suffix="ashs/right_lfseg_corr_usegray_CT_LQ.nii.gz", slice_z=16):
     """Produce temporal animation of anatomical images.
-    
+
     This is a time-series of images during 25 days corresponding to 25 sessions.
 
     Parameters
@@ -42,14 +41,13 @@ def animate(img_suffix="ashs/right_lfseg_corr_usegray_CT_LQ.nii.gz", slice_z=16)
         - ashs/right_lfseg_corr_usegray_CT_LQ.nii.gz
     slice_z : int
         Since images are 3D, a slice is chosen to get a 2D images and form a video.
-    
+
     Returns
     -------
     anima : Animation
         Animation. Display with HTML(anima.to_html5_video())
     """
-    string_base = os.path.join(
-        DATA_DIR, f"sub-01/ses-**/{img_suffix}")
+    string_base = os.path.join(DATA_DIR, f"sub-01/ses-**/{img_suffix}")
     paths = sorted(glob.glob(string_base))
 
     print(f"Found {len(paths)} image paths. Creating video.")
@@ -68,15 +66,16 @@ def animate(img_suffix="ashs/right_lfseg_corr_usegray_CT_LQ.nii.gz", slice_z=16)
         array_4d = array_4d[120:200, 120:200, :, :]
     elif "ashs/right" in img_suffix:
         array_4d = array_4d[220:320, 120:220, :, :]
-    
+
     cmap = "viridis"
     if "ashs" in img_suffix:
-        array_4d  = np.ma.masked_where(array_4d < 0.05, array_4d)
+        array_4d = np.ma.masked_where(array_4d < 0.05, array_4d)
         cmap = matplotlib.cm.get_cmap("tab20b").copy()
-        cmaplist = [cmap(2*i) for i in range(10)]
+        cmaplist = [cmap(2 * i) for i in range(10)]
         cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
-            'Custom cmap', cmaplist, 10)
-        cmap.set_bad(color='black')
+            "Custom cmap", cmaplist, 10
+        )
+        cmap.set_bad(color="black")
 
     def quick_play(dT=50):
         fig, ax = plt.subplots()
