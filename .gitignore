@@ -80,6 +80,8 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+my28brains/__pycache__/**
+my28brains/**/ipynb_checkpoints
 
 # IPython
 profile_default/
