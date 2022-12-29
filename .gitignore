@@ -1,3 +1,6 @@
+# Brain data
+data/
+
 # VScode config
 .DS_Store
 .vscode/
