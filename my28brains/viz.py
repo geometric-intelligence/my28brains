@@ -9,7 +9,7 @@ import nibabel
 import numpy as np
 from matplotlib import animation
 
-DATA_DIR = "/home/data/28andme/"
+IMG_DIR = "/home/data/28andme/"
 
 
 def init_matplotlib():
@@ -47,7 +47,7 @@ def animate(img_suffix="ashs/right_lfseg_corr_usegray_CT_LQ.nii.gz", slice_z=16)
     anima : Animation
         Animation. Display with HTML(anima.to_html5_video())
     """
-    string_base = os.path.join(DATA_DIR, f"sub-01/ses-**/{img_suffix}")
+    string_base = os.path.join(IMG_DIR, f"sub-01/ses-**/{img_suffix}")
     paths = sorted(glob.glob(string_base))
 
     print(f"Found {len(paths)} image paths. Creating video.")
