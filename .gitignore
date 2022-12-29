@@ -1,6 +1,7 @@
 # Brain data
 old_data/
 data/
+blender/
 
 # VScode config
 .DS_Store
