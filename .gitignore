@@ -3,6 +3,12 @@ old_data/
 data/
 blender/
 
+# ply extension
+*.ply
+
+# pickle extension
+*.pickle
+
 # VScode config
 .DS_Store
 .vscode/
