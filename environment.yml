@@ -5,9 +5,8 @@ dependencies:
   - python=3.8
   - pip
   - matplotlib>=3.5.1
-  - anaconda::cudatoolkit
   - pip:
-    #- git+https://github.com/geomstats/geomstats.git
+    - git+https://github.com/geomstats/geomstats.git
     - jupyter
     - jupyterlab-code-formatter
     - nibabel>=4.0.0
