@@ -3,6 +3,9 @@ old_data/
 data/
 blender/
 
+# Test npy
+tests/*.npy
+
 # ply extension
 *.ply
 
