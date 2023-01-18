@@ -13,19 +13,26 @@ import numpy as np
 
 from my28brains.my28brains.discrete_surfaces import DiscreteSurfaces
 
-TESTS_DIR = os.path.join(os.getcwd(), "tests")
-test_vertices_path = os.path.join(TESTS_DIR, "test_vertices.npy")
-test_faces_path = os.path.join(TESTS_DIR, "test_faces.npy")
-test_vertices_source_path = os.path.join(TESTS_DIR, "test_vertices_source.npy")
-test_faces_source_path = os.path.join(TESTS_DIR, "test_faces_source.npy")
-test_vertices_target_path = os.path.join(TESTS_DIR, "test_vertices_target.npy")
-test_faces_target_path = os.path.join(TESTS_DIR, "test_faces_target.npy")
+# get vertices and faces from brain data
+# TESTS_DIR = os.path.join(os.getcwd(), "tests")
+# test_vertices_path = os.path.join(TESTS_DIR, "test_vertices.npy")
+# test_faces_path = os.path.join(TESTS_DIR, "test_faces.npy")
+# #test_vertices_source_path = os.path.join(TESTS_DIR, "test_vertices_source.npy")
+# #test_faces_source_path = os.path.join(TESTS_DIR, "test_faces_source.npy")
+# test_vertices_target_path = os.path.join(TESTS_DIR, "test_vertices_target.npy")
+# test_faces_target_path = os.path.join(TESTS_DIR, "test_faces_target.npy")
 
-test_vertices = np.load(test_vertices_source_path)
-test_faces = np.load(test_faces_source_path)
+#test_vertices = np.load(test_vertices_source_path)
+#test_faces = np.load(test_faces_source_path)
 
-print(test_vertices.shape)
-print(test_faces.shape)
+# print(test_vertices.shape)
+# print(test_faces.shape)
+
+# generate test faces
+# TODO: set seed and change test_faces to be random instead of all 1's
+test_faces = gs.ones((12, 3))
+space = DiscreteSurfaces(faces=test_faces)
+test_vertices = space.random_point()
 
 
 def test_random_point():
@@ -33,6 +40,7 @@ def test_random_point():
     ambient_dim = 3
     faces = gs.ones((12, ambient_dim))
     space = DiscreteSurfaces(faces=faces)
+    # use a random point a test_vertices
     point = space.random_point(n_samples=3)
     assert point.shape[-1] == 3
 
