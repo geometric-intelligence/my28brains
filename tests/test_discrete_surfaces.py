@@ -6,15 +6,22 @@ export PYTHONPATH=/home/nmiolane/code.
 Get the .npy files to test this code.
 """
 
-# import os
+import os
 import random
 
 import geomstats.backend as gs
+import numpy as np
 
 from my28brains.my28brains.discrete_surfaces import DiscreteSurfaces
 
-# import numpy as np
+# import sphere data vertices and faces
+DATA_DIR = os.path.join(os.getcwd(), "data")
+SPHERE_DATA_DIR = os.path.join(DATA_DIR, "sphere_meshes")
+test_vertices_path = os.path.join(SPHERE_DATA_DIR, "faces.npy")
+test_faces_path = os.path.join(SPHERE_DATA_DIR, "vertices.npy")
 
+test_vertices = np.load(test_vertices_path)
+test_faces = np.load(test_faces_path)
 
 # get vertices and faces from brain data
 # TESTS_DIR = os.path.join(os.getcwd(), "tests")
