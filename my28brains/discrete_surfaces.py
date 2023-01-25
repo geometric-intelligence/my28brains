@@ -19,10 +19,10 @@ class DiscreteSurfaces(Manifold):
     Each surface is sampled with fixed n_vertices vertices and n_faces faces
     in $\mathbb{R}^3$.
 
-    Each individual surfaceis represented by a 2d-array of shape `[
+    Each individual surface is represented by a 2d-array of shape `[
     n_vertices, 3]`. This space corresponds to the space of immersions
     defined below, i.e. the
-    space of smooth functions from atemplate 2 manifold M into  $\mathbb{R}^3$,
+    space of smooth functions from a template to manifold $M$ into  $\mathbb{R}^3$,
     with non-vanishing Jacobian.
     .. math::
         Imm(M,\mathbb{R}^3)=\{ f \in C^{\infty}(M, \mathbb{R}^3)
@@ -71,6 +71,8 @@ class DiscreteSurfaces(Manifold):
             return False
         if point.shape[-2] != self.n_vertices:
             return False
+        # to make sure that it is actually a face and not just a point
+        # or an edge. small area = degenerate face
         smallest_area = min(self.face_areas(point))
         if smallest_area < atol:
             return False
