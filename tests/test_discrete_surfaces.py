@@ -16,9 +16,16 @@ from my28brains.my28brains.discrete_surfaces import DiscreteSurfaces
 # import sphere data vertices and faces
 BRAINS_DIR = os.path.join(os.environ["PYTHONPATH"], "my28brains")
 DATA_DIR = os.path.join(BRAINS_DIR, "data")
-SPHERE_DATA_DIR = os.path.join(DATA_DIR, "sphere_meshes")
-test_vertices_path = os.path.join(SPHERE_DATA_DIR, "faces.npy")
-test_faces_path = os.path.join(SPHERE_DATA_DIR, "vertices.npy")
+
+# uncomment if you would like to test a cube
+CUBE_MESH_DIR = os.path.join(DATA_DIR, "cube_meshes")
+test_vertices_path = os.path.join(CUBE_MESH_DIR, "vertices.npy")
+test_faces_path = os.path.join(CUBE_MESH_DIR, "faces.npy")
+
+# for testing a sphere
+# SPHERE_DATA_DIR = os.path.join(DATA_DIR, "sphere_meshes")
+# test_vertices_path = os.path.join(SPHERE_DATA_DIR, "vertices.npy")
+# test_faces_path = os.path.join(SPHERE_DATA_DIR, "faces.npy")
 
 test_vertices = np.load(test_vertices_path)
 test_faces = np.load(test_faces_path)
@@ -97,11 +104,16 @@ def test_random_point_2():
     it not being implemented in a way that is compatible with
     the belongs() function???
 
-    error: TypeError: Cannot cast array data from dtype('float64')
-    to dtype('int64') according to the rule 'safe'
+    error: IndexError: index 1 is out of bounds for axis 0 with size 1
     """
     space = DiscreteSurfaces(faces=test_faces)
     point = space.random_point(n_samples=1)
+    print("POINT", point.shape)
+    # print(point.shape)
+    # print(test_vertices)
+    # print(test_faces)
+    # print(space.n_vertices)
+    # print(space.faces)
     assert space.belongs(point)
 
 
