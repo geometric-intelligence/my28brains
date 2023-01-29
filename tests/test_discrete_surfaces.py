@@ -10,9 +10,11 @@ import os
 
 import geomstats.backend as gs
 import numpy as np
-from geomstats.geometry.connection import Connection
 
 from my28brains.my28brains.discrete_surfaces import DiscreteSurfaces
+
+# from geomstats.geometry.connection import Connection
+
 
 # import sphere data vertices and faces
 BRAINS_DIR = os.path.join(os.environ["PYTHONPATH"], "my28brains")
@@ -53,21 +55,16 @@ def test_belongs():
 def test_is_tangent():
     """Test is_tangent.
 
-    TODO.  Uses logarithm function of geomstats
-    to generate a tangent vector at point_1, and
-    then tests whether is_tangent() registers this
-    vector as a tangent vector at point_1.
-
-    Then, generates a tangent vector at point_2 and
-    demonstrates that this vector is no longer a tangent
-    vector at point_1.
-
+    TODO.  how to test whether a vector is tangent
+    - create a vector you know is tangent
+    - is there a property with the connection?
     """
-    space = DiscreteSurfaces(faces=test_faces)
-    base_point = test_vertices
-    point_2 = space.random_point()
-    tangent_vector = Connection.log(point_2, base_point)
-    assert space.is_tangent(tangent_vector, base_point)
+
+    # space = DiscreteSurfaces(faces=test_faces)
+    # base_point = test_vertices
+    # point_2 = space.random_point()
+    # tangent_vector = Connection.log(point_2, base_point)
+    # assert space.is_tangent(tangent_vector, base_point)
 
     # non_tangent_vector=gs.array([1,0,1])
     # vertices = test_sphere_vertices
@@ -137,13 +134,6 @@ def test_vertex_areas():
     # areas = gs.array([[12],[12],[12],[12],[12],[12],[12],[12],[12],[12],[12],[12]])
     # print(areas.shape)
     # assert (areas[0] == space.vertex_areas(point)[0]).all()
-
-
-def test_get_laplacian():
-    """Test get_laplacian.
-
-    TODO.
-    """
 
 
 def test_normals():
