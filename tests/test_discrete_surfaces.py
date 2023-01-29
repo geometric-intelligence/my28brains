@@ -10,6 +10,7 @@ import os
 
 import geomstats.backend as gs
 import numpy as np
+from geomstats.geometry.connection import Connection
 
 from my28brains.my28brains.discrete_surfaces import DiscreteSurfaces
 
@@ -22,45 +23,21 @@ CUBE_MESH_DIR = os.path.join(DATA_DIR, "cube_meshes")
 test_vertices_path = os.path.join(CUBE_MESH_DIR, "vertices.npy")
 test_faces_path = os.path.join(CUBE_MESH_DIR, "faces.npy")
 
-# for testing a sphere
-# SPHERE_DATA_DIR = os.path.join(DATA_DIR, "sphere_meshes")
-# test_vertices_path = os.path.join(SPHERE_DATA_DIR, "vertices.npy")
-# test_faces_path = os.path.join(SPHERE_DATA_DIR, "faces.npy")
-
 test_vertices = np.load(test_vertices_path)
 test_faces = np.load(test_faces_path)
 test_vertices = gs.cast(test_vertices, gs.int64)
 test_faces = gs.cast(test_faces, gs.int64)
 
-# space = DiscreteSurfaces(faces=test_faces)
 
-# get vertices and faces from brain data
-# TESTS_DIR = os.path.join(os.getcwd(), "tests")
-# test_vertices_path = os.path.join(TESTS_DIR, "test_vertices.npy")
-# test_faces_path = os.path.join(TESTS_DIR, "test_faces.npy")
-# #test_vertices_source_path = os.path.join(TESTS_DIR, "test_vertices_source.npy")
-# #test_faces_source_path = os.path.join(TESTS_DIR, "test_faces_source.npy")
-# test_vertices_target_path = os.path.join(TESTS_DIR, "test_vertices_target.npy")
-# test_faces_target_path = os.path.join(TESTS_DIR, "test_faces_target.npy")
+# for testing a sphere -used for tangent testing
+# SPHERE_DATA_DIR = os.path.join(DATA_DIR, "sphere_meshes")
+# test_sphere_vertices_path = os.path.join(SPHERE_DATA_DIR, "vertices.npy")
+# test_sphere_faces_path = os.path.join(SPHERE_DATA_DIR, "faces.npy")
 
-# test_vertices = np.load(test_vertices_source_path)
-# test_faces = np.load(test_faces_source_path)
-
-# print(test_vertices.shape)
-# print(test_faces.shape)
-
-# generate test faces
-# TODO: set seed and change test_faces to be random instead of all 1's
-
-# random.seed(47)
-# TODO: CREATE TEST MESH, AND THEN TEST EVERYTHING ON THIS
-# QUESTION: how does this not put all the faces at the same coordinates?
-# creating pretty much a point 12 times
-# test_faces = gs.ones((12, 3))
-
-
-# QUESTION doesn't this rely on the fact that random_point() works?
-# test_vertices = space.random_point()
+# test_sphere_vertices = np.load(test_sphere_vertices_path)
+# test_sphere_faces = np.load(test_sphere_faces_path)
+# test_sphere_vertices = gs.cast(test_sphere_vertices, gs.int64)
+# test_sphere_faces = gs.cast(test_sphere_faces, gs.int64)
 
 
 def test_belongs():
@@ -76,8 +53,33 @@ def test_belongs():
 def test_is_tangent():
     """Test is_tangent.
 
-    TODO.
+    TODO.  Uses logarithm function of geomstats
+    to generate a tangent vector at point_1, and
+    then tests whether is_tangent() registers this
+    vector as a tangent vector at point_1.
+
+    Then, generates a tangent vector at point_2 and
+    demonstrates that this vector is no longer a tangent
+    vector at point_1.
+
     """
+    space = DiscreteSurfaces(faces=test_faces)
+    base_point = test_vertices
+    point_2 = space.random_point()
+    tangent_vector = Connection.log(point_2, base_point)
+    assert space.is_tangent(tangent_vector, base_point)
+
+    # non_tangent_vector=gs.array([1,0,1])
+    # vertices = test_sphere_vertices
+    # space = DiscreteSurfaces(faces=test_sphere_faces)
+    # base_point = vertices[3]
+    # tangent_vector = gs.array([1,0,0])
+    # non_tangent_vector=gs.array([1,0,1])
+    # print(base_point)
+    # print(tangent_vector)
+    # print(non_tangent_vector)
+    # assert space.is_tangent(tangent_vector,base_point) == True
+    # assert space.is_tangent(non_tangent_vector,base_point) != True
 
 
 def test_random_point_1():
@@ -120,8 +122,21 @@ def test_random_point_2():
 def test_vertex_areas():
     """Test vertex_areas.
 
-    TODO.
+    TODO. vertex_areas() might be referring to voronoi area.
+    not sure though. tbd.
+
+    We test this on a space whose initializing
+    point is a cube, and we test the function on
+    a cube with sides of length 2 centered at the origin.
+
+    The cube is meshed with triangles, so each face should
+    have area 2.
     """
+    # space = DiscreteSurfaces(faces=test_faces)
+    # point = test_vertices
+    # areas = gs.array([[12],[12],[12],[12],[12],[12],[12],[12],[12],[12],[12],[12]])
+    # print(areas.shape)
+    # assert (areas[0] == space.vertex_areas(point)[0]).all()
 
 
 def test_get_laplacian():
@@ -134,8 +149,45 @@ def test_get_laplacian():
 def test_normals():
     """Test normals.
 
-    TODO.
+    We test this on a space whose initializing
+    point is a cube, and we test the function on
+    a cube with sides of length 2 centered at the origin.
+    The cube is meshed with 12 triangles (2 triangles
+    per face.)
+
+    Recall that the magnitude of each normal vector is equal to
+    the area of the face it is normal to.
+
+    We compare the abs value of each normal vector array because:
+    note that the "normals" variable here calculates the normals
+    as pointing out of the surface, but the way that normals()
+    was constructed makes it so that the normal vector could be
+    pointing into the surface or out of the surface, (so it could
+    either be positive or negative). Because of this, we make all
+    of the normal vectors to the cube positive.
     """
+    space = DiscreteSurfaces(faces=test_faces)
+    point = test_vertices
+    cube_normals = np.array(
+        [
+            [0, 0, 2],
+            [0, 0, 2],
+            [0, 2, 0],
+            [0, 2, 0],
+            [2, 0, 0],
+            [2, 0, 0],
+            [0, -2, 0],
+            [0, -2, 0],
+            [-2, 0, 0],
+            [-2, 0, 0],
+            [0, 0, -2],
+            [0, 0, -2],
+        ]
+    )
+    abs_cube_normals = gs.abs(cube_normals)
+    abs_int_normals = gs.cast(gs.abs(space.normals(point)), gs.int64)
+    for i_vect, cube_vector in enumerate(abs_cube_normals):
+        assert (cube_vector == abs_int_normals[i_vect]).all()
 
 
 def test_surface_one_forms():
