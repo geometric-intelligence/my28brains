@@ -44,6 +44,6 @@ def remove_degenerate_faces(vertices, faces, atol=gs.atol):
     discrete_surfaces = DiscreteSurfaces(faces=faces)
     face_areas = discrete_surfaces.face_areas(vertices)
     # face_mask = ~gs.isclose(face_areas, 0.0, atol=atol)
-    face_mask = ~gs.less(face_areas, 0.2)
+    face_mask = ~gs.less(face_areas, 0.1)
     mesh.update_faces(face_mask)
     return mesh.vertices, mesh.faces

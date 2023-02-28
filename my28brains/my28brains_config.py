@@ -7,9 +7,12 @@ import subprocess
 
 # specify brain hemispheres to analyze
 hemispheres = ["left", "right"]
+# hemispheres = ["right", "left"]
 
 # specify hippocampus structures to analyze
-structure_ids = list(range(1, 10))
+# structure_ids = list(range(1, 10))
+structure_ids = list(range(6, 10))
+# structure_ids = list(range(5, 6))
 structure_ids.append(-1)
 
 # build work path from git root path
@@ -30,6 +33,12 @@ CENTERED_NONDEGENERATE_MESHES_DIR = os.path.join(
 print("CENTERED_NONDEGENERATE_MESHES_DIR: ", CENTERED_NONDEGENERATE_MESHES_DIR)
 if not os.path.exists(CENTERED_NONDEGENERATE_MESHES_DIR):
     os.makedirs(CENTERED_NONDEGENERATE_MESHES_DIR)
+
+# geodesics directory
+GEODESICS_DIR = os.path.join(os.getcwd(), "data", "geodesics")
+print("GEODESICS_DIR: ", GEODESICS_DIR)
+if not os.path.exists(GEODESICS_DIR):
+    os.makedirs(GEODESICS_DIR)
 
 # parameters for h2_match
 a0 = 0.01

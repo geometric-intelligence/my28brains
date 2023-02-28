@@ -19,3 +19,4 @@ dependencies:
     - torch
     - trimesh
     - -r dev-requirements.txt
+    - joblib
