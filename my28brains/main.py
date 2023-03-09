@@ -5,16 +5,18 @@ import os
 import sys
 import time
 import warnings
-from multiprocessing import cpu_count
 
 import numpy as np
 
 # import torch
 import trimesh
-from joblib import Parallel, delayed
 
 import my28brains.io_mesh as io_mesh
 import my28brains.my28brains_config as my28brains_config
+
+# from multiprocessing import cpu_count
+
+# from joblib import Parallel, delayed
 
 sys_dir = os.path.dirname(my28brains_config.WORK_DIR)
 sys.path.append(sys_dir)
@@ -86,14 +88,17 @@ for hemisphere in my28brains_config.hemispheres:
         write_centered_nondegenerate_meshes(hemisphere, structure_id)
 
 
-def _geodesic_interp(i_pair, start_paths, end_paths, device_id=-1):
+def _geodesic_interp(i_pair, structure_id, start_paths, end_paths, device_id=-1):
     """Auxiliary function that will be run in parallelon different GPUs.
 
     note the decimation of faces: decrease the reoltuion of the mesh,
     ie the number of face ans vertice.
     """
-    if device_id == -1:
-        device_id = 0
+    print(
+        f"\n\n -------> Geodesic interpolation for [{hemisphere} hemisphere], "
+        f"[structure {structure_id}] , pair:"
+        f"{i_pair}/{len(start_paths)}"
+    )
 
     start_time = time.time()
     start_path = start_paths[i_pair]
@@ -123,10 +128,7 @@ def _geodesic_interp(i_pair, start_paths, end_paths, device_id=-1):
             FunS,
         ] = H2_SurfaceMatch.utils.input_output.loadData(start_path)
         vertices_source = vertices_source / 10
-        [
-            vertices_source,
-            faces_source,
-        ] = H2_SurfaceMatch.utils.input_output.decimate_mesh(
+        [vertices_source, faces_source, _] = H2_SurfaceMatch.utils.utils.decimate_mesh(
             vertices_source, faces_source, int(faces_source.shape[0] / 4)
         )
         sources = [[vertices_source, faces_source]]
@@ -137,10 +139,7 @@ def _geodesic_interp(i_pair, start_paths, end_paths, device_id=-1):
             FunT,
         ] = H2_SurfaceMatch.utils.input_output.loadData(end_path)
         vertices_target = vertices_target / 10
-        [
-            vertices_target,
-            faces_target,
-        ] = H2_SurfaceMatch.utils.input_output.decimate_mesh(
+        [vertices_target, faces_target, _] = H2_SurfaceMatch.utils.utils.decimate_mesh(
             vertices_target, faces_target, int(faces_target.shape[0] / 4)
         )
         targets = [[vertices_target, faces_target]]
@@ -186,7 +185,7 @@ def _geodesic_interp(i_pair, start_paths, end_paths, device_id=-1):
             )
 
 
-def write_structure_geodesic(hemisphere, structure_id):
+def write_substructure_geodesic(hemisphere, structure_id, device_id):
     """Write a geodesic for one structure."""
     # use_cuda = device_id
     # torchdeviceId = torch.device(f"cuda:{use_cuda}") if use_cuda else "cpu"
@@ -207,10 +206,15 @@ def write_structure_geodesic(hemisphere, structure_id):
     start_paths = paths[:-1]
     end_paths = paths[1:]
 
-    # GEODESICS_DIR = os.path.join(os.getcwd(), "data", "geodesics")
-    # print("GEODESICS_DIR: ", GEODESICS_DIR)
-    # if not os.path.exists(GEODESICS_DIR):
-    #     os.makedirs(GEODESICS_DIR)
+    GEODESICS_DIR = os.path.join(os.getcwd(), "data", "geodesics")
+    print("GEODESICS_DIR: ", GEODESICS_DIR)
+    if not os.path.exists(GEODESICS_DIR):
+        os.makedirs(GEODESICS_DIR)
+
+    # Parallel(n_jobs=int(cpu_count()))(
+    # delayed(_geodesic_interp)(i_pair, structure_id, start_paths, end_paths, device_id)
+    #     for i_pair in range(len(start_paths))
+    # )
 
     for i_pair in range(len(start_paths)):
         print(
@@ -218,16 +222,24 @@ def write_structure_geodesic(hemisphere, structure_id):
             f"[structure {structure_id}] , pair:"
             f"{i_pair}/{len(start_paths)}"
         )
-        device_id = structure_id
-        _geodesic_interp(i_pair, start_paths, end_paths, device_id)
+        _geodesic_interp(i_pair, structure_id, start_paths, end_paths, device_id)
 
 
+# we have 10 GPUs, naming starts at 0.
 for hemisphere in my28brains_config.hemispheres:
-    Parallel(n_jobs=int(cpu_count()))(
-        delayed(write_structure_geodesic)(hemisphere, structure_id)
-        for i_id, structure_id in enumerate(my28brains_config.structure_ids)
-    )
+    for structure_id in my28brains_config.structure_ids:
+        if structure_id == -1:
+            device_id = 0
+        else:
+            device_id = structure_id
+        write_substructure_geodesic(hemisphere, structure_id, device_id)
+
+# new plan, use this to parallelize each pair?
+# Parallel(n_jobs=int(cpu_count()))(
+#     delayed(write_substructure_geodesic)(hemisphere, structure_id)
+#     for i_id, structure_id in enumerate(my28brains_config.structure_ids)
+# )
 
 # for hemisphere in my28brains_config.hemispheres:
 #     for structure_id in my28brains_config.structure_ids:
-#         write_structure_geodesic(hemisphere, structure_id)
+#         write_substructure_geodesic(hemisphere, structure_id)

@@ -11,7 +11,7 @@ hemispheres = ["left", "right"]
 
 # specify hippocampus structures to analyze
 # structure_ids = list(range(1, 10))
-structure_ids = list(range(6, 10))
+structure_ids = list(range(3, 9))
 # structure_ids = list(range(5, 6))
 structure_ids.append(-1)
 
