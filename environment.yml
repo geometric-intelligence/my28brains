@@ -19,4 +19,4 @@ dependencies:
     - torch
     - trimesh
     - -r dev-requirements.txt
-    - meshzoo
+    - joblib
