@@ -127,7 +127,7 @@ def _geodesic_interp(i_pair, structure_id, start_paths, end_paths, device_id=-1)
             faces_source,
             FunS,
         ] = H2_SurfaceMatch.utils.input_output.loadData(start_path)
-        vertices_source = vertices_source / 10
+        vertices_source = vertices_source / 1  # was 10
         [
             vertices_source,
             faces_source,
@@ -141,7 +141,7 @@ def _geodesic_interp(i_pair, structure_id, start_paths, end_paths, device_id=-1)
             faces_target,
             FunT,
         ] = H2_SurfaceMatch.utils.input_output.loadData(end_path)
-        vertices_target = vertices_target / 10
+        vertices_target = vertices_target / 1  # was 10
         [
             vertices_target,
             faces_target,
