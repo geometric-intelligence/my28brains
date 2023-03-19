@@ -151,7 +151,7 @@ def plot_hormones(df, dayID, plot_type="dot", hormones=HORMONES, savefig=False):
     ax.set_ylim(0, df["Estro"].max() + 5)
     ax.legend(loc="upper left")
     if savefig:
-        fig.savefig(f"{FIGS}/plot_hormones_{dayID:02d}.svg")
+        fig.savefig(f"{TMP}/plot_hormones_{dayID:02d}.svg")
     return fig
 
 
