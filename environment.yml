@@ -15,7 +15,6 @@ dependencies:
     - numpy
     - open3d
     - pykeops
-    - plotly-orca==1.3.1
     - plotly
     - psutil
     - requests
