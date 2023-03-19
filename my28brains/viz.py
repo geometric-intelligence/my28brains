@@ -7,9 +7,16 @@ import matplotlib
 import matplotlib.pyplot as plt
 import nibabel
 import numpy as np
+import plotly.graph_objects as go
+import plotly.io as pio
 from matplotlib import animation
 
 IMG_DIR = "/home/data/28andme/"
+HORMONES = {"Estro": "Estrogen", "Prog": "Progesterone", "LH": "LH", "FSH": "FSH"}
+COLORS = {"Estro": "#1f77b4", "Prog": "#ff7f0e", "LH": "#2ca02c", "FSH": "#d62728"}
+
+FIGS = os.path.join(os.getcwd(), "notebooks", "figs")
+GIFS = os.path.join(os.getcwd(), "notebooks", "gifs")
 
 
 def init_matplotlib():
@@ -103,3 +110,94 @@ def animate(img_suffix="ashs/right_lfseg_corr_usegray_CT_LQ.nii.gz", slice_z=16)
 
     anima = quick_play()
     return anima
+
+
+def plot_hormones(df, dayID, plot_type="dot", hormones=HORMONES, savefig=False):
+    """Plot hormones - original function."""
+    if plot_type == "dot":
+        df = df[df["dayID"] < dayID]
+    times = df["dayID"]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    for h in hormones:
+        ax.plot(times, df[h], label=HORMONES[h])
+
+    if dayID > 2:
+        if plot_type == "dot":
+            for h in hormones:
+                ax.scatter(times.values[-1], df[h].values[-1], s=100)
+
+    ax.set_xlim((0, 30))
+    ax.set_ylim(0, df["Estro"].max() + 5)
+    ax.legend(loc="upper left")
+    if savefig:
+        fig.savefig(f"{FIGS}/plot_hormones_dot_pic{dayID:02d}.svg")
+    return fig
+
+
+def plotly_hormones(
+    df, dayID, plot_type="dot", hormones=HORMONES, ymax=None, savefig=False
+):
+    """Plot hormones with plotly."""
+    if ymax is None:
+        ymax = df[hormones].max().max() + 10
+    if plot_type == "dot":
+        df = df[df["dayID"] < dayID]
+    times = df["dayID"]
+
+    fig = go.Figure()
+
+    # Add traces
+    for h in hormones:
+        fig.add_trace(
+            go.Scatter(
+                x=times,
+                y=df[h],
+                mode="lines+markers" if plot_type == "dot" else "lines",
+                name=HORMONES[h],
+                marker=dict(color=COLORS[h]),
+            )
+        )
+
+    # Add the last point with a larger marker size if dayID > 2 and plot_type is "dot"
+    if dayID > 1:
+        if plot_type == "dot":
+            for h in hormones:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[times.values[-1]],
+                        y=[df[h].values[-1]],
+                        mode="markers",
+                        marker=dict(size=10, color=COLORS[h]),
+                        showlegend=False,
+                    )
+                )
+    if plot_type == "vertical_line":
+        for h in hormones:
+            fig.add_trace(
+                go.Scatter(
+                    x=[times.values[dayID], times.values[dayID]],
+                    y=[0, ymax],
+                    mode="lines",
+                    line=dict(color="black"),
+                    showlegend=False,
+                )
+            )
+
+    # Set the axis labels and title
+    fig.update_layout(
+        xaxis_title="Day",
+        yaxis_title="Hormone Level",
+        xaxis=dict(range=[0, 30]),
+        yaxis=dict(range=[0, ymax]),
+        width=900,  # Adjust the width as needed
+        height=300,  # Adjust the height as needed
+    )
+
+    # Save the figure
+    if savefig:
+        pio.write_image(fig, f"{FIGS}/plotly_hormones_{dayID:02d}.png", format="png")
+
+    # Show the figure
+    fig.show()
