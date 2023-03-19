@@ -15,8 +15,13 @@ IMG_DIR = "/home/data/28andme/"
 HORMONES = {"Estro": "Estrogen", "Prog": "Progesterone", "LH": "LH", "FSH": "FSH"}
 COLORS = {"Estro": "#1f77b4", "Prog": "#ff7f0e", "LH": "#2ca02c", "FSH": "#d62728"}
 
-FIGS = os.path.join(os.getcwd(), "notebooks", "figs")
-GIFS = os.path.join(os.getcwd(), "notebooks", "gifs")
+FIGS = os.path.join(os.path.dirname(os.getcwd()), "results", "figs")
+ANIMS = os.path.join(os.path.dirname(os.getcwd()), "results", "anims")
+TMP = os.path.join(os.path.dirname(os.getcwd()), "results", "tmp")
+
+for dir in [FIGS, ANIMS, TMP]:
+    if not os.path.exists(dir):
+        os.makedirs(dir)
 
 
 def init_matplotlib():
@@ -113,7 +118,21 @@ def animate(img_suffix="ashs/right_lfseg_corr_usegray_CT_LQ.nii.gz", slice_z=16)
 
 
 def plot_hormones(df, dayID, plot_type="dot", hormones=HORMONES, savefig=False):
-    """Plot hormones - original function."""
+    """Plot hormones - original function.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe with hormones.
+    dayID : int
+        Day ID to plot.
+    plot_type : string
+        Type of plot. Either "dot" or "line".
+    hormones : list
+        List of hormones to plot.
+    savefig : bool
+        Whether to save the figure.
+    """
     if plot_type == "dot":
         df = df[df["dayID"] < dayID]
     times = df["dayID"]
@@ -132,19 +151,42 @@ def plot_hormones(df, dayID, plot_type="dot", hormones=HORMONES, savefig=False):
     ax.set_ylim(0, df["Estro"].max() + 5)
     ax.legend(loc="upper left")
     if savefig:
-        fig.savefig(f"{FIGS}/plot_hormones_dot_pic{dayID:02d}.svg")
+        fig.savefig(f"{FIGS}/plot_hormones_{dayID:02d}.svg")
     return fig
 
 
-def plotly_hormones(
-    df, dayID, plot_type="dot", hormones=HORMONES, ymax=None, savefig=False
-):
-    """Plot hormones with plotly."""
+def plotly_hormones(df, by, day, hormones=HORMONES, ymax=None, savefig=False):
+    """Plot hormones - plotly version.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe with hormones.
+    by : string
+        Type of day to plot by.
+        Either DayID or CycleDay.
+    day_id : int
+        Day ID to plot.
+    hormones : list
+        List of hormones to plot.
+    ymax : int
+        Maximum value for y-axis.
+    savefig : bool
+        Whether to save the figure.
+    """
+    day_labels = {
+        "dayID": "Day",
+        "CycleDay": "Cycle Day",
+    }
+
+    if by not in ["dayID", "CycleDay"]:
+        raise ValueError("by must be either dayID or CycleDay.")
     if ymax is None:
         ymax = df[hormones].max().max() + 10
-    if plot_type == "dot":
-        df = df[df["dayID"] < dayID]
-    times = df["dayID"]
+
+    df = df[df[by] <= day]
+    df = df.sort_values(by=by)
+    times = df[by]
 
     fig = go.Figure()
 
@@ -154,50 +196,44 @@ def plotly_hormones(
             go.Scatter(
                 x=times,
                 y=df[h],
-                mode="lines+markers" if plot_type == "dot" else "lines",
+                mode="lines",
                 name=HORMONES[h],
-                marker=dict(color=COLORS[h]),
+                line=dict(color=COLORS[h], width=8),
+                showlegend=True,
+                line_shape="spline",
             )
         )
 
-    # Add the last point with a larger marker size if dayID > 2 and plot_type is "dot"
-    if dayID > 1:
-        if plot_type == "dot":
-            for h in hormones:
-                fig.add_trace(
-                    go.Scatter(
-                        x=[times.values[-1]],
-                        y=[df[h].values[-1]],
-                        mode="markers",
-                        marker=dict(size=10, color=COLORS[h]),
-                        showlegend=False,
-                    )
-                )
-    if plot_type == "vertical_line":
-        for h in hormones:
-            fig.add_trace(
-                go.Scatter(
-                    x=[times.values[dayID], times.values[dayID]],
-                    y=[0, ymax],
-                    mode="lines",
-                    line=dict(color="black"),
-                    showlegend=False,
-                )
-            )
-
-    # Set the axis labels and title
+    # Update layout
     fig.update_layout(
-        xaxis_title="Day",
-        yaxis_title="Hormone Level",
-        xaxis=dict(range=[0, 30]),
-        yaxis=dict(range=[0, ymax]),
+        template="plotly_white",
+        xaxis_title=f"{day_labels[by]}",
+        yaxis_title="Hormone",
+        xaxis=dict(range=[0, 30], showgrid=False, tickfont=dict(size=20), linewidth=8),
+        yaxis=dict(
+            range=[-ymax * 0.05, ymax],
+            showgrid=False,
+            tickfont=dict(size=20),
+            linewidth=8,
+            zeroline=False,
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(size=20),
+        ),
+        margin=dict(l=60, r=30, t=30, b=60),
         width=900,  # Adjust the width as needed
         height=300,  # Adjust the height as needed
     )
+    # Set axis titles' font size
+    fig.update_xaxes(title_font=dict(size=20))
+    fig.update_yaxes(title_font=dict(size=20))
 
     # Save the figure
     if savefig:
-        pio.write_image(fig, f"{FIGS}/plotly_hormones_{dayID:02d}.png", format="png")
-
-    # Show the figure
-    fig.show()
+        pio.write_image(fig, f"{TMP}/hormones_day_{day:02d}.png", format="png")
+    return fig
