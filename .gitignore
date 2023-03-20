@@ -2,6 +2,7 @@
 old_data/
 data/
 blender/
+results/tmp/
 
 # Test npy
 tests/*.npy
