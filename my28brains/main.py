@@ -45,11 +45,8 @@ centered_dir = default_config.centered_dir
 centered_nondegenerate_dir = default_config.centered_nondegenerate_dir
 geodesics_dir = default_config.geodesics_dir
 
-NUM_GPUS = 10
-PROC_PER_GPU = 8
 
-
-def geodesic_interp(args_with_queue):
+def interpolate_with_geodesic(args_with_queue):
     """Interpolate geodesics for a given pair of meshes.
 
     Parameters
@@ -70,7 +67,7 @@ def geodesic_interp(args_with_queue):
     try:
         ident = multiprocessing.current_process().ident
         print("{}: starting process on GPU {}".format(ident, gpu_id))
-        _geodesic_interp(i_pair, paths, n_geodesic_time, gpu_id)
+        _interpolate_with_geodesic(i_pair, paths, n_geodesic_time, gpu_id)
         print("{}: finished".format(ident))
     finally:
         queue.put(gpu_id)
@@ -97,7 +94,7 @@ def write_centered_nondegenerate_meshes(hemisphere, structure_id, area_threshold
 
     print(
         f"Found {len(paths)} ply files for {hemisphere}"
-        + f"hemisphere and anatomical structure {structure_id}:"
+        + f" hemisphere and anatomical structure {structure_id}:"
     )
     for path in paths:
         ply_path = os.path.join(
@@ -118,7 +115,7 @@ def write_centered_nondegenerate_meshes(hemisphere, structure_id, area_threshold
             print(f"File already exists (no rewrite): {ply_path}")
 
 
-def _geodesic_interp(i_pair, paths, n_geodesic_time, gpu_id):
+def _interpolate_with_geodesic(i_pair, paths, n_geodesic_time, gpu_id):
     """Auxiliary function that will be run in parallel on different GPUs.
 
     Note the decimation of faces: decrease the resolution of the mesh,
@@ -221,10 +218,11 @@ def _geodesic_interp(i_pair, paths, n_geodesic_time, gpu_id):
 if __name__ == "__main__":
     """Parse the default_config file and launch all experiments.
 
-    This launches experiments with wandb with different:
+    This launches experiments with different:
     - hippocampal substructure,
     - hemisphere,
-    - number of time points along the geodesic.
+    - number of time points along the geodesic,
+    - area threshold for removing degenerate faces.
     """
     for hemisphere, structure_id, n_geodesic_time, area_threshold in itertools.product(
         default_config.hemispheres,
@@ -250,15 +248,15 @@ if __name__ == "__main__":
         multiprocessing.set_start_method("spawn", force=True)
         manager = multiprocessing.Manager()
         queue = manager.Queue()
-        for gpu_id in range(NUM_GPUS):
+        for gpu_id in range(default_config.n_gpus):
             queue.put(gpu_id)
 
-        pool = multiprocessing.Pool(processes=NUM_GPUS)
-        i_pairs = [0, 1]  # list(range(len(paths) - 1))
+        pool = multiprocessing.Pool(processes=default_config.n_gpus)
+        i_pairs = list(range(31))  # list(range(len(paths) - 1))
         args_with_queue = [
             (i_pair, paths, n_geodesic_time, queue) for i_pair in i_pairs
         ]
-        for _ in pool.imap_unordered(geodesic_interp, args_with_queue):
+        for _ in pool.imap_unordered(interpolate_with_geodesic, args_with_queue):
             pass
         pool.close()
         pool.join()
