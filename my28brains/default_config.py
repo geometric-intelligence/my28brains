@@ -33,7 +33,7 @@ n_geodesic_times = [10]
 # Looking at the first 10 days is interesting because:
 # - we have 10 gpus, so we can run 10 interpolations at once
 # - they contain most of the progesterone peak.
-day_range = [2, 3]
+day_range = [0, 7]
 
 # face area threshold for non-degenerate meshes:
 # the less we decimate, the more likely it is to have small faces

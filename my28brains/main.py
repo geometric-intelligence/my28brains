@@ -12,7 +12,6 @@ This is probably because of a pykeops issue.
 
 To fix this, run the following commands:
 - remove: rm -rf ~/.cache/keops*/build
-- reinstall: pip install pykeops
 - rebuild from python console.
     >>> import pykeops
 """
@@ -160,12 +159,12 @@ def _interpolate_with_geodesic(i_pair, paths, n_geodesic_time, gpu_id):
         FunS,
     ] = H2_SurfaceMatch.utils.input_output.loadData(start_path)
     vertices_source = vertices_source  # was / 10
-    # [
-    #     vertices_source,
-    #     faces_source,
-    # ] = H2_SurfaceMatch.utils.utils.decimate_mesh(  # noqa E231
-    #     vertices_source, faces_source, int(faces_source.shape[0] / 4)
-    # )
+    [
+        vertices_source,
+        faces_source,
+    ] = H2_SurfaceMatch.utils.utils.decimate_mesh(  # noqa E231
+        vertices_source, faces_source, int(faces_source.shape[0] / 2)
+    )
     sources = [[vertices_source, faces_source]]
 
     [
@@ -174,12 +173,12 @@ def _interpolate_with_geodesic(i_pair, paths, n_geodesic_time, gpu_id):
         FunT,
     ] = H2_SurfaceMatch.utils.input_output.loadData(end_path)
     vertices_target = vertices_target  # was / 10
-    # [
-    #     vertices_target,
-    #     faces_target,
-    # ] = H2_SurfaceMatch.utils.utils.decimate_mesh(  # noqa E231
-    #     vertices_target, faces_target, int(faces_target.shape[0] / 4)
-    # )
+    [
+        vertices_target,
+        faces_target,
+    ] = H2_SurfaceMatch.utils.utils.decimate_mesh(  # noqa E231
+        vertices_target, faces_target, int(faces_target.shape[0] / 2)
+    )
     targets = [[vertices_target, faces_target]]
 
     source = sources[0]
@@ -195,7 +194,7 @@ def _interpolate_with_geodesic(i_pair, paths, n_geodesic_time, gpu_id):
         c1=default_config.c1,
         d1=default_config.d1,
         a2=default_config.a2,
-        resolutions=2,
+        resolutions=1,
         paramlist=default_config.paramlist,
         device=device,
     )
