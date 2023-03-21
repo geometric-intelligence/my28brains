@@ -24,13 +24,21 @@ hemispheres = ["left"]  # , "right"]
 
 # structure_ids = [2, 4, 5, 6]
 # structure_ids.append(-1)
-structure_ids = [2]
+structure_ids = [-1]
 
 # number of time points along each interpolating geodesic
 n_geodesic_times = [10]
 
+# range of days to interpolate in between
+# Looking at the first 10 days is interesting because:
+# - we have 10 gpus, so we can run 10 interpolations at once
+# - they contain most of the progesterone peak.
+day_range = [2, 3]
+
 # face area threshold for non-degenerate meshes:
-area_thresholds = [0.15]
+# the less we decimate, the more likely it is to have small faces
+# thus the thresholt needs to be higher
+area_thresholds = [0.0]
 
 # build work path from git root path
 gitroot_path = subprocess.check_output(

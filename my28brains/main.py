@@ -1,5 +1,10 @@
 """Mesh and compute deformations of brain time series.
 
+Note that the preprocessing should be done before running this script.
+
+Run:
+>>> python main_preprocessing.py && python main.py
+
 Note on pykeops:
 If main cannot run because of:
 EOFError: Ran out of input
@@ -154,13 +159,13 @@ def _interpolate_with_geodesic(i_pair, paths, n_geodesic_time, gpu_id):
         faces_source,
         FunS,
     ] = H2_SurfaceMatch.utils.input_output.loadData(start_path)
-    vertices_source = vertices_source / 1  # was 10
-    [
-        vertices_source,
-        faces_source,
-    ] = H2_SurfaceMatch.utils.utils.decimate_mesh(  # noqa E231
-        vertices_source, faces_source, int(faces_source.shape[0] / 4)
-    )
+    vertices_source = vertices_source  # was / 10
+    # [
+    #     vertices_source,
+    #     faces_source,
+    # ] = H2_SurfaceMatch.utils.utils.decimate_mesh(  # noqa E231
+    #     vertices_source, faces_source, int(faces_source.shape[0] / 4)
+    # )
     sources = [[vertices_source, faces_source]]
 
     [
@@ -168,20 +173,19 @@ def _interpolate_with_geodesic(i_pair, paths, n_geodesic_time, gpu_id):
         faces_target,
         FunT,
     ] = H2_SurfaceMatch.utils.input_output.loadData(end_path)
-    vertices_target = vertices_target / 1  # was 10
-    [
-        vertices_target,
-        faces_target,
-    ] = H2_SurfaceMatch.utils.utils.decimate_mesh(  # noqa E231
-        vertices_target, faces_target, int(faces_target.shape[0] / 4)
-    )
+    vertices_target = vertices_target  # was / 10
+    # [
+    #     vertices_target,
+    #     faces_target,
+    # ] = H2_SurfaceMatch.utils.utils.decimate_mesh(  # noqa E231
+    #     vertices_target, faces_target, int(faces_target.shape[0] / 4)
+    # )
     targets = [[vertices_target, faces_target]]
 
     source = sources[0]
     target = targets[0]
 
-    # decimation also happens at the beginning of the code within
-    # h2_match.H2multires
+    # decimation also happens at the start of h2_match.H2multires
     geod, F0 = H2_SurfaceMatch.H2_match.H2MultiRes(
         source=source,
         target=target,
@@ -197,10 +201,6 @@ def _interpolate_with_geodesic(i_pair, paths, n_geodesic_time, gpu_id):
     )
     comp_time = time.time() - start_time
     print(f"Geodesic interpolation {i_pair} took: {comp_time / 60:.2f} minutes.")
-
-    # # We use the start mesh as the basename for the ply files
-    # ply_prefix = os.path.join(geodesics_dir,
-    # os.path.basename(start_path))
 
     for i_geodesic_time in range(geod.shape[0]):
         file_name = ply_prefix + "{}".format(i_geodesic_time)
@@ -234,13 +234,13 @@ if __name__ == "__main__":
 
         string_base = os.path.join(
             centered_nondegenerate_dir,
-            f"{hemisphere}_structure_{structure_id}**.ply",
+            f"{hemisphere}_structure_{structure_id}**_at_{area_threshold}.ply",
         )
         paths = sorted(glob.glob(string_base))
 
         print(
             f"Found {len(paths)} ply files for {hemisphere} hemisphere"
-            + f"and anatomical structure {structure_id}:"
+            f" and anatomical structure {structure_id}:"
         )
         for path in paths:
             print(path)
@@ -252,7 +252,7 @@ if __name__ == "__main__":
             queue.put(gpu_id)
 
         pool = multiprocessing.Pool(processes=default_config.n_gpus)
-        i_pairs = list(range(31))  # list(range(len(paths) - 1))
+        i_pairs = list(range(default_config.day_range[0], default_config.day_range[1]))
         args_with_queue = [
             (i_pair, paths, n_geodesic_time, queue) for i_pair in i_pairs
         ]
