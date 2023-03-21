@@ -7,9 +7,27 @@ import matplotlib
 import matplotlib.pyplot as plt
 import nibabel
 import numpy as np
+import plotly.graph_objects as go
+import plotly.io as pio
 from matplotlib import animation
 
 IMG_DIR = "/home/data/28andme/"
+HORMONES = {"Estro": "Estrogen", "Prog": "Progesterone", "LH": "LH", "FSH": "FSH"}
+
+# Colors follow the color scheme from Taylor et al. 2020
+COLORS = {
+    "Estro": "#AFEEEE",  # pastel blue-turquoise
+    "Prog": "#507DBC",  # dark blue
+    "LH": "#FF7373",  # red
+    "FSH": "#FADA5E",  # pastel yellow
+}
+
+ANIMS = os.path.join(os.getcwd(), "results", "anims")
+TMP = os.path.join(os.getcwd(), "results", "tmp")
+
+for dir in [ANIMS, TMP]:
+    if not os.path.exists(dir):
+        os.makedirs(dir)
 
 
 def init_matplotlib():
@@ -103,3 +121,125 @@ def animate(img_suffix="ashs/right_lfseg_corr_usegray_CT_LQ.nii.gz", slice_z=16)
 
     anima = quick_play()
     return anima
+
+
+def plot_hormones(df, dayID, plot_type="dot", hormones=HORMONES, savefig=False):
+    """Plot hormones - original function.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe with hormones.
+    dayID : int
+        Day ID to plot.
+    plot_type : string
+        Type of plot. Either "dot" or "line".
+    hormones : list
+        List of hormones to plot.
+    savefig : bool
+        Whether to save the figure.
+    """
+    if plot_type == "dot":
+        df = df[df["dayID"] < dayID]
+    times = df["dayID"]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    for h in hormones:
+        ax.plot(times, df[h], label=HORMONES[h])
+
+    if dayID > 2:
+        if plot_type == "dot":
+            for h in hormones:
+                ax.scatter(times.values[-1], df[h].values[-1], s=100)
+
+    ax.set_xlim((0, 30))
+    ax.set_ylim(0, df["Estro"].max() + 5)
+    ax.legend(loc="upper left")
+    if savefig:
+        fig.savefig(f"{TMP}/plot_hormones_{dayID:02d}.svg")
+    return fig
+
+
+def plotly_hormones(df, by, day, hormones=HORMONES, ymax=None, savefig=False):
+    """Plot hormones - plotly version.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe with hormones.
+    by : string
+        Type of day to plot by.
+        Either DayID or CycleDay.
+    day_id : int
+        Day ID to plot.
+    hormones : list
+        List of hormones to plot.
+    ymax : int
+        Maximum value for y-axis.
+    savefig : bool
+        Whether to save the figure.
+    """
+    day_labels = {
+        "dayID": "Day",
+        "CycleDay": "Cycle Day",
+    }
+
+    if by not in ["dayID", "CycleDay"]:
+        raise ValueError("by must be either dayID or CycleDay.")
+    if ymax is None:
+        ymax = df[hormones].max().max() + 10
+
+    df = df[df[by] <= day]
+    df = df.sort_values(by=by)
+    times = df[by]
+
+    fig = go.Figure()
+
+    # Add traces
+    for h in hormones:
+        fig.add_trace(
+            go.Scatter(
+                x=times,
+                y=df[h],
+                mode="lines",
+                name=HORMONES[h],
+                line=dict(color=COLORS[h], width=8),
+                showlegend=True,
+                line_shape="spline",
+            )
+        )
+
+    # Update layout
+    fig.update_layout(
+        template="plotly_white",
+        xaxis_title=f"{day_labels[by]}",
+        yaxis_title="Hormone",
+        xaxis=dict(range=[0, 30], showgrid=False, tickfont=dict(size=20), linewidth=8),
+        yaxis=dict(
+            range=[-ymax * 0.05, ymax],
+            showgrid=False,
+            tickfont=dict(size=20),
+            linewidth=8,
+            zeroline=False,
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(size=20),
+        ),
+        margin=dict(l=60, r=30, t=30, b=60),
+        width=900,  # Adjust the width as needed
+        height=300,  # Adjust the height as needed
+    )
+    # Set axis titles' font size
+    fig.update_xaxes(title_font=dict(size=20))
+    fig.update_yaxes(title_font=dict(size=20))
+
+    # Save the figure
+    if savefig:
+        pio.write_image(fig, f"{TMP}/hormones_day_{day:02d}.png", format="png")
+    return fig

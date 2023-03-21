@@ -1,7 +1,10 @@
 # Brain data
 old_data/
 data/
-blender/
+my28brains/results/tmp/
+my28brains/results/anims/
+my28brains/results/blends/
+my28brains/results/figs/
 
 # Test npy
 tests/*.npy
