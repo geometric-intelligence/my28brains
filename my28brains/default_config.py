@@ -5,42 +5,37 @@
 import os
 import subprocess
 
+use_cuda = 1
 # specify brain hemispheres to analyze
 hemispheres = ["left"]  # , "right"]
-# hemispheres = ["right", "left"]
 
 # specify hippocampus structures to analyze
-# structure_ids = list(range(1, 10))
-structure_ids = list(range(3, 4))
-# structure_ids = list(range(5, 6))
+structure_ids = []  # list(range(3, 4))
 structure_ids.append(-1)
+
+# number of time points along each interpolating geodesic
+n_times = 8
 
 # build work path from git root path
 gitroot_path = subprocess.check_output(
     ["git", "rev-parse", "--show-toplevel"], universal_newlines=True
 )
 os.chdir(gitroot_path[:-1])
-WORK_DIR = os.getcwd()
+work_dir = os.getcwd()
 
-# build path to centered meshes (previously generated in jupyter notebooks)
-CENTERED_MESHES_DIR = os.path.join(os.getcwd(), "data", "centered_meshes")
-
-# build path to centered_nondegenerate meshes, and create directory if
-# it does not exist
-CENTERED_NONDEGENERATE_MESHES_DIR = os.path.join(
+centered_dir = os.path.join(os.getcwd(), "data", "centered_meshes")
+centered_nondegenerate_dir = os.path.join(
     os.getcwd(), "data", "centered_nondegenerate_meshes"
 )
-print("CENTERED_NONDEGENERATE_MESHES_DIR: ", CENTERED_NONDEGENERATE_MESHES_DIR)
-if not os.path.exists(CENTERED_NONDEGENERATE_MESHES_DIR):
-    os.makedirs(CENTERED_NONDEGENERATE_MESHES_DIR)
+geodesics_dir = os.path.join(os.getcwd(), "data", "geodesics")
 
-# geodesics directory
-GEODESICS_DIR = os.path.join(os.getcwd(), "data", "geodesics")
-print("GEODESICS_DIR: ", GEODESICS_DIR)
-if not os.path.exists(GEODESICS_DIR):
-    os.makedirs(GEODESICS_DIR)
+for mesh_dir in [centered_dir, centered_nondegenerate_dir, geodesics_dir]:
+    if not os.path.exists(mesh_dir):
+        os.makedirs(mesh_dir)
 
 # parameters for h2_match
+h2_dir = os.path.join(work_dir, "H2_SurfaceMatch")
+
 a0 = 0.01
 a1 = 100
 b1 = 100
