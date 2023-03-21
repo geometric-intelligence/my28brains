@@ -21,7 +21,7 @@ import default_config
 import numpy as np
 import trimesh
 
-import my28brains.meshing
+import my28brains.meshing as meshing
 
 data_dir = default_config.data_dir
 meshes_dir = default_config.meshes_dir
@@ -62,11 +62,9 @@ def write_meshes(hemisphere, structure_id):
         if os.path.exists(ply_path):
             print(f"File exists (no rewrite): {ply_path}")
             continue
-        mesh = my28brains.meshing.extract_mesh(
-            nii_path=nii_path, structure_id=structure_id
-        )
+        mesh = meshing.extract_mesh(nii_path=nii_path, structure_id=structure_id)
 
-        my28brains.meshing.write_trimesh_to_ply(mesh=mesh, ply_path=ply_path)
+        meshing.write_trimesh_to_ply(mesh=mesh, ply_path=ply_path)
 
 
 def write_whole_hippocampus_centered_mesh(hemisphere):
@@ -102,12 +100,10 @@ def write_whole_hippocampus_centered_mesh(hemisphere):
         ply_path = os.path.join(centered_dir, os.path.basename(path))
         print(f"\tLoad mesh from path: {path}")
         mesh = trimesh.load(path)
-        centered_mesh, hippocampus_center = my28brains.meshing.center_whole_hippocampus(
-            mesh
-        )
+        centered_mesh, hippocampus_center = meshing.center_whole_hippocampus(mesh)
         hippocampus_centers.append(hippocampus_center)
 
-        my28brains.meshing.write_trimesh_to_ply(mesh=centered_mesh, ply_path=ply_path)
+        meshing.write_trimesh_to_ply(mesh=centered_mesh, ply_path=ply_path)
     hippocampus_centers = np.array(hippocampus_centers)
     return hippocampus_centers
 
@@ -145,10 +141,8 @@ def write_substructure_centered_mesh(hemisphere, structure_id, hippocampus_cente
             continue
         print(f"\tLoad mesh from path: {path}")
         mesh = trimesh.load(path)
-        centered_mesh = my28brains.meshing.center_substructure(
-            mesh, hippocampus_centers[i_day]
-        )
-        my28brains.meshing.write_trimesh_to_ply(mesh=centered_mesh, ply_path=ply_path)
+        centered_mesh = meshing.center_substructure(mesh, hippocampus_centers[i_day])
+        meshing.write_trimesh_to_ply(mesh=centered_mesh, ply_path=ply_path)
 
 
 if __name__ == "__main__":

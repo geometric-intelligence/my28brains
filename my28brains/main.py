@@ -25,7 +25,7 @@ import torch
 import trimesh
 
 import my28brains.default_config as default_config
-import my28brains.io_mesh as io_mesh
+import my28brains.meshing as meshing
 
 # from multiprocessing import cpu_count
 
@@ -104,13 +104,13 @@ def write_centered_nondegenerate_meshes(hemisphere, structure_id, area_threshold
         if not os.path.exists(ply_path):
             print(f"\tLoad mesh from: {path}")
             mesh = trimesh.load(path)
-            new_vertices, new_faces = io_mesh.remove_degenerate_faces(
+            new_vertices, new_faces = meshing.remove_degenerate_faces(
                 mesh.vertices, mesh.faces, area_threshold
             )
             new_mesh = trimesh.Trimesh(vertices=new_vertices, faces=new_faces)
 
             print(f"Write to: {ply_path}")
-            io_mesh.write_trimesh_to_ply(new_mesh, ply_path)
+            meshing.write_trimesh_to_ply(new_mesh, ply_path)
         else:
             print(f"File already exists (no rewrite): {ply_path}")
 
