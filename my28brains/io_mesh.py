@@ -30,7 +30,7 @@ def write_trimesh_to_ply(mesh, ply_path):
         f.write(ply_text)
 
 
-def remove_degenerate_faces(vertices, faces, atol=gs.atol):
+def remove_degenerate_faces(vertices, faces, area_threshold=0.1, atol=gs.atol):
     """Remove degenerate faces of a surfaces.
 
     This returns a new surface with fewer vertices where the faces with area 0

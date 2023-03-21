@@ -1,7 +1,5 @@
 """Default configuration."""
 
-# TODO: implement this in code
-
 import os
 import subprocess
 
@@ -10,11 +8,15 @@ use_cuda = 1
 hemispheres = ["left"]  # , "right"]
 
 # specify hippocampus structures to analyze
-structure_ids = list(range(1, 10))
-structure_ids.append(-1)
+# structure_ids = list(range(1, 10))
+# structure_ids.append(-1)
+structure_ids = [-1]
 
 # number of time points along each interpolating geodesic
-n_times = 10
+n_geodesic_times = [3]
+
+# face area threshold for non-degenerate meshes:
+area_thresholds = [0.1]
 
 # build work path from git root path
 gitroot_path = subprocess.check_output(
