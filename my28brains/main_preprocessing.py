@@ -51,10 +51,7 @@ def write_meshes(hemisphere, structure_id):
                 nii_paths.append(os.path.join(day_dir, file_name))
                 break
 
-    print(
-        f"Found {len(nii_paths)} nii paths for"
-        f" hemisphere {hemisphere} and structure {structure_id}."
-    )
+    print(f"Found {len(nii_paths)} nii paths for hemisphere {hemisphere}.")
 
     for i_path, nii_path in enumerate(nii_paths):
         day = i_path + 1
@@ -160,6 +157,12 @@ if __name__ == "__main__":
         default_config.hemispheres, default_config.structure_ids
     ):
         write_meshes(hemisphere, structure_id)
+
+    # Need to add the whole hippocampus meshes to the list of structures
+    # in order to be able to compute its center and center the substructures.
+    if -1 not in default_config.structure_ids:
+        for hemisphere in default_config.hemispheres:
+            write_meshes(hemisphere, -1)
 
     for hemisphere in default_config.hemispheres:
         hippocampus_centers = write_whole_hippocampus_centered_mesh(hemisphere)

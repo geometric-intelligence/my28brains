@@ -41,11 +41,11 @@ work_dir = os.getcwd()
 
 data_dir = "/home/data/28andMeOC_correct"
 meshes_dir = os.path.join(os.getcwd(), "my28brains", "results", "meshes")
-centered_dir = os.path.join(os.getcwd(), "my28brains", "results", "centered_meshes")
+centered_dir = os.path.join(os.getcwd(), "my28brains", "results", "meshes_centered")
 centered_nondegenerate_dir = os.path.join(
-    os.getcwd(), "my28brains", "results", "centered_nondegenerate_meshes"
+    os.getcwd(), "my28brains", "results", "meshes_centered_nondegenerate"
 )
-geodesics_dir = os.path.join(os.getcwd(), "my28brains", "results", "geodesics")
+geodesics_dir = os.path.join(os.getcwd(), "my28brains", "results", "meshes_geodesics")
 
 for mesh_dir in [meshes_dir, centered_dir, centered_nondegenerate_dir, geodesics_dir]:
     if not os.path.exists(mesh_dir):
