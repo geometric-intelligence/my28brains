@@ -13,13 +13,19 @@ from matplotlib import animation
 
 IMG_DIR = "/home/data/28andme/"
 HORMONES = {"Estro": "Estrogen", "Prog": "Progesterone", "LH": "LH", "FSH": "FSH"}
-COLORS = {"Estro": "#1f77b4", "Prog": "#ff7f0e", "LH": "#2ca02c", "FSH": "#d62728"}
 
-FIGS = os.path.join(os.path.dirname(os.getcwd()), "results", "figs")
-ANIMS = os.path.join(os.path.dirname(os.getcwd()), "results", "anims")
-TMP = os.path.join(os.path.dirname(os.getcwd()), "results", "tmp")
+# Colors follow the color scheme from Taylor et al. 2020
+COLORS = {
+    "Estro": "#AFEEEE",  # pastel blue-turquoise
+    "Prog": "#507DBC",  # dark blue
+    "LH": "#FF7373",  # red
+    "FSH": "#FADA5E",  # pastel yellow
+}
 
-for dir in [FIGS, ANIMS, TMP]:
+ANIMS = os.path.join(os.getcwd(), "results", "anims")
+TMP = os.path.join(os.getcwd(), "results", "tmp")
+
+for dir in [ANIMS, TMP]:
     if not os.path.exists(dir):
         os.makedirs(dir)
 
