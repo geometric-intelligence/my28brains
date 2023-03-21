@@ -10,11 +10,11 @@ use_cuda = 1
 hemispheres = ["left"]  # , "right"]
 
 # specify hippocampus structures to analyze
-structure_ids = []  # list(range(3, 4))
+structure_ids = list(range(1, 10))
 structure_ids.append(-1)
 
 # number of time points along each interpolating geodesic
-n_times = 8
+n_times = 10
 
 # build work path from git root path
 gitroot_path = subprocess.check_output(

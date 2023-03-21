@@ -7,8 +7,7 @@ import time
 import warnings
 
 import numpy as np
-
-# import torch
+import torch
 import trimesh
 
 import my28brains.default_config as default_config
@@ -76,11 +75,6 @@ def write_centered_nondegenerate_meshes(hemisphere, structure_id):
             print(f"File already exists (no rewrite): {ply_path}")
 
 
-for hemisphere in default_config.hemispheres:
-    for structure_id in default_config.structure_ids:
-        write_centered_nondegenerate_meshes(hemisphere, structure_id)
-
-
 def _geodesic_interp(i_pair, structure_id, start_paths, end_paths, device_id=0):
     """Auxiliary function that will be run in parallel on different GPUs.
 
@@ -92,7 +86,7 @@ def _geodesic_interp(i_pair, structure_id, start_paths, end_paths, device_id=0):
         f"[structure {structure_id}] , pair:"
         f"{i_pair}/{len(start_paths)}"
     )
-
+    device = torch.device(f"cuda:{device_id}" if device_id is not None else "cpu")
     start_time = time.time()
     start_path = start_paths[i_pair]
     end_path = end_paths[i_pair]
@@ -155,7 +149,7 @@ def _geodesic_interp(i_pair, structure_id, start_paths, end_paths, device_id=0):
             a2=default_config.a2,
             resolutions=2,
             paramlist=default_config.paramlist,
-            device_id=device_id,
+            device=device,
         )
         comp_time = time.time() - start_time
         print(f"Geodesic interpolation {i_pair} took: {comp_time / 60:.2f} minutes.")
@@ -169,7 +163,7 @@ def _geodesic_interp(i_pair, structure_id, start_paths, end_paths, device_id=0):
             H2_SurfaceMatch.utils.input_output.plotGeodesic(
                 [geod[i_time]],
                 F0,
-                stepsize=5,
+                stepsize=2,  # spacing within the geodesic on the plot (?)
                 file_name=file_name,
                 axis=[0, 1, 0],
                 angle=-1 * np.pi / 2,
@@ -213,7 +207,7 @@ def write_substructure_geodesic(hemisphere, structure_id):
     # )
 
     for i_pair in range(len(start_paths)):
-        device_id = i_pair % 10
+        device_id = (i_pair + 3) % 10
         print(
             f"\n\n -------> Geodesic interpolation for [{hemisphere} hemisphere], "
             f"[structure {structure_id}] , pair:"
@@ -221,6 +215,10 @@ def write_substructure_geodesic(hemisphere, structure_id):
         )
         _geodesic_interp(i_pair, structure_id, start_paths, end_paths, device_id)
 
+
+for hemisphere in default_config.hemispheres:
+    for structure_id in default_config.structure_ids:
+        write_centered_nondegenerate_meshes(hemisphere, structure_id)
 
 # we have 10 GPUs, naming starts at 0.
 for hemisphere in default_config.hemispheres:
