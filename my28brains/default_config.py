@@ -109,24 +109,24 @@ param4 = {
     "index": 1,
 }
 
-param5 = {
-    "weight_coef_dist_T": 10**5,
-    "weight_coef_dist_S": 10**5,
-    "sig_geom": 0.1,
-    "max_iter": 1000,
-    "time_steps": 4,
-    "tri_unsample": False,
-    "index": 2,
-}
+# param5 = {
+#     "weight_coef_dist_T": 10**5,
+#     "weight_coef_dist_S": 10**5,
+#     "sig_geom": 0.1,
+#     "max_iter": 1000,
+#     "time_steps": 4,
+#     "tri_unsample": False,
+#     "index": 2,
+# }
 
-param6 = {
-    "weight_coef_dist_T": 10**6,
-    "weight_coef_dist_S": 10**6,
-    "sig_geom": 0.05,
-    "max_iter": 1000,
-    "time_steps": 5,
-    "tri_unsample": False,
-    "index": 2,
-}
+# param6 = {
+#     "weight_coef_dist_T": 10**6,
+#     "weight_coef_dist_S": 10**6,
+#     "sig_geom": 0.05,
+#     "max_iter": 1000,
+#     "time_steps": 5,
+#     "tri_unsample": False,
+#     "index": 2,
+# }
 
-paramlist = [param1, param2, param3, param4, param5, param6]
+paramlist = [param1, param2, param3, param4]  # param5, param6]
