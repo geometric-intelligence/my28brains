@@ -105,7 +105,7 @@ param4 = {
     "sig_geom": 0.1,
     "max_iter": 1000,
     "time_steps": 3,
-    "tri_unsample": True,
+    "tri_unsample": False,
     "index": 1,
 }
 

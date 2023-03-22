@@ -28,3 +28,6 @@ def smooth_sequences():
                 # Apply "Shade Smooth" operator to the object
                 bpy.context.view_layer.objects.active = obj
                 bpy.ops.object.shade_smooth()
+
+
+smooth_sequences()

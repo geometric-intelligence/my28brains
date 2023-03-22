@@ -336,12 +336,14 @@ def H2MultiRes(
         print("F0.shape", F0.shape)
         print("geod.shape:", geod.shape)
         if time_steps > 2:
+            # Note: here, geod is still an array.
             print("in timesteps:")
             geod = H2Midpoint(
                 geod, time_steps, F0, a0, a1, b1, c1, d1, a2, params, device=device
             )
             print("geod.shape:", geod.shape)
         if tri_upsample:
+            # Note: geod is a list at the end of the iteration if tri_upsample is True.
             print("in  triupsample:")
             geod_sub = []
             F_Sub = []
