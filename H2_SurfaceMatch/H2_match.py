@@ -1,14 +1,14 @@
 # Load Packages
-from enr.H2 import *
-from H2_param import H2Midpoint
+import default_config
 import numpy as np
 import scipy
-from scipy.optimize import minimize, fmin_l_bfgs_b
-from enr.DDG import computeBoundary
-from torch.autograd import grad
-import utils.utils as io
 import torch
-import default_config
+import utils.utils as io
+from enr.DDG import computeBoundary
+from enr.H2 import *
+from H2_param import H2Midpoint
+from scipy.optimize import fmin_l_bfgs_b, minimize
+from torch.autograd import grad
 
 torch_dtype = torch.float64
 
@@ -337,7 +337,9 @@ def H2MultiRes(
         print("geod.shape:", geod.shape)
         if time_steps > 2:
             print("in timesteps:")
-            geod = H2Midpoint(geod, time_steps, F0, a0, a1, b1, c1, d1, a2, params, device=device)
+            geod = H2Midpoint(
+                geod, time_steps, F0, a0, a1, b1, c1, d1, a2, params, device=device
+            )
             print("geod.shape:", geod.shape)
         if tri_upsample:
             print("in  triupsample:")

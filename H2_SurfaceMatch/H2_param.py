@@ -1,15 +1,16 @@
 # Load Packages
-from enr.H2 import *
+import default_config
 import numpy as np
 import scipy
-from scipy.optimize import minimize, fmin_l_bfgs_b
-from enr.DDG import computeBoundary
-from torch.autograd import grad
-import utils.utils as io
 import torch
-import default_config
+import utils.utils as io
+from enr.DDG import computeBoundary
+from enr.H2 import *
+from scipy.optimize import fmin_l_bfgs_b, minimize
+from torch.autograd import grad
 
 torch_dtype = torch.float64
+
 
 def H2Midpoint(geod, newN, F_init, a0, a1, b1, c1, d1, a2, param, device=None):
     max_iter = param["max_iter"]

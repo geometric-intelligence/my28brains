@@ -1,19 +1,16 @@
-import torch
 import numpy as np
+import torch
 from enr.DDG import *
-from enr.varifold import *
 from enr.regularizers import *
+from enr.varifold import *
 from torch.autograd import grad
-
 
 ##############################################################################################################################
 # H2 Helper Functions
 ##############################################################################################################################
 
 
-def getPathEnergyH2(
-    geod, a0, a1, b1, c1, d1, a2, F_sol, stepwise=False, device=None
-):
+def getPathEnergyH2(geod, a0, a1, b1, c1, d1, a2, F_sol, stepwise=False, device=None):
     b1 = (b1 - a1) / 8
     N = geod.shape[0]
     diff = geod[1:, :, :] - geod[:-1, :, :]
@@ -52,7 +49,7 @@ def getPathEnergyH2(
                     b1,
                     c1,
                     d1,
-                    device=device
+                    device=device,
                 )
                 * N
             )
