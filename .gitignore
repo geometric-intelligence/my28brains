@@ -6,6 +6,10 @@ my28brains/results/anims/
 my28brains/results/blends/
 my28brains/results/figs/
 
+
+# wandb api key
+my28brains/api_key.txt
+
 # Test npy
 tests/*.npy
 
