@@ -4,7 +4,7 @@ Run in a terminal with:
 rm -f /Users/ninamiolane/code/my28brains/results/tmp/* \
 && \
 /Applications/Blender.app/Contents/MacOS/Blender \
--b /Users/ninamiolane/code/my28brains/results/blender/0319_left_white_rotate.blend \
+-b /Users/ninamiolane/code/my28brains/results/blender/0319_left_white_rotate.blend \  # THE FILE YOU SEND ME MINUS RIGHT SIDE
 --background \
 --python "/Users/ninamiolane/code/my28brains/my28brains/blender_scripts/create_animation.py" \
 && \
@@ -38,7 +38,7 @@ scene.render.fps = framerate
 scene.frame_end = 30
 work_day = "0319"
 rotation_fact = 0
-rotation_cst = 0
+rotation_cst = 90  # TRY CREATING NIMATION ON THE SIDE TO CONFIRM IF IT'S HIIPOCMAPYUS
 
 # Set render settings
 scene.render.engine = "BLENDER_EEVEE"

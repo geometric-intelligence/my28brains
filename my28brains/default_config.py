@@ -28,12 +28,13 @@ structure_ids = [-1]
 
 # number of time points along each interpolating geodesic
 n_geodesic_times = [10]
+# does not work, seems to depend of len(paramlist) and stepsize=2
 
 # range of days to interpolate in between
 # Looking at the first 10 days is interesting because:
 # - we have 10 gpus, so we can run 10 interpolations at once
 # - they contain most of the progesterone peak.
-day_range = [0, 7]
+day_range = [0, 10]
 
 # face area threshold for non-degenerate meshes:
 # the less we decimate, the more likely it is to have small faces
@@ -96,7 +97,7 @@ param3 = {
     "max_iter": 1000,
     "time_steps": 2,
     "tri_unsample": False,
-    "index": 1,
+    "index": 1,  # resolution 1
 }
 
 param4 = {
@@ -105,8 +106,8 @@ param4 = {
     "sig_geom": 0.1,
     "max_iter": 1000,
     "time_steps": 3,
-    "tri_unsample": False,
-    "index": 1,
+    "tri_unsample": False,  # he has a typo: supposed to be triangular upsampling
+    "index": 1,  # resolution 1
 }
 
 # param5 = {
@@ -116,7 +117,7 @@ param4 = {
 #     "max_iter": 1000,
 #     "time_steps": 4,
 #     "tri_unsample": False,
-#     "index": 2,
+#     "index": 2,  # resolution 2
 # }
 
 # param6 = {
@@ -126,7 +127,7 @@ param4 = {
 #     "max_iter": 1000,
 #     "time_steps": 5,
 #     "tri_unsample": False,
-#     "index": 2,
+#     "index": 2,  # resolution 2
 # }
 
 paramlist = [param1, param2, param3, param4]  # param5, param6]
