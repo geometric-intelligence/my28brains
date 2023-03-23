@@ -288,14 +288,17 @@ def plotPartialGeodesic(
 
     # Convert data to open3d mesh objects for generating plots of the geodesic path
     if Rho is not None:
-        ls, Rhon = makeGeodMeshes(
+        (
+            ls,
+            Rhon,
+        ) = makeGeodMeshes(  # take the geodesic meshes and put them together in one mesh to plot
             geod,
             F,
             source,
             target,
             Rho=Rho,
             offsetstep=offsetstep,
-            stepsize=stepsize,
+            stepsize=stepsize,  # only a plotting parameter.
             axis=axis,
             angle=angle,
         )

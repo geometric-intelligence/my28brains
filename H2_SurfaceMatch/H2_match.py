@@ -16,30 +16,66 @@ torch_dtype = torch.float64
 def SymmetricH2Matching(
     source, target, geod, F_init, a0, a1, b1, c1, d1, a2, param, device=None
 ):
+    """Compute the geodesic between source and target using the H2 metric.
 
+    Parameters
+    ----------
+    source : list
+        List of source vertices and faces.
+    target : list
+        List of target vertices and faces.
+    geod : numpy.ndarray
+        Geodesic between source and target.
+    F_init : numpy.ndarray
+        Initial faces to describe the meshes before interpolating.
+    a0, a1, b1, c1, d1, a2 : float
+        Parameters of the H2 energy / Riemannian elastic metric.
+    param : dict
+        Parameters of the optimization.
+    device : torch.device
+        Device to use for the computation.
+
+    Returns
+    -------
+    geod : numpy.ndarray
+        Geodesic between source and target.
+    F_sol : numpy.ndarray
+        Faces to describe the meshes in the solution.
+    """
     sig_geom = param["sig_geom"]
 
+    # these are good defaults, emmanuel never changed these.
     if "sig_grass" not in param:
+        # Grassmanian signal, no intuition on why
         sig_grass = 1
     else:
         sig_grass = param["sig_grass"]
 
     if "kernel_geom" not in param:
+        # see list in the varifold energy area
+        # here only gaussian has been used, although there are others
+        # intuition comes from Nicolas Charon
         kernel_geom = "gaussian"
     else:
         kernel_geom = param["kernel_geom"]
 
     if "kernel_grass" not in param:
+        # all options hardcoded here: def VKerenl
+        # Only used binet and linear
         kernel_grass = "binet"
     else:
         kernel_grass = param["kernel_grass"]
 
     if "kernel_fun" not in param:
+        # only constant was used by Emmanuel
+        # this was for a varifold kernel that penalizes some functions on the mesh
+        # not implemented yet. keep "constant" here.
         kernel_fun = "constant"
     else:
         kernel_fun = param["kernel_fun"]
 
     if "sig_fun" not in param:
+        # keep 1 here, related to non implemented method.
         sig_fun = 1
     else:
         sig_fun = param["sig_fun"]
@@ -271,6 +307,37 @@ def H2MultiRes(
     rotate=False,
     device=None,
 ):
+    """Compute geodesic between source and target meshes.
+
+    Parameters
+    ----------
+    source : tuple
+        Tuple of source vertices and faces.
+    target : tuple
+        Tuple of target vertices and faces.
+    a0, a1, b1, c1, d1, a2 : float
+        Parameters of the H2 energy / elastic Riemannian metric.
+    resolutions : int
+        Number of resolutions.
+    paramlist : list
+        List of parameters for each ....
+    start : int, optional
+        That parameter can be a mesh: vertices + faces, which acts as the template.
+        Recommendation: with the constant path of the template and use it for the source + target.
+    rotate : bool, optional
+        Rotate the source mesh.
+    device : torch.device, optional
+        Device to use.
+
+    Returns
+    -------
+    geod : ndarray, shape=[n_time_steps, n_vertices, 3]
+        Geodesic between source and target.
+        Note that geod can be a list if the last resolution has tri_upsample True
+    F0 : ndarray, shape=[n_faces, 3]
+        Faces describing the mesh, where each face is a set of 3 vertices' indices.
+    """
+
     N = 2
     [VS, FS] = source
     [VT, FT] = target
@@ -283,7 +350,7 @@ def H2MultiRes(
     print(VT.shape, FT.shape)
 
     for i in range(0, resolutions):
-        decimation_fact = 2
+        decimation_fact = 4
         print(f"FS decimation target: {int(FS.shape[0] / decimation_fact)}")
         print(f"FT decimation target: {int(FT.shape[0] / decimation_fact)}")
 
@@ -298,11 +365,17 @@ def H2MultiRes(
     source_init = sources[0]
     target_init = sources[0]
 
+    # Start with a constant path where start point and end point are the source term
+    # N = 2: because the path is constant
+    # First get the end point using the varifold term to get it near the target.
+    # N = 2: because the path is linear between these two.
     if start != None:
         geod = np.zeros((N, start[0].shape[0], start[0].shape[1]))
-        F0 = start[1]
+        F0 = start[1]  # use the vertices of the "start" template mesh
         for i in range(0, N):
-            geod[i, :, :] = start[0]
+            geod[i, :, :] = start[
+                0
+            ]  # start will also be used to compute the constant path.
 
     else:
         geod = np.zeros((N, source_init[0].shape[0], source_init[0].shape[1]))
@@ -349,6 +422,7 @@ def H2MultiRes(
             F_Sub = []
             for i in range(0, N):
                 print(f"iteration {i} in range(N) to subdivide mesh")
+                # Re upsampling by a factor of 4
                 geod_subi, F_Subi = io.subdivide_mesh(geod[i], F0, order=1)
                 F_Sub.append(F_Subi)
                 geod_sub.append(geod_subi)

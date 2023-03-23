@@ -194,7 +194,7 @@ def _interpolate_with_geodesic(i_pair, paths, n_geodesic_time, gpu_id):
         c1=default_config.c1,
         d1=default_config.d1,
         a2=default_config.a2,
-        resolutions=1,
+        resolutions=default_config.resolutions,
         paramlist=default_config.paramlist,
         device=device,
     )
