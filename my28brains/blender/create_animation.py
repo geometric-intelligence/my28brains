@@ -1,5 +1,7 @@
 """Create an animation of a rotating mesh sequence from the current blender file.
 
+REMINDER: Don't forget to replace "adelemyers" with your user name
+
 Run in a terminal with:
 rm -f /Users/adelemyers/code/my28brains/my28brains/results/tmp/* \
 && \
