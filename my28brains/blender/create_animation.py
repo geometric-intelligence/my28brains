@@ -28,7 +28,7 @@ from mathutils import Euler
 
 today = date.today()
 
-RESULTS_DIR = "/Users/adelemyers/code/my28brains/results"
+RESULTS_DIR = "/Users/adelemyers/code/my28brains/my28brains/results"
 TMP = os.path.join(RESULTS_DIR, "tmp")
 
 scene = bpy.context.scene
