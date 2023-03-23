@@ -194,7 +194,7 @@ def _interpolate_with_geodesic(i_pair, paths, n_geodesic_time, gpu_id):
         c1=default_config.c1,
         d1=default_config.d1,
         a2=default_config.a2,
-        resolutions=1,
+        resolutions=default_config.resolutions,
         paramlist=default_config.paramlist,
         device=device,
     )
@@ -206,7 +206,7 @@ def _interpolate_with_geodesic(i_pair, paths, n_geodesic_time, gpu_id):
         H2_SurfaceMatch.utils.input_output.plotGeodesic(
             [geod[i_geodesic_time]],
             F0,
-            stepsize=2,  # spacing within the geodesic on the plot (?)
+            stepsize=default_config.stepsize,  # spacing within the geodesic on the plot (?)
             file_name=file_name,
             axis=[0, 1, 0],
             angle=-1 * np.pi / 2,

@@ -109,7 +109,14 @@ def makeGeodMeshes(
     angle=-1 * np.pi / 2,
 ):
     """
-    Constructs an open3d mesh for the geodesic
+    Constructs an open3d mesh for the geodesic.
+
+    Parameters
+    ----------
+    offset : int
+        Vertical offset for plotting the different resolutions on top of each other.
+    stepsize : float
+        Horizontal offset for plotting the different meshes of the geodesic next to each other.
     """
     Nt = len(Geod)
     ls = []
