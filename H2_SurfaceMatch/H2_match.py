@@ -330,6 +330,10 @@ def H2MultiRes(
     device : torch.device, optional
         Device to use.
 
+    Variables
+    ----------
+    index is the resolution number. (the number of decimation steps)
+
     Returns
     -------
     geod : ndarray, shape=[n_time_steps, n_vertices, 3]
