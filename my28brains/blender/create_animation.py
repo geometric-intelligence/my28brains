@@ -1,21 +1,21 @@
 """Create an animation of a rotating mesh sequence from the current blender file.
 
 Run in a terminal with:
-rm -f /Users/adelemyers/code/my28brains/results/tmp/* \
+rm -f /Users/adelemyers/code/my28brains/my28brains/results/tmp/* \
 && \
 /Applications/Blender.app/Contents/MacOS/Blender \
--b /Users/adelemyers/code/my28brains/results/blender/0319_left_white_rotate.blend \
+-b /Users/adelemyers/code/my28brains/my28brains/blender/blends/0319_left_white_rotate.blend \
 --background \
---python "/Users/adelemyers/code/my28brains/my28brains/blender_scripts/create_animation.py" \
+--python "/Users/adelemyers/code/my28brains/my28brains/blender/create_animation.py" \
 && \
 ffmpeg -y \
 -framerate 2 \
 -i /Users/adelemyers/code/my28brains/results/tmp/0319_substructure_-1_framerate_2_%04d.jpg \
 -c:v libx264 \
 -pix_fmt yuv420p \
-/Users/adelemyers/code/my28brains/results/blender/0319_substructure_-1_framerate_2.mp4 \
+/Users/adelemyers/code/my28brains/results/anims/0319_substructure_-1_framerate_2.mp4 \
 && \
-open /Users/adelemyers/code/my28brains/results/blender/0319_substructure_-1_framerate_2.mp4
+open /Users/adelemyers/code/my28brains/results/anims/0319_substructure_-1_framerate_2.mp4
 
 """
 
@@ -28,7 +28,7 @@ from mathutils import Euler
 
 today = date.today()
 
-RESULTS_DIR = "/Users/ninamiolane/code/my28brains/results"
+RESULTS_DIR = "/Users/adelemyers/code/my28brains/results"
 TMP = os.path.join(RESULTS_DIR, "tmp")
 
 scene = bpy.context.scene
