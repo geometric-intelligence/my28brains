@@ -28,12 +28,19 @@ structure_ids = [-1]
 n_geodesic_times = [10]  # will not be used
 stepsize = 1  # will not be used.
 resolutions = 0  # don't do several resolutions for our case.
+initial_decimation_fact = 4
+substructure_diameter_fact = 2
+
+# Define template structure of the mesh that will be used for all mesh in the interpolation
+# Every mesh will have the same number of vertices and faces.
+i_template = 0
+
 
 # range of days to interpolate in between
 # Looking at the first 10 days is interesting because:
 # - we have 10 gpus, so we can run 10 interpolations at once
 # - they contain most of the progesterone peak.
-day_range = [0, 7]
+day_range = [0, 31]
 
 # face area threshold for non-degenerate meshes:
 # the less we decimate, the more likely it is to have small faces
