@@ -1,21 +1,21 @@
 """Create an animation of a rotating mesh sequence from the current blender file.
 
 Run in a terminal with:
-rm -f /Users/ninamiolane/code/my28brains/results/tmp/* \
+rm -f /Users/adelemyers/code/my28brains/my28brains/results/tmp/* \
 && \
 /Applications/Blender.app/Contents/MacOS/Blender \
--b /Users/ninamiolane/code/my28brains/results/blender/0319_left_white_rotate.blend \  # THE FILE YOU SEND ME MINUS RIGHT SIDE
+-b /Users/adelemyers/code/my28brains/my28brains/blender/blends/0319_left_white_rotate.blend \
 --background \
---python "/Users/ninamiolane/code/my28brains/my28brains/blender_scripts/create_animation.py" \
+--python "/Users/adelemyers/code/my28brains/my28brains/blender/create_animation.py" \
 && \
 ffmpeg -y \
 -framerate 2 \
--i /Users/ninamiolane/code/my28brains/results/tmp/0319_substructure_-1_framerate_2_%04d.jpg \
+-i /Users/adelemyers/code/my28brains/results/tmp/0319_substructure_-1_framerate_2_%04d.jpg \
 -c:v libx264 \
 -pix_fmt yuv420p \
-/Users/ninamiolane/code/my28brains/results/blender/0319_substructure_-1_framerate_2.mp4 \
+/Users/adelemyers/code/my28brains/results/anims/0319_substructure_-1_framerate_2.mp4 \
 && \
-open /Users/ninamiolane/code/my28brains/results/blender/0319_substructure_-1_framerate_2.mp4
+open /Users/adelemyers/code/my28brains/results/anims/0319_substructure_-1_framerate_2.mp4
 
 """
 
@@ -28,7 +28,7 @@ from mathutils import Euler
 
 today = date.today()
 
-RESULTS_DIR = "/Users/ninamiolane/code/my28brains/results"
+RESULTS_DIR = "/Users/adelemyers/code/my28brains/results"
 TMP = os.path.join(RESULTS_DIR, "tmp")
 
 scene = bpy.context.scene
@@ -37,8 +37,9 @@ framerate = 2
 scene.render.fps = framerate
 scene.frame_end = 30
 work_day = "0319"
-rotation_fact = 0
+rotation_fact = 0  # angular velocity "factor".
 rotation_cst = 90  # TRY CREATING NIMATION ON THE SIDE TO CONFIRM IF IT'S HIIPOCMAPYUS
+# ^change this to see from different angle
 
 # Set render settings
 scene.render.engine = "BLENDER_EEVEE"

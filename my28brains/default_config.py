@@ -89,6 +89,9 @@ a2 = 1  # high value = 1.
 # If a2 is too high, we get bloding : it wants to blow up and get super smooth mesh and then shrink back down to get the matching
 # a2 high wants to get a smooth mesh because we're penalizing the mesh laplacian
 
+# NOTE: "time_steps" is the number of time points that we will have in the interpolated geodesic
+# the "time_steps" value in the last param will set the number of time points in the interpolated geodesic
+
 param1 = {
     "weight_coef_dist_T": 10**1,  # target varifold term
     "weight_coef_dist_S": 10**1,  # source varifold term
@@ -114,6 +117,7 @@ param2 = {
 # could do 10**1 and 10**5 if we're only doing two parameters.
 # e.g. with 3 parameters, emmanuel did: 10**1, 10**5, 10**10
 # e.g. corresponding sig_geom: 0.4, 0.1, 0.025
+
 
 param3 = {
     "weight_coef_dist_T": 10**10,

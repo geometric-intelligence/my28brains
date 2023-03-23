@@ -8,7 +8,7 @@ from scipy.io import loadmat, savemat
 
 def decimate_mesh(V, F, target):
     """
-    Decimates mesh given by V,F to have number of faces approximatelyu equal to target
+    Decimates mesh given by V,F to have number of faces approximately equal to target
     """
     mesh = getMeshFromData([V, F])
     mesh = mesh.simplify_quadric_decimation(target)
@@ -44,7 +44,9 @@ def subdivide_mesh(V, F, Rho=None, order=1):
 
 def getDataClosed(V, F, d=9):
     """
-    Get vertex and
+    Test getDataFromMesh and getMeshFromData?
+
+    QUESTION: what is the point of this function?
     """
     mesh = getMeshFromData([V, F])
     mesh.compute_vertex_normals()
@@ -60,8 +62,12 @@ def getDataClosed(V, F, d=9):
 
 
 def getDataFromMesh(mesh):
-    """
-    Get vertex and
+    """Extracts vertices, faces, and "color" from a mesh.
+
+    QUESTION: what is color?
+    Color code is not finished
+    - when finished, each face will have a color (maybe?)
+    - and this will aid in the interpolation.
     """
     V = np.asarray(
         mesh.vertices, dtype=np.float64
