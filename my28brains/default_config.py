@@ -22,7 +22,7 @@ hemispheres = ["left"]  # , "right"]
 # 2, 6 are expected to grow in volume with progesterone
 # 4, 5 are expected to shrink in volume with progesterone
 
-structure_ids = [1]
+structure_ids = [-1]
 
 # number of time points along each interpolating geodesic
 n_geodesic_times = [10]  # will not be used
@@ -147,4 +147,4 @@ param3 = {
 #     "index": 2,
 # }
 
-paramlist = [param1, param2, param3, param4]  # param5, param6]
+paramlist = [param1, param2, param3]  # , param4]  # param5, param6]
