@@ -13,6 +13,17 @@ torch_dtype = torch.float64
 
 
 def H2Midpoint(geod, newN, F_init, a0, a1, b1, c1, d1, a2, param, device=None):
+    """Compute additinal interpolated points beyond the two auto-generated.
+
+    params:
+    -------
+    N: the number of interpolated points drawn between the original pair.
+    newN: how many points do we WANT in the interpolation?
+
+    returns:
+    -------
+    geod: a new geod, with more interpolated points.
+    """
     max_iter = param["max_iter"]
 
     N = geod.shape[0]

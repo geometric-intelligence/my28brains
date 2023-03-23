@@ -1,16 +1,16 @@
 """Preprocessing of the 28brains dataset.
 
-1. Segment the surfaces of the hippocampus and its substructurs.
-2. Center the hippocampus and its substructures.
+1. Mesh: Segment the surfaces of the hippocampus and its substructures.
+2. Center: Center the hippocampus and its substructures.
 
 The processing is done with our `my28brains.meshing` module.
 
 Meshed surfaces are stored into .ply files.
 
 The meshes in the .ply files can be opened with:
-- the `vscode-3d-preview` extension of VSCode
-- [MeshLab](https://www.meshlab.net/)
-- [Blender](https://www.blender.org/download/) with plugin [Stop-motion-OBJ]
+- the `vscode-3d-preview` extension of VSCode,
+- [MeshLab](https://www.meshlab.net/),
+- [Blender](https://www.blender.org/download/) with plugin [Stop-motion-OBJ].
 """
 
 import glob

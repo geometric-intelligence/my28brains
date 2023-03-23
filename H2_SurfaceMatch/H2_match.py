@@ -307,6 +307,7 @@ def H2MultiRes(
     rotate=False,
     device=None,
 ):
+
     """Compute geodesic between source and target meshes.
 
     Parameters
@@ -337,7 +338,6 @@ def H2MultiRes(
     F0 : ndarray, shape=[n_faces, 3]
         Faces describing the mesh, where each face is a set of 3 vertices' indices.
     """
-
     N = 2
     [VS, FS] = source
     [VT, FT] = target
@@ -349,12 +349,15 @@ def H2MultiRes(
     print(VS.shape, FS.shape)
     print(VT.shape, FT.shape)
 
+    # QUESTION: why are source and target being decimated here?
+    # we already decimated them in main.py.
     for i in range(0, resolutions):
         decimation_fact = 4
         print(f"FS decimation target: {int(FS.shape[0] / decimation_fact)}")
         print(f"FT decimation target: {int(FT.shape[0] / decimation_fact)}")
 
         [VS, FS] = io.decimate_mesh(VS, FS, int(FS.shape[0] / decimation_fact))  # was 4
+        # QUESTION: why do we decimate the mesh and then add it to the original sources?
         sources = [[VS, FS]] + sources
         [VT, FT] = io.decimate_mesh(VT, FT, int(FT.shape[0] / decimation_fact))  # was 4
         targets = [[VT, FT]] + targets
@@ -429,7 +432,7 @@ def H2MultiRes(
             geod = geod_sub
             F0 = F_Sub[0]
             print("len(geod):", len(geod))
-    print(iterations, F0.shape)
+    print(len(paramlist), F0.shape)
     return geod, F0
 
 
