@@ -10,12 +10,12 @@ rm -f /Users/adelemyers/code/my28brains/my28brains/results/tmp/* \
 && \
 ffmpeg -y \
 -framerate 2 \
--i /Users/adelemyers/code/my28brains/results/tmp/0319_substructure_-1_framerate_2_%04d.jpg \
+-i /Users/adelemyers/code/my28brains/my28brains/results/tmp/0319_substructure_-1_framerate_2_%04d.jpg \
 -c:v libx264 \
 -pix_fmt yuv420p \
-/Users/adelemyers/code/my28brains/results/anims/0319_substructure_-1_framerate_2.mp4 \
+/Users/adelemyers/code/my28brains/my28brains/results/anims/0319_substructure_-1_framerate_2.mp4 \
 && \
-open /Users/adelemyers/code/my28brains/results/anims/0319_substructure_-1_framerate_2.mp4
+open /Users/adelemyers/code/my28brains/my28brains/results/anims/0319_substructure_-1_framerate_2.mp4
 
 """
 
