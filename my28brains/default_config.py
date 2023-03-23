@@ -42,6 +42,7 @@ i_template = 0
 # - they contain most of the progesterone peak.
 day_range = [0, 31]
 
+
 # face area threshold for non-degenerate meshes:
 # the less we decimate, the more likely it is to have small faces
 # thus the thresholt needs to be higher
@@ -141,7 +142,7 @@ param3 = {
 #     "max_iter": 1000,
 #     "time_steps": 4,
 #     "tri_unsample": False,
-#     "index": 2,
+#     "index": 2,  # resolution 2
 # }
 
 # param6 = {
@@ -151,7 +152,7 @@ param3 = {
 #     "max_iter": 1000,
 #     "time_steps": 5,
 #     "tri_unsample": False,
-#     "index": 2,
+#     "index": 2,  # resolution 2
 # }
 
 paramlist = [param1, param2, param3]  # , param4]  # param5, param6]
