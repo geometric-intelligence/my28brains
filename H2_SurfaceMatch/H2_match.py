@@ -271,6 +271,23 @@ def H2MultiRes(
     rotate=False,
     device=None,
 ):
+    """Builds a geodesic between a pair of points.
+
+    H2MultiRes builds a geodesic between a source (starting point)
+    and a target (end point).
+
+    inputs:
+    -------
+    source: the starting point of the geodesic
+    target: the end point of the geodesic
+    resolutions: the number of times the source and target are decimated
+
+    variables:
+    ---------
+    N: ??? number of times to interpolate between two points?
+    VS: vertices of the source
+    VT: vertices of the target
+    """
     N = 2
     [VS, FS] = source
     [VT, FT] = target
@@ -282,12 +299,15 @@ def H2MultiRes(
     print(VS.shape, FS.shape)
     print(VT.shape, FT.shape)
 
+    # QUESTION: why are source and target being decimated here?
+    # we already decimated them in main.py.
     for i in range(0, resolutions):
         decimation_fact = 2
         print(f"FS decimation target: {int(FS.shape[0] / decimation_fact)}")
         print(f"FT decimation target: {int(FT.shape[0] / decimation_fact)}")
 
         [VS, FS] = io.decimate_mesh(VS, FS, int(FS.shape[0] / decimation_fact))  # was 4
+        # QUESTION: why do we decimate the mesh and then add it to the original sources?
         sources = [[VS, FS]] + sources
         [VT, FT] = io.decimate_mesh(VT, FT, int(FT.shape[0] / decimation_fact))  # was 4
         targets = [[VT, FT]] + targets
@@ -355,7 +375,7 @@ def H2MultiRes(
             geod = geod_sub
             F0 = F_Sub[0]
             print("len(geod):", len(geod))
-    print(iterations, F0.shape)
+    print(len(paramlist), F0.shape)
     return geod, F0
 
 
