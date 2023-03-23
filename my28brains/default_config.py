@@ -22,12 +22,12 @@ hemispheres = ["left"]  # , "right"]
 # 2, 6 are expected to grow in volume with progesterone
 # 4, 5 are expected to shrink in volume with progesterone
 
-# structure_ids = [2, 4, 5, 6]
-# structure_ids.append(-1)
-structure_ids = [-1]
+structure_ids = [1]
 
 # number of time points along each interpolating geodesic
-n_geodesic_times = [10]
+n_geodesic_times = [10]  # will not be used
+stepsize = 1  # will not be used.
+resolutions = 0  # don't do several resolutions for our case.
 
 # range of days to interpolate in between
 # Looking at the first 10 days is interesting because:
@@ -62,52 +62,70 @@ for mesh_dir in [meshes_dir, centered_dir, centered_nondegenerate_dir, geodesics
 # parameters for h2_match
 h2_dir = os.path.join(work_dir, "H2_SurfaceMatch")
 
-a0 = 0.01
-a1 = 100
-b1 = 100
-c1 = 0.2
-d1 = 0.01
-a2 = 0.01
+# weighted l2 energy: penalizes how much you have to move points (vertices) weighted by local area around that vertex
+a0 = 0.1
+# In our case: could be higher (1 max)? if it's too high, it might shrink the mesh down, match and then blow up again
+# See paper's figure that highlights links between these parameters.
+
+a1 = 10  # penalizes stretching
+b1 = 10  # penalizes shearing
+c1 = 1  # penalizes change in normals: for high deformations we want c1 pretty low, e.g. when moving an arm.
+# in our case try with a1 b1 a bit smaller (10), and c1 a bit large (1 or even up to 10)
+
+# penalizes how a triangle rotate about normal vector,
+# without stretching or shearing. almost never uses,
+# usually d1 = 0, it's every thing that the others a1, b1, and c1, dont penalize
+d1 = 0.0
+
+a2 = 1  # high value = 1.
+# If a2 is too high, we get bloding : it wants to blow up and get super smooth mesh and then shrink back down to get the matching
+# a2 high wants to get a smooth mesh because we're penalizing the mesh laplacian
 
 param1 = {
-    "weight_coef_dist_T": 10**1,
-    "weight_coef_dist_S": 10**1,
+    "weight_coef_dist_T": 10**1,  # target varifold term
+    "weight_coef_dist_S": 10**1,  # source varifold term
     "sig_geom": 0.4,
-    "max_iter": 2000,
+    "max_iter": 1000,  # bfgs gets really close really fast and sometimes worth letting it run for a bunch of iterations + see scipy, esp stopping condition to get decent figures
     "time_steps": 2,
-    "tri_unsample": True,
-    "index": 0,
+    "tri_unsample": False,  # False
+    "index": 0,  # spatial resolution, should increase everytime we to a trip_upsample.
 }
 
 param2 = {
-    "weight_coef_dist_T": 10**2,
-    "weight_coef_dist_S": 10**2,
-    "sig_geom": 0.3,
-    "max_iter": 1000,
-    "time_steps": 2,
-    "tri_unsample": False,
-    "index": 1,
-}
-
-param3 = {
-    "weight_coef_dist_T": 10**3,
-    "weight_coef_dist_S": 10**3,
-    "sig_geom": 0.2,
-    "max_iter": 1000,
-    "time_steps": 2,
-    "tri_unsample": False,
-    "index": 1,
-}
-
-param4 = {
-    "weight_coef_dist_T": 10**4,
-    "weight_coef_dist_S": 10**4,
+    "weight_coef_dist_T": 10
+    ** 5,  # increase exponentially bcs in SNRF orignal code they had it and it works
+    "weight_coef_dist_S": 10**5,
     "sig_geom": 0.1,
     "max_iter": 1000,
     "time_steps": 3,
     "tri_unsample": False,
-    "index": 1,
+    "index": 0,
 }
+# important to have varifold term with high weight, to be sure that source + target are close to data.
+# as the match gets better, the varifold terms are decreasing exponetially, thus we compensate back with the weights.
+# could do 10**1 and 10**5 if we're only doing two parameters.
+# e.g. with 3 parameters, emmanuel did: 10**1, 10**5, 10**10
+# e.g. corresponding sig_geom: 0.4, 0.1, 0.025
+
+param3 = {
+    "weight_coef_dist_T": 10**10,
+    "weight_coef_dist_S": 10**10,
+    "sig_geom": 0.025,
+    "max_iter": 2000,
+    "time_steps": 5,
+    "tri_unsample": False,
+    "index": 0,
+}
+
+# param4 = {
+#     "weight_coef_dist_T": 10**4,
+#     "weight_coef_dist_S": 10**4,
+#     "sig_geom": 0.1,
+#     "max_iter": 1000,
+#     "time_steps": 3,
+#     "tri_unsample": False,
+#     "index": 1,
+# }
 
 # param5 = {
 #     "weight_coef_dist_T": 10**5,
