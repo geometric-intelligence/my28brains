@@ -6,6 +6,8 @@ my28brains/results/anims/
 my28brains/results/blends/
 my28brains/results/figs/
 
+# anaconda stuff
+Anaconda3-2021.11-Linux-x86_64.sh
 
 # wandb api key
 my28brains/api_key.txt
