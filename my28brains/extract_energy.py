@@ -199,12 +199,14 @@ def _interpolate_with_geodesic(paths, gpu_id=0):
         )
         print(f"Geodesic interpolation saved to: " f"{energies_dir}.")
     
-    # path_energy = H2.getPathEnergyH2(geod, a0=default_config.a0,
-    #     a1=default_config.a1,
-    #     b1=default_config.b1,
-    #     c1=default_config.c1,
-    #     d1=default_config.d1,
-    #     a2=default_config.a2, F_sol, stepwise=False, device=None)
+    path_energy = H2_SurfaceMatch.enr.H2.getPathEnergyH2(geod, a0=default_config.a0,
+        a1=default_config.a1,
+        b1=default_config.b1,
+        c1=default_config.c1,
+        d1=default_config.d1,
+        a2=default_config.a2, F_sol=F0, stepwise=False, device=None)
+
+    print(f"Path Energy: {path_energy}")
 
 
 _interpolate_with_geodesic(paths, gpu_id=0)
