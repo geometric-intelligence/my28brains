@@ -74,6 +74,11 @@ def getMeshOneForms(V, F, device=None):
         V.index_select(0, F[:, 1]),
         V.index_select(0, F[:, 2]),
     )
+    # V0, V1, V2 = (
+    #         torch.take(V, F[:, 0]),
+    #         torch.take(V, F[:, 1]),
+    #         torch.take(V, F[:, 2]),
+    #     )
 
     alpha[:, :, 0] = V1 - V0
     alpha[:, :, 1] = V2 - V0

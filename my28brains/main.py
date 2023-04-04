@@ -232,7 +232,7 @@ def _interpolate_with_geodesic(i_pair, i_template, paths, n_geodesic_time, gpu_i
         d1=default_config.d1,
         a2=default_config.a2,
         resolutions=default_config.resolutions,
-        start=template,
+        start=None,
         paramlist=default_config.paramlist,
         device=device,
     )
