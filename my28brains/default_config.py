@@ -40,13 +40,13 @@ i_template = 0
 # Looking at the first 10 days is interesting because:
 # - we have 10 gpus, so we can run 10 interpolations at once
 # - they contain most of the progesterone peak.
-day_range = [0, 31]
+day_range = [0, 30] # first menstrual cycle is day 1-30 (pre-pill)
 
 
 # face area threshold for non-degenerate meshes:
 # the less we decimate, the more likely it is to have small faces
 # thus the thresholt needs to be higher
-area_thresholds = [0.0]
+area_thresholds = [0.001]
 
 # build work path from git root path
 gitroot_path = subprocess.check_output(
@@ -71,21 +71,21 @@ for mesh_dir in [meshes_dir, centered_dir, centered_nondegenerate_dir, geodesics
 h2_dir = os.path.join(work_dir, "H2_SurfaceMatch")
 
 # weighted l2 energy: penalizes how much you have to move points (vertices) weighted by local area around that vertex
-a0 = 0.1
+a0 = 0.01 # was 0.1
 # In our case: could be higher (1 max)? if it's too high, it might shrink the mesh down, match and then blow up again
 # See paper's figure that highlights links between these parameters.
 
-a1 = 10  # penalizes stretching
-b1 = 10  # penalizes shearing
-c1 = 1  # penalizes change in normals: for high deformations we want c1 pretty low, e.g. when moving an arm.
+a1 = 100  # penalizes stretching (was 10)
+b1 = 100  # penalizes shearing (was 10)
+c1 = 0.2  # (was 1) penalizes change in normals: for high deformations we want c1 pretty low, e.g. when moving an arm.
 # in our case try with a1 b1 a bit smaller (10), and c1 a bit large (1 or even up to 10)
 
 # penalizes how a triangle rotate about normal vector,
 # without stretching or shearing. almost never uses,
 # usually d1 = 0, it's every thing that the others a1, b1, and c1, dont penalize
-d1 = 0.0
+d1 = 0.01
 
-a2 = 1  # high value = 1.
+a2 = 0.3  # (was 1) high value = 1.
 # If a2 is too high, we get bloding : it wants to blow up and get super smooth mesh and then shrink back down to get the matching
 # a2 high wants to get a smooth mesh because we're penalizing the mesh laplacian
 
