@@ -22,13 +22,18 @@ hemispheres = ["left"]  # , "right"]
 # 2, 6 are expected to grow in volume with progesterone
 # 4, 5 are expected to shrink in volume with progesterone
 
-structure_ids = [-1]
+structure_ids = [-1] #-1]
+
+#how much to divide the vertices by in main.py before geodesic is drawn
+# the code works best when the meshes are a certain size, and you just have 
+# to play around with this number for each substructure.
+initial_decimation_fact = 10
 
 # number of time points along each interpolating geodesic
 n_geodesic_times = [10]  # will not be used
 stepsize = 1  # will not be used.
 resolutions = 0  # don't do several resolutions for our case.
-initial_decimation_fact = 4
+
 substructure_diameter_fact = 2
 
 # Define template structure of the mesh that will be used for all mesh in the interpolation
@@ -40,13 +45,13 @@ i_template = 0
 # Looking at the first 10 days is interesting because:
 # - we have 10 gpus, so we can run 10 interpolations at once
 # - they contain most of the progesterone peak.
-day_range = [0, 30] # first menstrual cycle is day 1-30 (pre-pill)
+day_range = [18, 21] # first menstrual cycle is day 1-30 (pre-pill)
 
 
 # face area threshold for non-degenerate meshes:
 # the less we decimate, the more likely it is to have small faces
 # thus the thresholt needs to be higher
-area_thresholds = [0.001]
+area_thresholds = [0.00]
 
 # build work path from git root path
 gitroot_path = subprocess.check_output(
@@ -71,21 +76,21 @@ for mesh_dir in [meshes_dir, centered_dir, centered_nondegenerate_dir, geodesics
 h2_dir = os.path.join(work_dir, "H2_SurfaceMatch")
 
 # weighted l2 energy: penalizes how much you have to move points (vertices) weighted by local area around that vertex
-a0 = 0.01 # was 0.1
+a0 = 0.1 # was 0.1
 # In our case: could be higher (1 max)? if it's too high, it might shrink the mesh down, match and then blow up again
 # See paper's figure that highlights links between these parameters.
 
-a1 = 100  # penalizes stretching (was 10)
-b1 = 100  # penalizes shearing (was 10)
-c1 = 0.2  # (was 1) penalizes change in normals: for high deformations we want c1 pretty low, e.g. when moving an arm.
+a1 = 10  # penalizes stretching (was 10)
+b1 = 10  # penalizes shearing (was 10)
+c1 = 1  # (was 1) penalizes change in normals: for high deformations we want c1 pretty low, e.g. when moving an arm.
 # in our case try with a1 b1 a bit smaller (10), and c1 a bit large (1 or even up to 10)
 
 # penalizes how a triangle rotate about normal vector,
 # without stretching or shearing. almost never uses,
 # usually d1 = 0, it's every thing that the others a1, b1, and c1, dont penalize
-d1 = 0.01
+d1 = 0.0
 
-a2 = 0.3  # (was 1) high value = 1.
+a2 = 1  # (was 1) high value = 1.
 # If a2 is too high, we get bloding : it wants to blow up and get super smooth mesh and then shrink back down to get the matching
 # a2 high wants to get a smooth mesh because we're penalizing the mesh laplacian
 
@@ -160,3 +165,69 @@ param3 = {
 # }
 
 paramlist = [param1, param2, param3]  # , param4]  # param5, param6]
+
+
+### ORIGINAL PARAMETERS
+
+# a0 = 0.01
+# a1 = 100
+# b1 = 100
+# c1 = 0.2
+# d1 = 0.01
+# a2 = 0.01
+
+# param1 = {
+#     "weight_coef_dist_T": 10**1,
+#     "weight_coef_dist_S": 10**1,
+#     "sig_geom": 0.4,
+#     "max_iter": 2000,
+#     "time_steps": 2,
+#     "tri_unsample": True,
+#     "index": 0,
+# }
+# param2 = {
+#     "weight_coef_dist_T": 10**2,
+#     "weight_coef_dist_S": 10**2,
+#     "sig_geom": 0.3,
+#     "max_iter": 1000,
+#     "time_steps": 2,
+#     "tri_unsample": False,
+#     "index": 1,
+# }
+# param3 = {
+#     "weight_coef_dist_T": 10**3,
+#     "weight_coef_dist_S": 10**3,
+#     "sig_geom": 0.2,
+#     "max_iter": 1000,
+#     "time_steps": 2,
+#     "tri_unsample": False,
+#     "index": 1,
+# }
+# param4 = {
+#     "weight_coef_dist_T": 10**4,
+#     "weight_coef_dist_S": 10**4,
+#     "sig_geom": 0.1,
+#     "max_iter": 1000,
+#     "time_steps": 3,
+#     "tri_unsample": True,
+#     "index": 1,
+# }
+# param5 = {
+#     "weight_coef_dist_T": 10**5,
+#     "weight_coef_dist_S": 10**5,
+#     "sig_geom": 0.1,
+#     "max_iter": 1000,
+#     "time_steps": 4,
+#     "tri_unsample": False,
+#     "index": 2,
+# }
+# param6 = {
+#     "weight_coef_dist_T": 10**6,
+#     "weight_coef_dist_S": 10**6,
+#     "sig_geom": 0.05,
+#     "max_iter": 1000,
+#     "time_steps": 5,
+#     "tri_unsample": False,
+#     "index": 2,
+# }
+# paramlist = [param1, param2, param3, param4, param5, param6]

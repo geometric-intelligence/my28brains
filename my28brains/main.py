@@ -66,12 +66,12 @@ def interpolate_with_geodesic(args_with_queue):
         - queue : multiprocessing.Queue
             Queue containing the GPU IDs to use.
     """
-    i_pair, i_template, paths, n_geodesic_time, queue = args_with_queue
+    i_pair, paths, n_geodesic_time, queue = args_with_queue
     gpu_id = queue.get()
     try:
         ident = multiprocessing.current_process().ident
         print("{}: starting process on GPU {}".format(ident, gpu_id))
-        _interpolate_with_geodesic(i_pair, i_template, paths, n_geodesic_time, gpu_id)
+        _interpolate_with_geodesic(i_pair, paths, n_geodesic_time, gpu_id)
         print("{}: finished".format(ident))
     finally:
         queue.put(gpu_id)
@@ -119,7 +119,7 @@ def write_centered_nondegenerate_meshes(hemisphere, structure_id, area_threshold
             print(f"File already exists (no rewrite): {ply_path}")
 
 
-def _interpolate_with_geodesic(i_pair, i_template, paths, n_geodesic_time, gpu_id):
+def _interpolate_with_geodesic(i_pair, paths, n_geodesic_time, gpu_id):
     """Auxiliary function that will be run in parallel on different GPUs.
 
     Note the decimation of faces: decrease the resolution of the mesh,
@@ -131,6 +131,7 @@ def _interpolate_with_geodesic(i_pair, i_template, paths, n_geodesic_time, gpu_i
         Index of the pair of meshes to process.
     i_template : int
         Index of the template mesh which defines the vertices and faces that all mesh should have.
+        removed becuase not in use.
     paths : list
         List of paths to the meshes.
     gpu_id : int
@@ -140,7 +141,6 @@ def _interpolate_with_geodesic(i_pair, i_template, paths, n_geodesic_time, gpu_i
     start_time = time.time()
     start_path = paths[i_pair]
     end_path = paths[i_pair + 1]
-    template_path = paths[i_template]
 
     # We use the start mesh as the basename for the ply files
     ply_prefix = os.path.join(geodesics_dir, os.path.basename(start_path))
@@ -162,7 +162,7 @@ def _interpolate_with_geodesic(i_pair, i_template, paths, n_geodesic_time, gpu_i
         faces_source,
         FunS,
     ] = H2_SurfaceMatch.utils.input_output.loadData(start_path)
-    vertices_source = vertices_source  # was / 10
+    vertices_source = vertices_source / default_config.initial_decimation_fact  # was / 10
 
     # Initial decimation for source
     n_faces_after_decimation = int(
@@ -183,7 +183,7 @@ def _interpolate_with_geodesic(i_pair, i_template, paths, n_geodesic_time, gpu_i
         faces_target,
         FunT,
     ] = H2_SurfaceMatch.utils.input_output.loadData(end_path)
-    vertices_target = vertices_target  # was / 10
+    vertices_target = vertices_target /default_config.initial_decimation_fact  # was / 10
 
     # Initial decimation for target
     n_faces_after_decimation = int(
@@ -198,28 +198,28 @@ def _interpolate_with_geodesic(i_pair, i_template, paths, n_geodesic_time, gpu_i
     targets = [[vertices_target, faces_target]]
 
     # Template preprocessing
-    [
-        vertices_template,
-        faces_template,
-        FunTemplate,
-    ] = H2_SurfaceMatch.utils.input_output.loadData(template_path)
-    vertices_template = vertices_template  # was / 10
+    # [
+    #     vertices_template,
+    #     faces_template,
+    #     FunTemplate,
+    # ] = H2_SurfaceMatch.utils.input_output.loadData(template_path)
+    # vertices_template = vertices_template  # was / 10
 
-    # Initial decimation for template
-    n_faces_after_decimation = int(
-        faces_template.shape[0] / default_config.initial_decimation_fact
-    )
-    [
-        vertices_template,
-        faces_template,
-    ] = H2_SurfaceMatch.utils.utils.decimate_mesh(  # noqa E231
-        vertices_template, faces_template, n_faces_after_decimation
-    )
-    template = [[vertices_template, faces_template]]
+    # # Initial decimation for template
+    # n_faces_after_decimation = int(
+    #     faces_template.shape[0] / default_config.initial_decimation_fact
+    # )
+    # [
+    #     vertices_template,
+    #     faces_template,
+    # ] = H2_SurfaceMatch.utils.utils.decimate_mesh(  # noqa E231
+    #     vertices_template, faces_template, n_faces_after_decimation
+    # )
+    # template = [[vertices_template, faces_template]]
 
     source = sources[0]
     target = targets[0]
-    template = template[0]
+    # template = template[0]
 
     # decimation also happens at the start of h2_match.H2multires
     geod, F0 = H2_SurfaceMatch.H2_match.H2MultiRes(
@@ -291,7 +291,7 @@ if __name__ == "__main__":
         pool = multiprocessing.Pool(processes=default_config.n_gpus)
         i_pairs = list(range(default_config.day_range[0], default_config.day_range[1]))
         args_with_queue = [
-            (i_pair, default_config.i_template, paths, n_geodesic_time, queue)
+            (i_pair, paths, n_geodesic_time, queue)
             for i_pair in i_pairs
         ]
         for _ in pool.imap_unordered(interpolate_with_geodesic, args_with_queue):
