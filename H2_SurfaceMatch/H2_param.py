@@ -1,5 +1,4 @@
 # Load Packages
-import default_config
 import numpy as np
 import scipy
 import torch
@@ -8,6 +7,8 @@ from enr.DDG import computeBoundary
 from enr.H2 import *
 from scipy.optimize import fmin_l_bfgs_b, minimize
 from torch.autograd import grad
+
+import my28brains.default_config as default_config
 
 torch_dtype = torch.float64
 
