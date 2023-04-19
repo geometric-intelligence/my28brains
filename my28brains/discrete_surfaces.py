@@ -3,6 +3,8 @@
 Lead author: Emmanuel Hartman
 """
 
+import os
+
 import geomstats.backend as gs
 from geomstats.geometry.hypersphere import Hypersphere
 from geomstats.geometry.manifold import Manifold
@@ -584,6 +586,7 @@ class ElasticMetric(RiemannianMetric):
         path_energy : float
             total path energy.
         """
+        print(os.environ["GEOMSTATS_BACKEND"])
         if end_point is not None:
             return self._bvp(initial_point, end_point)
         if initial_tangent_vec is not None:
@@ -632,6 +635,7 @@ class ElasticMetric(RiemannianMetric):
         return geod[1] - geod[0]
 
     def _bvp(self, initial_point, end_point):
+        print(os.environ["GEOMSTATS_BACKEND"])
         n_points = initial_point.shape[0]
         step = (end_point - initial_point) / (self.n_times - 1)
         geod = gs.array([initial_point + i * step for i in range(0, self.n_times)])
