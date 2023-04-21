@@ -5,7 +5,11 @@ Lead author: Emmanuel Hartman
 
 import os
 
+os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
+import numpy as np
+import torch
+import trimesh
 from geomstats.geometry.hypersphere import Hypersphere
 from geomstats.geometry.manifold import Manifold
 from geomstats.geometry.riemannian_metric import RiemannianMetric
@@ -188,7 +192,7 @@ class DiscreteSurfaces(Manifold):
                 * (half_perimeter - len_edge_01)
             ).clip(min=1e-6)
         )
-        id_vertices = gs.flatten(self.faces)
+        id_vertices = gs.flatten(torch.tensor(self.faces))
         incident_areas = gs.zeros(n_vertices)
         val = gs.flatten(gs.stack([area] * 3, axis=1))
         incident_areas.scatter_add_(0, id_vertices, val)
@@ -197,6 +201,13 @@ class DiscreteSurfaces(Manifold):
 
     def get_laplacian(self, point):
         """Compute the mesh Laplacian operator of a surface.
+
+        Note: this function will not return the laplacian at a tangent vector.
+        If you define:
+        laplacian = self.get_laplacian(point)
+        then to get the laplacian at a tangent vector, you need to call:
+        laplacian(tangent_vec).
+        in other words, this function returns another function.
 
         The laplacian is evaluated at one of its tangent vectors, tangent_vec.
 
@@ -242,7 +253,9 @@ class DiscreteSurfaces(Manifold):
         cot /= 2.0
         ii = self.faces[:, [1, 2, 0]]
         jj = self.faces[:, [2, 0, 1]]
-        id_vertices = gs.reshape(gs.stack([ii, jj], axis=0), (2, n_faces * 3))
+        id_vertices = gs.reshape(
+            gs.stack([torch.tensor(ii), torch.tensor(jj)], axis=0), (2, n_faces * 3)
+        )
 
         def laplacian(tangent_vec):
             """Evaluate the mesh Laplacian operator.
@@ -315,10 +328,16 @@ class DiscreteSurfaces(Manifold):
         one_forms_base_point : array-like, shape=[n_faces, 3, 2]
             One form evaluated at each face of the triangulated surface.
         """
+        point = torch.Tensor(point)
+        print("shape of point in surface_one_forms: " + str(point.shape))
         vertex_0, vertex_1, vertex_2 = (
             gs.take(point, indices=self.faces[:, 0], axis=0),
             gs.take(point, indices=self.faces[:, 1], axis=0),
             gs.take(point, indices=self.faces[:, 2], axis=0),
+        )
+        print(
+            "surface_one_forms: "
+            + str(gs.stack([vertex_1 - vertex_0, vertex_2 - vertex_0], axis=1).shape)
         )
         return gs.stack([vertex_1 - vertex_0, vertex_2 - vertex_0], axis=1)
 
@@ -339,7 +358,9 @@ class DiscreteSurfaces(Manifold):
         _ :  array-like, shape=[n_faces,]
             Area computed at each face of the triangulated surface.
         """
+        print("face_areas " + str(point.shape))
         surface_metrics = self.surface_metric_matrices(point)
+        print("face_areas determinant: " + str(gs.sqrt(gs.linalg.det(surface_metrics))))
         return gs.sqrt(gs.linalg.det(surface_metrics))
 
     def surface_metric_matrices(self, point):
@@ -451,6 +472,7 @@ class ElasticMetric(RiemannianMetric):
                 gs.transpose(one_forms_base_point, axes=(0, 2, 1)), one_forms_base_point
             )
             areas = gs.sqrt(gs.linalg.det(surface_metrics))
+            print("face areas in inner_product: " + str(areas))
             normals_at_base_point = self.space.normals(base_point)
             if self.c1 > 0:
                 dn1 = self.space.normals(point_a) - normals_at_base_point
@@ -537,13 +559,22 @@ class ElasticMetric(RiemannianMetric):
         path: array-like, shape=[n_times, n_vertices, 3]
             PL path of discrete surfaces.
 
+        Variables:
+        ----------
+        diff: an array that contains the difference between two consecutive points in the path
+        (for example, the first element contains a vector of the differences between the first
+        point and the second point)
+        midpoints: an array that contains the midpoints between two consecutive points in the path
+
         Returns
         -------
         stepwise_path_energy : array-like, shape=[n_times-1]
             Stepwise path energy.
         """
         n_times = path.shape[0]
+        print("n_times shape: " + str(n_times))
         diff = path[1:, :, :] - path[:-1, :, :]
+        print("diff shape: " + str(diff.shape))
         midpoints = path[0 : n_times - 1, :, :] + diff / 2  # NOQA
         energy = []
         for i in range(0, n_times - 1):
@@ -586,7 +617,6 @@ class ElasticMetric(RiemannianMetric):
         path_energy : float
             total path energy.
         """
-        print(os.environ["GEOMSTATS_BACKEND"])
         if end_point is not None:
             return self._bvp(initial_point, end_point)
         if initial_tangent_vec is not None:
@@ -635,20 +665,47 @@ class ElasticMetric(RiemannianMetric):
         return geod[1] - geod[0]
 
     def _bvp(self, initial_point, end_point):
-        print(os.environ["GEOMSTATS_BACKEND"])
         n_points = initial_point.shape[0]
         step = (end_point - initial_point) / (self.n_times - 1)
+        # create a straight line between initial and end points for initialization
         geod = gs.array([initial_point + i * step for i in range(0, self.n_times)])
         midpoints = geod[1 : self.n_times - 1]  # NOQA
+        print("geodesic shape" + str(midpoints.shape))
+        print("flattened geodesic shape" + str(gs.flatten(midpoints).shape))
+
+        self.remove_degenerate_faces(midpoints, n_points)
 
         def funopt(midpoint):
             midpoint = gs.reshape(gs.array(midpoint), (self.n_times - 2, n_points, 3))
+            print("midpoint shape" + str(midpoint.shape))
+            print(len(midpoint))
+
+            self.remove_degenerate_faces(midpoint, n_points)
+
+            # for i_mesh in range(len(midpoint)):
+            #     point = midpoint[i_mesh]
+            #     print("2D point array" +str(point.shape))
+            #     point = torch.Tensor(point).detach().numpy()
+            #     area_threshold = 0.01
+            #     mesh = trimesh.Trimesh(point, self.space.faces)
+            #     # make sure that the midpoints don't have degenerate faces
+            #     face_areas = self.space.face_areas(point)
+            #     face_mask = ~gs.less(face_areas, area_threshold)
+            #     mesh.update_faces(face_mask)
+            #     vertices = torch.Tensor(mesh.vertices)
+            #     if i_mesh == 0:
+            #         nondegenerate_meshes = vertices
+            #     else:
+            #         nondegenerate_meshes = gs.concatenate([nondegenerate_meshes, vertices], axis=0)
+            # midpoint = nondegenerate_meshes
+            # print("nondegenerate midpoint shape"+str(midpoint.shape))
             return self.path_energy(
                 gs.concatenate(
                     [initial_point[None, :, :], midpoint, end_point[None, :, :]], axis=0
                 )
             )
 
+        # find midpoints that minimize path energy
         sol = minimize(
             gs.autodiff.value_and_grad(funopt),
             gs.flatten(midpoints),
@@ -730,3 +787,30 @@ class ElasticMetric(RiemannianMetric):
         geod = self._bvp(point_a, point_b)
         energy = self.stepwise_path_energy(geod)
         return gs.sum(gs.sqrt(energy))
+
+    def remove_degenerate_faces(self, vertices_list, n_points):
+        """
+        Remove degenerate faces from a list of vertices
+        """
+        midpoint = vertices_list
+        for i_mesh in range(len(midpoint)):
+            point = midpoint[i_mesh]
+            print("2D point array" + str(point.shape))
+            point = torch.Tensor(point).detach().numpy()
+            area_threshold = 0.01
+            mesh = trimesh.Trimesh(point, self.space.faces)
+            # make sure that the midpoints don't have degenerate faces
+            face_areas = self.space.face_areas(point)
+            face_mask = ~gs.less(face_areas, area_threshold)
+            mesh.update_faces(face_mask)
+            vertices = torch.Tensor(mesh.vertices)
+            if i_mesh == 0:
+                nondegenerate_meshes = vertices
+            else:
+                nondegenerate_meshes = gs.concatenate(
+                    [nondegenerate_meshes, vertices], axis=0
+                )
+        midpoint = nondegenerate_meshes
+        midpoint = gs.reshape(gs.array(midpoint), (self.n_times - 2, n_points, 3))
+        print("nondegenerate midpoint shape" + str(midpoint.shape))
+        return midpoint
