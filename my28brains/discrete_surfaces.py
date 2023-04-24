@@ -318,6 +318,8 @@ class DiscreteSurfaces(Manifold):
 
         The one forms are evaluated at the faces of a triangulated surface.
 
+        in the paper, the one forms are defined by dq_f
+
         Parameters
         ----------
         point :  array-like, shape=[n_vertices, 3]
@@ -371,6 +373,9 @@ class DiscreteSurfaces(Manifold):
         The surface metric is the pullback metric of the immersion q
         defining the surface, i.e. of
         the map q: M -> R3, where M is the parameterization manifold.
+
+        In the paper, surface_metric_matrices are denoted by g_f.
+        calculated via dq_f*dq_f^T
 
         Parameters
         ----------
@@ -466,11 +471,15 @@ class ElasticMetric(RiemannianMetric):
                 )
             if self.a0 > 0:
                 norm += self.a0 * gs.sum(v_areas * gs.einsum("bi,bi->b", h, k))
+        # QUESTION: i think that the last one should be self.d1?
         if self.a1 > 0 or self.b1 > 0 or self.c1 > 0 or self.b1 > 0:
             one_forms_base_point = self.space.surface_one_forms(base_point)
             surface_metrics = gs.matmul(
                 gs.transpose(one_forms_base_point, axes=(0, 2, 1)), one_forms_base_point
             )
+            # these are face areas. we know this because a1, b1, c1, d1 are in the face
+            # sum in the H2 metric.
+            # QUESTION: might be intuitive to rename this: "face area"
             areas = gs.sqrt(gs.linalg.det(surface_metrics))
             print("face areas in inner_product: " + str(areas))
             normals_at_base_point = self.space.normals(base_point)
