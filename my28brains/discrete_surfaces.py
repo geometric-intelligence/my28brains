@@ -472,7 +472,7 @@ class ElasticMetric(RiemannianMetric):
             if self.a0 > 0:
                 norm += self.a0 * gs.sum(v_areas * gs.einsum("bi,bi->b", h, k))
         # QUESTION: i think that the last one should be self.d1?
-        if self.a1 > 0 or self.b1 > 0 or self.c1 > 0 or self.b1 > 0:
+        if self.a1 > 0 or self.b1 > 0 or self.c1 > 0 or self.d1 > 0:
             one_forms_base_point = self.space.surface_one_forms(base_point)
             # CHANGE ALERT: switched the order so that it is dq_f*dq_f^T.
             surface_metrics = gs.matmul(
