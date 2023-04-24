@@ -320,6 +320,10 @@ class DiscreteSurfaces(Manifold):
 
         in the paper, the one forms are defined by dq_f
 
+        ISSUE: one forms are returning shape: torch.Size([1280, 2, 3])
+        but should be torch.Size([1280, 3, 2])
+        when i change it to stack along -1 axis, i get linalg error
+
         Parameters
         ----------
         point :  array-like, shape=[n_vertices, 3]
@@ -337,11 +341,12 @@ class DiscreteSurfaces(Manifold):
             gs.take(point, indices=self.faces[:, 1], axis=0),
             gs.take(point, indices=self.faces[:, 2], axis=0),
         )
+        print("vertex_0: " + str(vertex_0.shape))
         print(
             "surface_one_forms: "
-            + str(gs.stack([vertex_1 - vertex_0, vertex_2 - vertex_0], axis=1).shape)
+            + str(gs.stack([vertex_1 - vertex_0, vertex_2 - vertex_0], axis=-1).shape)
         )
-        return gs.stack([vertex_1 - vertex_0, vertex_2 - vertex_0], axis=1)
+        return gs.stack([vertex_1 - vertex_0, vertex_2 - vertex_0], axis=-1)
 
     def face_areas(self, point):
         """Compute the areas for each face of a triangulated surface.
@@ -390,7 +395,11 @@ class DiscreteSurfaces(Manifold):
         """
         one_forms = self.surface_one_forms(point)
         transposed_one_forms = gs.transpose(one_forms, axes=(0, 2, 1))
-        return gs.matmul(one_forms, transposed_one_forms)
+        print(
+            "surface_metric_matrices in DiscreteSurfaces: "
+            + str(gs.matmul(transposed_one_forms, one_forms))
+        )
+        return gs.matmul(transposed_one_forms, one_forms)
 
 
 class ElasticMetric(RiemannianMetric):
@@ -438,6 +447,20 @@ class ElasticMetric(RiemannianMetric):
     def inner_product(self, tangent_vec_a, tangent_vec_b, base_point):
         """Inner product between two tangent vectors at a base point.
 
+        g_q^-1 (dh, dh) = tr(dh.g_q^-1 .dhT )
+
+        dh = dhm + dh+ + dh⊥ + dh0,
+
+        dhm = 1/2 dq g_q^-1 (dqT dh + dhT dq) - 1/2 tr(g_q^-1 dqT dh)dq
+        dh+ = 1/2 tr(g_q^-1 dqT dh)dq
+        dh⊥ = dh - dq g_q^-1 dqT dh
+        dh0 = 1/2 dq g_q^-1 (dqT dh - dhT dq)
+
+        xi1_0 in code is dh_0 in paper.
+        xi2_0 in code is dk_0 in paper.
+
+        h is a tangent vector at q. dh is the vector [h1-h0, h2-h0, ..., hn-h0]
+
         Parameters
         ----------
         tangent_vec_a: array-like, shape=[n_vertices, 3]
@@ -471,12 +494,15 @@ class ElasticMetric(RiemannianMetric):
                 )
             if self.a0 > 0:
                 norm += self.a0 * gs.sum(v_areas * gs.einsum("bi,bi->b", h, k))
-        # QUESTION: i think that the last one should be self.d1?
+        # CHANGE ALERT: changed second self.b1 to be self.d1
         if self.a1 > 0 or self.b1 > 0 or self.c1 > 0 or self.d1 > 0:
             one_forms_base_point = self.space.surface_one_forms(base_point)
             # CHANGE ALERT: switched the order so that it is dq_f*dq_f^T.
+            # surface_metrics = gs.matmul(
+            #     one_forms_base_point, gs.transpose(one_forms_base_point, axes=(0, 2, 1))
+            # )
             surface_metrics = gs.matmul(
-                one_forms_base_point, gs.transpose(one_forms_base_point, axes=(0, 2, 1))
+                gs.transpose(one_forms_base_point, axes=(0, 2, 1)), one_forms_base_point
             )
             # these are face areas. we know this because a1, b1, c1, d1 are in the face
             # sum in the H2 metric.
@@ -494,11 +520,14 @@ class ElasticMetric(RiemannianMetric):
                 one_forms_b = self.space.surface_one_forms(point_b)
                 if self.d1 > 0:
                     xi1 = one_forms_a - one_forms_base_point
+                    # BUG ALERT: line below is bugging.
+                    # the line below matches the paper
+                    # QUESTION: Isn't this missing a 1/2 factor?
                     xi1_0 = gs.matmul(
                         gs.matmul(one_forms_base_point, ginv),
                         gs.matmul(gs.transpose(xi1, (0, 2, 1)), one_forms_base_point)
                         - gs.matmul(
-                            gs.transpose(one_forms_base_point, axes=(1, 2)), xi1
+                            gs.transpose(one_forms_base_point, axes=(0, 2, 1)), xi1
                         ),
                     )
                     xi2 = one_forms_b - one_forms_base_point
@@ -506,7 +535,7 @@ class ElasticMetric(RiemannianMetric):
                         gs.matmul(one_forms_base_point, ginv),
                         gs.matmul(gs.transpose(xi2, (0, 2, 1)), one_forms_base_point)
                         - gs.matmul(
-                            gs.transpose(one_forms_base_point, axes=(1, 2)), xi2
+                            gs.transpose(one_forms_base_point, axes=(0, 2, 1)), xi2
                         ),
                     )
                     norm += self.d1 * gs.sum(
