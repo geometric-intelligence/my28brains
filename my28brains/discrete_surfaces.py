@@ -474,19 +474,20 @@ class ElasticMetric(RiemannianMetric):
         # QUESTION: i think that the last one should be self.d1?
         if self.a1 > 0 or self.b1 > 0 or self.c1 > 0 or self.b1 > 0:
             one_forms_base_point = self.space.surface_one_forms(base_point)
+            # CHANGE ALERT: switched the order so that it is dq_f*dq_f^T.
             surface_metrics = gs.matmul(
-                gs.transpose(one_forms_base_point, axes=(0, 2, 1)), one_forms_base_point
+                one_forms_base_point, gs.transpose(one_forms_base_point, axes=(0, 2, 1))
             )
             # these are face areas. we know this because a1, b1, c1, d1 are in the face
             # sum in the H2 metric.
             # QUESTION: might be intuitive to rename this: "face area"
-            areas = gs.sqrt(gs.linalg.det(surface_metrics))
-            print("face areas in inner_product: " + str(areas))
+            face_areas = gs.sqrt(gs.linalg.det(surface_metrics))
+            print("face areas in inner_product: " + str(face_areas))
             normals_at_base_point = self.space.normals(base_point)
             if self.c1 > 0:
                 dn1 = self.space.normals(point_a) - normals_at_base_point
                 dn2 = self.space.normals(point_b) - normals_at_base_point
-                norm += self.c1 * gs.sum(gs.einsum("bi,bi->b", dn1, dn2) * areas)
+                norm += self.c1 * gs.sum(gs.einsum("bi,bi->b", dn1, dn2) * face_areas)
             if self.d1 > 0 or self.b1 > 0 or self.a1 > 0:
                 ginv = gs.linalg.inv(surface_metrics)
                 one_forms_a = self.space.surface_one_forms(point_a)
@@ -516,7 +517,7 @@ class ElasticMetric(RiemannianMetric):
                                 gs.matmul(ginv, gs.transpose(xi2_0, axes=(0, 2, 1))),
                             ),
                         )
-                        * areas
+                        * face_areas
                     )
                 if self.b1 > 0 or self.a1 > 0:
                     dg1 = (
@@ -534,12 +535,12 @@ class ElasticMetric(RiemannianMetric):
                     ginvdg1 = gs.matmul(ginv, dg1)
                     ginvdg2 = gs.matmul(ginv, dg2)
                     norm += self.a1 * gs.sum(
-                        gs.einsum("bii->b", gs.matmul(ginvdg1, ginvdg2)) * areas
+                        gs.einsum("bii->b", gs.matmul(ginvdg1, ginvdg2)) * face_areas
                     )
                     norm += self.b1 * gs.sum(
                         gs.einsum("bii->b", ginvdg1)
                         * gs.einsum("bii->b", ginvdg2)
-                        * areas
+                        * face_areas
                     )
         return norm
 
