@@ -48,6 +48,7 @@ class DiscreteSurfaces(Manifold):
         self.faces = faces
         self.n_faces = len(faces)
         self.n_vertices = int(gs.amax(self.faces) + 1)
+        self.default_point_type = "matrix"
 
     def belongs(self, point, atol=gs.atol):
         """Test whether a point belongs to the manifold.
