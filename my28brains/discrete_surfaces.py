@@ -166,12 +166,12 @@ class DiscreteSurfaces(Manifold):
 
         Parameters
         ----------
-        point : array-like, shape=[n_verticesx3]
+        point : array-like, shape=[n_vertices,3]
              Surface, i.e. the vertices of its triangulation.
 
         Returns
         -------
-        vertareas :  array-like, shape=[n_verticesx1]
+        vertareas :  array-like, shape=[n_vertices,1]
             vertex areas
         """
         n_vertices = point.shape[0]
@@ -265,27 +265,37 @@ class DiscreteSurfaces(Manifold):
 
             Parameters
             ----------
-            tangent_vec :  array-like, shape=[n_verticesx3]
+            tangent_vec :  array-like, shape=[..., n_vertices, 3]
                 Tangent vector to the triangulated surface.
 
             Returns
             -------
-            laplacian_at_tangent_vec: array-like, shape=[n_verticesx3]
+            laplacian_at_tangent_vec: array-like, shape=[..., n_vertices, 3]
                 Mesh Laplacian operator of the triangulated surface applied
                  to one its tangent vector tangent_vec.
             """
-            tangent_vec_diff = tangent_vec[id_vertices[0]] - tangent_vec[id_vertices[1]]
-            values = gs.stack([gs.flatten(cot)] * 3, axis=1) * tangent_vec_diff
-            laplacian_at_tangent_vec = gs.zeros((n_vertices, 3))
-            laplacian_at_tangent_vec[:, 0] = laplacian_at_tangent_vec[:, 0].scatter_add(
-                0, id_vertices[1, :], values[:, 0]
-            )
-            laplacian_at_tangent_vec[:, 1] = laplacian_at_tangent_vec[:, 1].scatter_add(
-                0, id_vertices[1, :], values[:, 1]
-            )
-            laplacian_at_tangent_vec[:, 2] = laplacian_at_tangent_vec[:, 2].scatter_add(
-                0, id_vertices[1, :], values[:, 2]
-            )
+            need_squeeze = False
+            if tangent_vec.ndim == 2:
+                tangent_vec = gs.unsqueeze(tangent_vec, axis=0)
+                need_squeeze = True
+            laplacian_at_tangent_vec = []
+            for t_vec in tangent_vec:
+                t_vec_diff = t_vec[id_vertices[0]] - t_vec[id_vertices[1]]
+                values = gs.stack([gs.flatten(cot)] * 3, axis=1) * t_vec_diff
+                laplacian_at_t_vec = gs.zeros((n_vertices, 3))
+                laplacian_at_t_vec[:, 0] = laplacian_at_t_vec[:, 0].scatter_add(
+                    0, id_vertices[1, :], values[:, 0]
+                )
+                laplacian_at_t_vec[:, 1] = laplacian_at_t_vec[:, 1].scatter_add(
+                    0, id_vertices[1, :], values[:, 1]
+                )
+                laplacian_at_t_vec[:, 2] = laplacian_at_t_vec[:, 2].scatter_add(
+                    0, id_vertices[1, :], values[:, 2]
+                )
+                laplacian_at_tangent_vec.append(laplacian_at_t_vec)
+            laplacian_at_tangent_vec = gs.array(laplacian_at_tangent_vec)
+            if need_squeeze:
+                laplacian_at_tangent_vec = gs.squeeze(laplacian_at_tangent_vec, axis=0)
             return laplacian_at_tangent_vec
 
         return laplacian
@@ -298,18 +308,18 @@ class DiscreteSurfaces(Manifold):
 
         Parameters
         ----------
-        point : array-like, shape=[n_vertices, 3]
+        point : array-like, shape=[..., n_vertices, 3]
             Surface, i.e. the vertices of its triangulation.
 
         Returns
         -------
-        normals_at_point : array-like, shape=[n_facesx1]
+        normals_at_point : array-like, shape=[..., n_faces, 1]
             Normals of each face of the mesh.
         """
         vertex_0, vertex_1, vertex_2 = (
-            gs.take(point, indices=self.faces[:, 0], axis=0),
-            gs.take(point, indices=self.faces[:, 1], axis=0),
-            gs.take(point, indices=self.faces[:, 2], axis=0),
+            gs.take(point, indices=self.faces[:, 0], axis=-2),
+            gs.take(point, indices=self.faces[:, 1], axis=-2),
+            gs.take(point, indices=self.faces[:, 2], axis=-2),
         )
         normals_at_point = 0.5 * gs.cross(vertex_1 - vertex_0, vertex_2 - vertex_0)
         return normals_at_point
@@ -337,9 +347,9 @@ class DiscreteSurfaces(Manifold):
         """
         point = torch.Tensor(point)
         vertex_0, vertex_1, vertex_2 = (
-            gs.take(point, indices=self.faces[:, 0], axis=0),
-            gs.take(point, indices=self.faces[:, 1], axis=0),
-            gs.take(point, indices=self.faces[:, 2], axis=0),
+            gs.take(point, indices=self.faces[:, 0], axis=-2),
+            gs.take(point, indices=self.faces[:, 1], axis=-2),
+            gs.take(point, indices=self.faces[:, 2], axis=-2),
         )
 
         return gs.stack([vertex_1 - vertex_0, vertex_2 - vertex_0], axis=-1)
@@ -424,12 +434,7 @@ class ElasticMetric(RiemannianMetric):
     """
 
     def __init__(self, space, a0, a1, b1, c1, d1, a2):
-        """Create a metric object.
-
-        n_times is automatically set to 2. this is becuase this is the number that
-        'log' and 'exp' functions use for the 'number of times in the geodesic'
-        (which should be two, since exp only takes one step)
-        """
+        """Create a metric object."""
         self.a0 = a0
         self.a1 = a1
         self.b1 = b1
@@ -456,6 +461,9 @@ class ElasticMetric(RiemannianMetric):
 
         h is a tangent vector at q. dh is the vector [h1-h0, h2-h0, ..., hn-h0]
 
+        NOTE: this function assumes that tangent_vec_a and tangent_vec_b are vectors
+        of the same shape.
+
         Parameters
         ----------
         tangent_vec_a: array-like, shape=[n_vertices, 3]
@@ -470,25 +478,28 @@ class ElasticMetric(RiemannianMetric):
         inner_product : float
             Inner-product.
         """
+        if tangent_vec_a.ndim == 2:
+            tangent_vec_a = gs.unsqueeze(tangent_vec_a, axis=0)
+            tangent_vec_b = gs.unsqueeze(tangent_vec_b, axis=0)
         h = tangent_vec_a
         k = tangent_vec_b
         point_a = base_point + h
         point_b = base_point + k
-        norm = 0
+        norm = gs.zeros(len(tangent_vec_a))
         if self.a0 > 0 or self.a2 > 0:
             v_areas = self.space.vertex_areas(base_point)
             if self.a2 > 0:
                 laplacian_at_base_point = self.space.get_laplacian(base_point)
                 norm += self.a2 * gs.sum(
                     gs.einsum(
-                        "bi,bi->b",
+                        "...bi,...bi->...b",
                         laplacian_at_base_point(h),
                         laplacian_at_base_point(k),
                     )
                     / v_areas
                 )
             if self.a0 > 0:
-                norm += self.a0 * gs.sum(v_areas * gs.einsum("bi,bi->b", h, k))
+                norm += self.a0 * gs.sum(v_areas * gs.einsum("...bi,...bi->...b", h, k))
         # CHANGE ALERT: changed second self.b1 to be self.d1
         if self.a1 > 0 or self.b1 > 0 or self.c1 > 0 or self.d1 > 0:
             one_forms_base_point = self.space.surface_one_forms(base_point)
@@ -506,39 +517,62 @@ class ElasticMetric(RiemannianMetric):
             if self.c1 > 0:
                 dn1 = self.space.normals(point_a) - normals_at_base_point
                 dn2 = self.space.normals(point_b) - normals_at_base_point
-                norm += self.c1 * gs.sum(gs.einsum("bi,bi->b", dn1, dn2) * face_areas)
+                norm += self.c1 * gs.sum(
+                    gs.einsum("...bi,...bi->...b", dn1, dn2) * face_areas
+                )
             if self.d1 > 0 or self.b1 > 0 or self.a1 > 0:
                 ginv = gs.linalg.inv(surface_metrics)
                 one_forms_a = self.space.surface_one_forms(point_a)
                 one_forms_b = self.space.surface_one_forms(point_b)
+                # QUESTION: Isn't this missing a 1/2 factor?
                 if self.d1 > 0:
                     xi1 = one_forms_a - one_forms_base_point
-                    # QUESTION: Isn't this missing a 1/2 factor?
-                    xi1_0 = gs.matmul(
-                        gs.matmul(one_forms_base_point, ginv),
-                        gs.matmul(gs.transpose(xi1, (0, 2, 1)), one_forms_base_point)
-                        - gs.matmul(
-                            gs.transpose(one_forms_base_point, axes=(0, 2, 1)), xi1
-                        ),
-                    )
+                    if xi1.ndim == 3:
+                        xi1 = gs.unsqueeze(xi1, axis=0)
                     xi2 = one_forms_b - one_forms_base_point
-                    xi2_0 = gs.matmul(
-                        gs.matmul(one_forms_base_point, ginv),
-                        gs.matmul(gs.transpose(xi2, (0, 2, 1)), one_forms_base_point)
-                        - gs.matmul(
-                            gs.transpose(one_forms_base_point, axes=(0, 2, 1)), xi2
-                        ),
-                    )
-                    norm += self.d1 * gs.sum(
-                        gs.einsum(
-                            "bii->b",
+                    if xi2.ndim == 3:
+                        xi2 = gs.unsqueeze(xi2, axis=0)
+                    norm_term = []
+                    for one_xi1, one_xi2 in zip(xi1, xi2):
+                        one_xi1_0 = gs.matmul(
+                            gs.matmul(one_forms_base_point, ginv),
                             gs.matmul(
-                                xi1_0,
-                                gs.matmul(ginv, gs.transpose(xi2_0, axes=(0, 2, 1))),
+                                gs.transpose(one_xi1, (0, 2, 1)), one_forms_base_point
+                            )
+                            - gs.matmul(
+                                gs.transpose(one_forms_base_point, axes=(0, 2, 1)),
+                                one_xi1,
                             ),
                         )
-                        * face_areas
-                    )
+                        one_xi2_0 = gs.matmul(
+                            gs.matmul(one_forms_base_point, ginv),
+                            gs.matmul(
+                                gs.transpose(one_xi2, (0, 2, 1)), one_forms_base_point
+                            )
+                            - gs.matmul(
+                                gs.transpose(one_forms_base_point, axes=(0, 2, 1)),
+                                one_xi2,
+                            ),
+                        )
+                        norm_term.append(
+                            self.d1
+                            * gs.sum(
+                                gs.einsum(
+                                    "bii->b",
+                                    gs.matmul(
+                                        one_xi1_0,
+                                        gs.matmul(
+                                            ginv,
+                                            gs.transpose(one_xi2_0, axes=(0, 2, 1)),
+                                        ),
+                                    ),
+                                    *face_areas
+                                )
+                            )
+                        )
+
+                    norm += gs.array(norm_term)
+
                 if self.b1 > 0 or self.a1 > 0:
                     dg1 = (
                         gs.matmul(
@@ -684,8 +718,18 @@ class ElasticMetric(RiemannianMetric):
         exp : array-like, shape=[nv,3]
             Point on the manifold.
         """
-        geod = self._ivp(base_point, tangent_vec)
-        return geod[-1]
+        exps = []
+        need_squeeze = False
+        if tangent_vec.ndim == 2:
+            tangent_vec = gs.unsqueeze(tangent_vec, axis=0)
+            need_squeeze = True
+        for one_tangent_vec in tangent_vec:
+            geod = self._ivp(base_point, one_tangent_vec)
+            exps.append(geod[-1])
+        exps = gs.array(exps)
+        if need_squeeze:
+            exps = gs.squeeze(exps, axis=0)
+        return exps
 
     def log(self, point, base_point):
         """Compute logarithm map associated to the Riemannian metric.
@@ -695,18 +739,28 @@ class ElasticMetric(RiemannianMetric):
 
         Parameters
         ----------
-        point : array-like, shape=[n_vertices,3]
+        point : array-like, shape=[..., n_vertices,3]
             Point on the manifold.
         base_point : array-like, shape=[n_vertices,3]
             Point on the manifold.
 
         Returns
         -------
-        tangent_vec : array-like, shape=[n_vertices,3]
+        tangent_vec : array-like, shape=[..., n_vertices, 3]
             Tangent vector at the base point.
         """
-        geod = self._bvp(base_point, point)
-        return geod[1] - geod[0]
+        logs = []
+        need_squeeze = False
+        if point.ndim == 2:
+            point = gs.unsqueeze(point, axis=0)
+            need_squeeze = True
+        for one_point in point:
+            geod = self._bvp(base_point, one_point)
+            logs.append(geod[1] - geod[0])
+        logs = gs.array(logs)
+        if need_squeeze:
+            logs = gs.squeeze(logs, axis=0)
+        return logs
 
     def _bvp(self, initial_point, end_point, times=None):
         n_points = initial_point.shape[0]
