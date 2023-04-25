@@ -506,7 +506,6 @@ class ElasticMetric(RiemannianMetric):
             )
             # these are face areas. we know this because a1, b1, c1, d1 are in the face
             # sum in the H2 metric.
-            # QUESTION: might be intuitive to rename this: "face area"
             face_areas = gs.sqrt(gs.linalg.det(surface_metrics))
             print("face areas in inner_product: " + str(face_areas))
             normals_at_base_point = self.space.normals(base_point)
@@ -520,8 +519,6 @@ class ElasticMetric(RiemannianMetric):
                 one_forms_b = self.space.surface_one_forms(point_b)
                 if self.d1 > 0:
                     xi1 = one_forms_a - one_forms_base_point
-                    # BUG ALERT: line below is bugging.
-                    # the line below matches the paper
                     # QUESTION: Isn't this missing a 1/2 factor?
                     xi1_0 = gs.matmul(
                         gs.matmul(one_forms_base_point, ginv),
@@ -714,6 +711,7 @@ class ElasticMetric(RiemannianMetric):
 
         self.remove_degenerate_faces(midpoints, n_points)
 
+        # needs to be differentiable with respect to midpoints
         def funopt(midpoint):
             midpoint = gs.reshape(gs.array(midpoint), (self.n_times - 2, n_points, 3))
             print("midpoint shape" + str(midpoint.shape))
@@ -721,23 +719,6 @@ class ElasticMetric(RiemannianMetric):
 
             self.remove_degenerate_faces(midpoint, n_points)
 
-            # for i_mesh in range(len(midpoint)):
-            #     point = midpoint[i_mesh]
-            #     print("2D point array" +str(point.shape))
-            #     point = torch.Tensor(point).detach().numpy()
-            #     area_threshold = 0.01
-            #     mesh = trimesh.Trimesh(point, self.space.faces)
-            #     # make sure that the midpoints don't have degenerate faces
-            #     face_areas = self.space.face_areas(point)
-            #     face_mask = ~gs.less(face_areas, area_threshold)
-            #     mesh.update_faces(face_mask)
-            #     vertices = torch.Tensor(mesh.vertices)
-            #     if i_mesh == 0:
-            #         nondegenerate_meshes = vertices
-            #     else:
-            #         nondegenerate_meshes = gs.concatenate([nondegenerate_meshes, vertices], axis=0)
-            # midpoint = nondegenerate_meshes
-            # print("nondegenerate midpoint shape"+str(midpoint.shape))
             return self.path_energy(
                 gs.concatenate(
                     [initial_point[None, :, :], midpoint, end_point[None, :, :]], axis=0
@@ -746,7 +727,7 @@ class ElasticMetric(RiemannianMetric):
 
         # find midpoints that minimize path energy
         sol = minimize(
-            gs.autodiff.value_and_grad(funopt),
+            gs.autodiff.value_and_grad(funopt, to_numpy=True),
             gs.flatten(midpoints),
             method="L-BFGS-B",
             jac=True,
@@ -836,6 +817,7 @@ class ElasticMetric(RiemannianMetric):
             point = midpoint[i_mesh]
             print("2D point array" + str(point.shape))
             point = torch.Tensor(point).detach().numpy()
+            # point = torch.Tensor(point)
             area_threshold = 0.01
             mesh = trimesh.Trimesh(point, self.space.faces)
             # make sure that the midpoints don't have degenerate faces
