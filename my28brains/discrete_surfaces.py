@@ -48,6 +48,7 @@ class DiscreteSurfaces(Manifold):
         self.faces = faces
         self.n_faces = len(faces)
         self.n_vertices = int(gs.amax(self.faces) + 1)
+        self.shape = (self.n_vertices, 3)
         self.default_point_type = "matrix"
 
     def belongs(self, point, atol=gs.atol):
@@ -123,7 +124,8 @@ class DiscreteSurfaces(Manifold):
         tangent_vec : array-like, shape=[..., *point_shape]
             Tangent vector at base point.
         """
-        raise NotImplementedError("to tangent is not implemented for discrete surfaces")
+        # raise NotImplementedError("to tangent is not implemented for discrete surfaces")
+        return vector
 
     def projection(self, point):
         """Project a point to the manifold.
@@ -138,7 +140,8 @@ class DiscreteSurfaces(Manifold):
         point: array-like, shape[..., *point_shape]
             Point.
         """
-        raise NotImplementedError("projection is not implemented for discrete surfaces")
+        # raise NotImplementedError("projection is not implemented for discrete surfaces")
+        return point
 
     def random_point(self, n_samples=1):
         """Sample discrete surfaces.
@@ -453,6 +456,7 @@ class ElasticMetric(RiemannianMetric):
         self.space = space
         self.n_times = 5
         self.dim = self.space.dim
+        self.shape = self.space.shape
 
     def inner_product(self, tangent_vec_a, tangent_vec_b, base_point):
         """Inner product between two tangent vectors at a base point.
@@ -835,13 +839,14 @@ class ElasticMetric(RiemannianMetric):
                 )
             )
 
+        # CHANGE ALERT: "ftol": 0.001" originally
         # find midpoints that minimize path energy
         sol = minimize(
             gs.autodiff.value_and_grad(funopt, to_numpy=True),
             gs.flatten(midpoints),
             method="L-BFGS-B",
             jac=True,
-            options={"disp": True, "ftol": 0.001},
+            options={"disp": True, "ftol": 1},
         )
         if times is None:
             out = gs.reshape(gs.array(sol.x), (self.n_times - 2, n_points, 3))
@@ -903,12 +908,13 @@ class ElasticMetric(RiemannianMetric):
             vertex_2 = gs.reshape(gs.array(vertex_2), (n_points, 3))
             return energy(vertex_2)
 
+        # CHANGE ALERT: "ftol": 0.001" originally
         sol = minimize(
             gs.autodiff.value_and_grad(funopt, to_numpy=True),
             gs.flatten(2 * (vertex_1 - vertex_0) + vertex_0),
             method="L-BFGS-B",
             jac=True,
-            options={"disp": True, "ftol": 0.00001},
+            options={"disp": True, "ftol": 1},
         )
         return gs.reshape(gs.array(sol.x), (n_points, 3))
 
