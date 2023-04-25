@@ -478,7 +478,9 @@ class ElasticMetric(RiemannianMetric):
         inner_product : float
             Inner-product.
         """
+        need_squeeze = False
         if tangent_vec_a.ndim == 2:
+            need_squeeze = True
             tangent_vec_a = gs.unsqueeze(tangent_vec_a, axis=0)
             tangent_vec_b = gs.unsqueeze(tangent_vec_b, axis=0)
         h = tangent_vec_a
@@ -496,10 +498,13 @@ class ElasticMetric(RiemannianMetric):
                         laplacian_at_base_point(h),
                         laplacian_at_base_point(k),
                     )
-                    / v_areas
+                    / v_areas,
+                    axis=-1,
                 )
             if self.a0 > 0:
-                norm += self.a0 * gs.sum(v_areas * gs.einsum("...bi,...bi->...b", h, k))
+                norm += self.a0 * gs.sum(
+                    v_areas * gs.einsum("...bi,...bi->...b", h, k), axis=-1
+                )
         # CHANGE ALERT: changed second self.b1 to be self.d1
         if self.a1 > 0 or self.b1 > 0 or self.c1 > 0 or self.d1 > 0:
             one_forms_base_point = self.space.surface_one_forms(base_point)
@@ -518,7 +523,7 @@ class ElasticMetric(RiemannianMetric):
                 dn1 = self.space.normals(point_a) - normals_at_base_point
                 dn2 = self.space.normals(point_b) - normals_at_base_point
                 norm += self.c1 * gs.sum(
-                    gs.einsum("...bi,...bi->...b", dn1, dn2) * face_areas
+                    gs.einsum("...bi,...bi->...b", dn1, dn2) * face_areas, axis=-1
                 )
             if self.d1 > 0 or self.b1 > 0 or self.a1 > 0:
                 ginv = gs.linalg.inv(surface_metrics)
@@ -527,11 +532,11 @@ class ElasticMetric(RiemannianMetric):
                 # QUESTION: Isn't this missing a 1/2 factor?
                 if self.d1 > 0:
                     xi1 = one_forms_a - one_forms_base_point
-                    if xi1.ndim == 3:
-                        xi1 = gs.unsqueeze(xi1, axis=0)
+                    # if xi1.ndim == 3:
+                    #     xi1 = gs.unsqueeze(xi1, axis=0)
                     xi2 = one_forms_b - one_forms_base_point
-                    if xi2.ndim == 3:
-                        xi2 = gs.unsqueeze(xi2, axis=0)
+                    # if xi2.ndim == 3:
+                    #     xi2 = gs.unsqueeze(xi2, axis=0)
                     norm_term = []
                     for one_xi1, one_xi2 in zip(xi1, xi2):
                         one_xi1_0 = gs.matmul(
@@ -566,36 +571,59 @@ class ElasticMetric(RiemannianMetric):
                                             gs.transpose(one_xi2_0, axes=(0, 2, 1)),
                                         ),
                                     ),
-                                    *face_areas
                                 )
+                                * face_areas
                             )
                         )
 
                     norm += gs.array(norm_term)
 
                 if self.b1 > 0 or self.a1 > 0:
-                    dg1 = (
-                        gs.matmul(
-                            gs.transpose(one_forms_a, axes=(0, 2, 1)), one_forms_a
+
+                    norm_term_a = []
+                    norm_term_b = []
+                    for one_one_forms_a, one_one_forms_b in zip(
+                        one_forms_a, one_forms_b
+                    ):
+                        dg1 = (
+                            gs.matmul(
+                                gs.transpose(one_one_forms_a, axes=(0, 2, 1)),
+                                one_one_forms_a,
+                            )
+                            - surface_metrics
                         )
-                        - surface_metrics
-                    )
-                    dg2 = (
-                        gs.matmul(
-                            gs.transpose(one_forms_b, axes=(0, 2, 1)), one_forms_b
+                        dg2 = (
+                            gs.matmul(
+                                gs.transpose(one_one_forms_b, axes=(0, 2, 1)),
+                                one_one_forms_b,
+                            )
+                            - surface_metrics
                         )
-                        - surface_metrics
-                    )
-                    ginvdg1 = gs.matmul(ginv, dg1)
-                    ginvdg2 = gs.matmul(ginv, dg2)
-                    norm += self.a1 * gs.sum(
-                        gs.einsum("bii->b", gs.matmul(ginvdg1, ginvdg2)) * face_areas
-                    )
-                    norm += self.b1 * gs.sum(
-                        gs.einsum("bii->b", ginvdg1)
-                        * gs.einsum("bii->b", ginvdg2)
-                        * face_areas
-                    )
+                        ginvdg1 = gs.matmul(ginv, dg1)
+                        ginvdg2 = gs.matmul(ginv, dg2)
+                        norm_term_a.append(
+                            self.a1
+                            * gs.sum(
+                                gs.einsum("bii->b", gs.matmul(ginvdg1, ginvdg2))
+                                * face_areas
+                            )
+                        )
+                        norm_term_b.append(
+                            self.b1
+                            * gs.sum(
+                                gs.einsum("bii->b", ginvdg1)
+                                * gs.einsum("bii->b", ginvdg2)
+                                * face_areas
+                            )
+                        )
+
+                    norm_term_a = gs.array(norm_term_a)
+                    norm_term_b = gs.array(norm_term_b)
+
+                    norm += norm_term_a
+                    norm += norm_term_b
+        if need_squeeze:
+            norm = gs.squeeze(norm, axis=0)
         return norm
 
     def squared_norm(self, vector, base_point):
