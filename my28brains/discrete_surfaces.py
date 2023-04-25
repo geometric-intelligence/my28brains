@@ -424,7 +424,12 @@ class ElasticMetric(RiemannianMetric):
     """
 
     def __init__(self, space, a0, a1, b1, c1, d1, a2):
-        """Create a metric object."""
+        """Create a metric object.
+
+        n_times is automatically set to 2. this is becuase this is the number that
+        'log' and 'exp' functions use for the 'number of times in the geodesic'
+        (which should be two, since exp only takes one step)
+        """
         self.a0 = a0
         self.a1 = a1
         self.b1 = b1
@@ -640,10 +645,26 @@ class ElasticMetric(RiemannianMetric):
         path_energy : float
             total path energy.
         """
-        if end_point is not None:
-            return self._bvp(initial_point, end_point)
-        if initial_tangent_vec is not None:
-            return self._ivp(initial_point, initial_tangent_vec)
+
+        def geodesic_function(times):
+            """Compute geodesic function.
+
+            Parameters
+            ----------
+            times: array-like, shape=[n_times]
+                Times.
+
+            Returns
+            -------
+            path : array-like, shape=[n_times, n_vertices, 3]
+                Geodesic.
+            """
+            if end_point is not None:
+                return self._bvp(initial_point, end_point, times)
+            if initial_tangent_vec is not None:
+                return self._ivp(initial_point, initial_tangent_vec, times)
+
+        return geodesic_function
 
     def exp(self, tangent_vec, base_point):
         """Compute exponential map associated to the Riemmannian metric.
@@ -687,20 +708,31 @@ class ElasticMetric(RiemannianMetric):
         geod = self._bvp(base_point, point)
         return geod[1] - geod[0]
 
-    def _bvp(self, initial_point, end_point):
+    def _bvp(self, initial_point, end_point, times=None):
         n_points = initial_point.shape[0]
-        step = (end_point - initial_point) / (self.n_times - 1)
-        # create a straight line between initial and end points for initialization
-        geod = gs.array([initial_point + i * step for i in range(0, self.n_times)])
-        midpoints = geod[1 : self.n_times - 1]  # NOQA
-
-        self.remove_degenerate_faces(midpoints, n_points)
+        if times is None:
+            step = (end_point - initial_point) / (self.n_times - 1)
+            # create a straight line between initial and end points for initialization
+            geod = gs.array([initial_point + i * step for i in range(0, self.n_times)])
+            midpoints = geod[1 : self.n_times - 1]  # NOQA
+            self.remove_degenerate_faces(midpoints, n_points)
+        else:
+            step = (end_point - initial_point) / (len(times) - 1)
+            # create a straight line between initial and end points for initialization
+            geod = gs.array([initial_point + i * step for i in times])
+            midpoints = geod[1 : len(times) - 1]
+            self.remove_degenerate_faces(midpoints, n_points, times)
 
         # needs to be differentiable with respect to midpoints
         def funopt(midpoint):
-            midpoint = gs.reshape(gs.array(midpoint), (self.n_times - 2, n_points, 3))
-
-            self.remove_degenerate_faces(midpoint, n_points)
+            if times is None:
+                midpoint = gs.reshape(
+                    gs.array(midpoint), (self.n_times - 2, n_points, 3)
+                )
+                self.remove_degenerate_faces(midpoint, n_points)
+            else:
+                midpoint = gs.reshape(gs.array(midpoint), (len(times) - 2, n_points, 3))
+                self.remove_degenerate_faces(midpoint, n_points, times)
 
             return self.path_energy(
                 gs.concatenate(
@@ -716,22 +748,35 @@ class ElasticMetric(RiemannianMetric):
             jac=True,
             options={"disp": True, "ftol": 0.001},
         )
-        out = gs.reshape(gs.array(sol.x), (self.n_times - 2, n_points, 3))
+        if times is None:
+            out = gs.reshape(gs.array(sol.x), (self.n_times - 2, n_points, 3))
+        else:
+            out = gs.reshape(gs.array(sol.x), (len(times) - 2, n_points, 3))
         geod = gs.concatenate(
             [initial_point[None, :, :], out, end_point[None, :, :]], axis=0
         )
         return geod
 
-    def _ivp(self, initial_point, initial_tangent_vec):
-        initial_tangent_vec = initial_tangent_vec / (self.n_times - 1)
+    def _ivp(self, initial_point, initial_tangent_vec, times=None):
+        if times is None:
+            initial_tangent_vec = initial_tangent_vec / (self.n_times - 1)
+        else:
+            initial_tangent_vec = initial_tangent_vec / (len(times) - 1)
         vertex_0 = initial_point
         vertex_1 = vertex_0 + initial_tangent_vec
         ivp = [vertex_0, vertex_1]
-        for i in range(2, self.n_times):
-            vertex_2 = self._stepforward(vertex_0, vertex_1)
-            ivp += [vertex_2]
-            vertex_0 = vertex_1
-            vertex_1 = vertex_2
+        if times is None:
+            for i in range(2, self.n_times):
+                vertex_2 = self._stepforward(vertex_0, vertex_1)
+                ivp += [vertex_2]
+                vertex_0 = vertex_1
+                vertex_1 = vertex_2
+        else:
+            for i in range(2, len(times)):
+                vertex_2 = self._stepforward(vertex_0, vertex_1)
+                ivp += [vertex_2]
+                vertex_0 = vertex_1
+                vertex_1 = vertex_2
         return gs.stack(ivp, axis=0)
 
     def _stepforward(self, vertex_0, vertex_1):
@@ -791,7 +836,7 @@ class ElasticMetric(RiemannianMetric):
         energy = self.stepwise_path_energy(geod)
         return gs.sum(gs.sqrt(energy))
 
-    def remove_degenerate_faces(self, vertices_list, n_points):
+    def remove_degenerate_faces(self, vertices_list, n_points, times=None):
         """
         Remove degenerate faces from a list of vertices
         """
@@ -814,5 +859,8 @@ class ElasticMetric(RiemannianMetric):
                     [nondegenerate_meshes, vertices], axis=0
                 )
         midpoint = nondegenerate_meshes
-        midpoint = gs.reshape(gs.array(midpoint), (self.n_times - 2, n_points, 3))
+        if times is None:
+            midpoint = gs.reshape(gs.array(midpoint), (self.n_times - 2, n_points, 3))
+        else:
+            midpoint = gs.reshape(gs.array(midpoint), (len(times) - 2, n_points, 3))
         return midpoint
