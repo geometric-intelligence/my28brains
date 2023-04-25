@@ -276,7 +276,7 @@ class DiscreteSurfaces(Manifold):
             """
             need_squeeze = False
             if tangent_vec.ndim == 2:
-                tangent_vec = gs.unsqueeze(tangent_vec, axis=0)
+                tangent_vec = gs.expand_dims(tangent_vec, axis=0)
                 need_squeeze = True
             laplacian_at_tangent_vec = []
             for t_vec in tangent_vec:
@@ -346,12 +346,21 @@ class DiscreteSurfaces(Manifold):
             One form evaluated at each face of the triangulated surface.
         """
         point = torch.Tensor(point)
+        need_squeeze = False
+        if point.ndim == 2:
+            need_squeeze = True
+            point = gs.expand_dims(point, axis=0)
+
         vertex_0, vertex_1, vertex_2 = (
             gs.take(point, indices=self.faces[:, 0], axis=-2),
             gs.take(point, indices=self.faces[:, 1], axis=-2),
             gs.take(point, indices=self.faces[:, 2], axis=-2),
         )
 
+        if need_squeeze:
+            return gs.squeeze(
+                gs.stack([vertex_1 - vertex_0, vertex_2 - vertex_0], axis=-1), axis=0
+            )
         return gs.stack([vertex_1 - vertex_0, vertex_2 - vertex_0], axis=-1)
 
     def face_areas(self, point):
@@ -443,6 +452,7 @@ class ElasticMetric(RiemannianMetric):
         self.a2 = a2
         self.space = space
         self.n_times = 5
+        self.dim = self.space.dim
 
     def inner_product(self, tangent_vec_a, tangent_vec_b, base_point):
         """Inner product between two tangent vectors at a base point.
@@ -481,8 +491,8 @@ class ElasticMetric(RiemannianMetric):
         need_squeeze = False
         if tangent_vec_a.ndim == 2:
             need_squeeze = True
-            tangent_vec_a = gs.unsqueeze(tangent_vec_a, axis=0)
-            tangent_vec_b = gs.unsqueeze(tangent_vec_b, axis=0)
+            tangent_vec_a = gs.expand_dims(tangent_vec_a, axis=0)
+            tangent_vec_b = gs.expand_dims(tangent_vec_b, axis=0)
         h = tangent_vec_a
         k = tangent_vec_b
         point_a = base_point + h
@@ -532,11 +542,11 @@ class ElasticMetric(RiemannianMetric):
                 # QUESTION: Isn't this missing a 1/2 factor?
                 if self.d1 > 0:
                     xi1 = one_forms_a - one_forms_base_point
-                    # if xi1.ndim == 3:
-                    #     xi1 = gs.unsqueeze(xi1, axis=0)
+                    if xi1.ndim == 3:
+                        xi1 = gs.expand_dims(xi1, axis=0)
                     xi2 = one_forms_b - one_forms_base_point
-                    # if xi2.ndim == 3:
-                    #     xi2 = gs.unsqueeze(xi2, axis=0)
+                    if xi2.ndim == 3:
+                        xi2 = gs.expand_dims(xi2, axis=0)
                     norm_term = []
                     for one_xi1, one_xi2 in zip(xi1, xi2):
                         one_xi1_0 = gs.matmul(
@@ -579,7 +589,10 @@ class ElasticMetric(RiemannianMetric):
                     norm += gs.array(norm_term)
 
                 if self.b1 > 0 or self.a1 > 0:
-
+                    if one_forms_a.ndim == 3:
+                        one_forms_a = gs.expand_dims(one_forms_a, axis=0)
+                    if one_forms_b.ndim == 3:
+                        one_forms_b = gs.expand_dims(one_forms_b, axis=0)
                     norm_term_a = []
                     norm_term_b = []
                     for one_one_forms_a, one_one_forms_b in zip(
@@ -749,7 +762,7 @@ class ElasticMetric(RiemannianMetric):
         exps = []
         need_squeeze = False
         if tangent_vec.ndim == 2:
-            tangent_vec = gs.unsqueeze(tangent_vec, axis=0)
+            tangent_vec = gs.expand_dims(tangent_vec, axis=0)
             need_squeeze = True
         for one_tangent_vec in tangent_vec:
             geod = self._ivp(base_point, one_tangent_vec)
@@ -780,7 +793,7 @@ class ElasticMetric(RiemannianMetric):
         logs = []
         need_squeeze = False
         if point.ndim == 2:
-            point = gs.unsqueeze(point, axis=0)
+            point = gs.expand_dims(point, axis=0)
             need_squeeze = True
         for one_point in point:
             geod = self._bvp(base_point, one_point)
@@ -891,7 +904,7 @@ class ElasticMetric(RiemannianMetric):
             return energy(vertex_2)
 
         sol = minimize(
-            gs.autodiff.value_and_grad(funopt),
+            gs.autodiff.value_and_grad(funopt, to_numpy=True),
             gs.flatten(2 * (vertex_1 - vertex_0) + vertex_0),
             method="L-BFGS-B",
             jac=True,
