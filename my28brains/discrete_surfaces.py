@@ -335,17 +335,12 @@ class DiscreteSurfaces(Manifold):
             One form evaluated at each face of the triangulated surface.
         """
         point = torch.Tensor(point)
-        print("shape of point in surface_one_forms: " + str(point.shape))
         vertex_0, vertex_1, vertex_2 = (
             gs.take(point, indices=self.faces[:, 0], axis=0),
             gs.take(point, indices=self.faces[:, 1], axis=0),
             gs.take(point, indices=self.faces[:, 2], axis=0),
         )
-        print("vertex_0: " + str(vertex_0.shape))
-        print(
-            "surface_one_forms: "
-            + str(gs.stack([vertex_1 - vertex_0, vertex_2 - vertex_0], axis=-1).shape)
-        )
+
         return gs.stack([vertex_1 - vertex_0, vertex_2 - vertex_0], axis=-1)
 
     def face_areas(self, point):
@@ -365,9 +360,7 @@ class DiscreteSurfaces(Manifold):
         _ :  array-like, shape=[n_faces,]
             Area computed at each face of the triangulated surface.
         """
-        print("face_areas " + str(point.shape))
         surface_metrics = self.surface_metric_matrices(point)
-        print("face_areas determinant: " + str(gs.sqrt(gs.linalg.det(surface_metrics))))
         return gs.sqrt(gs.linalg.det(surface_metrics))
 
     def surface_metric_matrices(self, point):
@@ -395,10 +388,6 @@ class DiscreteSurfaces(Manifold):
         """
         one_forms = self.surface_one_forms(point)
         transposed_one_forms = gs.transpose(one_forms, axes=(0, 2, 1))
-        print(
-            "surface_metric_matrices in DiscreteSurfaces: "
-            + str(gs.matmul(transposed_one_forms, one_forms))
-        )
         return gs.matmul(transposed_one_forms, one_forms)
 
 
@@ -507,7 +496,6 @@ class ElasticMetric(RiemannianMetric):
             # these are face areas. we know this because a1, b1, c1, d1 are in the face
             # sum in the H2 metric.
             face_areas = gs.sqrt(gs.linalg.det(surface_metrics))
-            print("face areas in inner_product: " + str(face_areas))
             normals_at_base_point = self.space.normals(base_point)
             if self.c1 > 0:
                 dn1 = self.space.normals(point_a) - normals_at_base_point
@@ -608,9 +596,7 @@ class ElasticMetric(RiemannianMetric):
             Stepwise path energy.
         """
         n_times = path.shape[0]
-        print("n_times shape: " + str(n_times))
         diff = path[1:, :, :] - path[:-1, :, :]
-        print("diff shape: " + str(diff.shape))
         midpoints = path[0 : n_times - 1, :, :] + diff / 2  # NOQA
         energy = []
         for i in range(0, n_times - 1):
@@ -706,16 +692,12 @@ class ElasticMetric(RiemannianMetric):
         # create a straight line between initial and end points for initialization
         geod = gs.array([initial_point + i * step for i in range(0, self.n_times)])
         midpoints = geod[1 : self.n_times - 1]  # NOQA
-        print("geodesic shape" + str(midpoints.shape))
-        print("flattened geodesic shape" + str(gs.flatten(midpoints).shape))
 
         self.remove_degenerate_faces(midpoints, n_points)
 
         # needs to be differentiable with respect to midpoints
         def funopt(midpoint):
             midpoint = gs.reshape(gs.array(midpoint), (self.n_times - 2, n_points, 3))
-            print("midpoint shape" + str(midpoint.shape))
-            print(len(midpoint))
 
             self.remove_degenerate_faces(midpoint, n_points)
 
@@ -815,7 +797,6 @@ class ElasticMetric(RiemannianMetric):
         midpoint = vertices_list
         for i_mesh in range(len(midpoint)):
             point = midpoint[i_mesh]
-            print("2D point array" + str(point.shape))
             point = torch.Tensor(point).detach().numpy()
             # point = torch.Tensor(point)
             area_threshold = 0.01
@@ -833,5 +814,4 @@ class ElasticMetric(RiemannianMetric):
                 )
         midpoint = nondegenerate_meshes
         midpoint = gs.reshape(gs.array(midpoint), (self.n_times - 2, n_points, 3))
-        print("nondegenerate midpoint shape" + str(midpoint.shape))
         return midpoint
