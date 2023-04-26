@@ -196,7 +196,7 @@ class DiscreteSurfaces(Manifold):
                 * (half_perimeter - len_edge_01)
             ).clip(min=1e-6)
         )
-        id_vertices = gs.flatten(torch.tensor(self.faces))
+        id_vertices = gs.flatten(gs.array(self.faces))
         incident_areas = gs.zeros(n_vertices)
         val = gs.flatten(gs.stack([area] * 3, axis=1))
         incident_areas.scatter_add_(0, id_vertices, val)
@@ -258,7 +258,7 @@ class DiscreteSurfaces(Manifold):
         ii = self.faces[:, [1, 2, 0]]
         jj = self.faces[:, [2, 0, 1]]
         id_vertices = gs.reshape(
-            gs.stack([torch.tensor(ii), torch.tensor(jj)], axis=0), (2, n_faces * 3)
+            gs.stack([gs.array(ii), gs.array(jj)], axis=0), (2, n_faces * 3)
         )
 
         def laplacian(tangent_vec):
@@ -348,7 +348,7 @@ class DiscreteSurfaces(Manifold):
         one_forms_base_point : array-like, shape=[n_faces, 3, 2]
             One form evaluated at each face of the triangulated surface.
         """
-        point = torch.Tensor(point)
+        point = gs.array(point)
         need_squeeze = False
         if point.ndim == 2:
             need_squeeze = True
@@ -665,7 +665,7 @@ class ElasticMetric(RiemannianMetric):
 
         Parameters
         ----------
-        path: array-like, shape=[n_times, n_vertices, 3]
+        path: array-like, shape=[..., n_times, n_vertices, 3]
             PL path of discrete surfaces.
 
         Variables:
@@ -680,12 +680,16 @@ class ElasticMetric(RiemannianMetric):
         stepwise_path_energy : array-like, shape=[n_times-1]
             Stepwise path energy.
         """
-        n_times = path.shape[0]
-        diff = path[1:, :, :] - path[:-1, :, :]
-        midpoints = path[0 : n_times - 1, :, :] + diff / 2  # NOQA
         energy = []
-        for i in range(0, n_times - 1):
-            energy += [n_times * self.squared_norm(diff[i], midpoints[i])]
+        for one_path in path:
+            n_times = one_path.shape[0]
+            diff = one_path[1:, :, :] - one_path[:-1, :, :]
+            midpoints = one_path[0 : n_times - 1, :, :] + diff / 2  # NOQA
+            one_energy = []
+            for i in range(0, n_times - 1):
+                one_energy += [n_times * self.squared_norm(diff[i], midpoints[i])]
+            energy.append(one_energy)
+        energy = gs.array(energy)
         return gs.array(energy)
 
     def path_energy(self, path):
@@ -693,7 +697,7 @@ class ElasticMetric(RiemannianMetric):
 
         Parameters
         ----------
-        path: array-like, shape=[n_times, n_vertices, 3]
+        path: array-like, shape=[..., n_times, n_vertices, 3]
             PL path of discrete surfaces.
 
         Returns
@@ -808,56 +812,123 @@ class ElasticMetric(RiemannianMetric):
         return logs
 
     def _bvp(self, initial_point, end_point, times=None):
-        n_points = initial_point.shape[0]
+        n_points = initial_point.shape[-2]
         if times is None:
             step = (end_point - initial_point) / (self.n_times - 1)
             # create a straight line between initial and end points for initialization
             geod = gs.array([initial_point + i * step for i in range(0, self.n_times)])
             midpoints = geod[1 : self.n_times - 1]  # NOQA
-            self.remove_degenerate_faces(midpoints, n_points)
+            # self.remove_degenerate_faces(midpoints, n_points)
         else:
             step = (end_point - initial_point) / (len(times) - 1)
             # create a straight line between initial and end points for initialization
             geod = gs.array([initial_point + i * step for i in times])
             midpoints = geod[1 : len(times) - 1]
-            self.remove_degenerate_faces(midpoints, n_points, times)
+            # self.remove_degenerate_faces(midpoints, n_points, times)
+
+        print("before dimension expansion:")
+        print("midpoints.shape", midpoints.shape)
+        print("initial_point.shape", initial_point.shape)
+        print("end_point.shape", end_point.shape)
+
+        # if vectorizing code: expanding dimension if there is only one midpoint
+        all_need_squeeze = False
+        initial_point_need_squeeze = False
+        end_point_need_squeeze = False
+        if midpoints.ndim == 3:
+            all_need_squeeze = True
+            initial_point = gs.expand_dims(initial_point, axis=0)
+            end_point = gs.expand_dims(end_point, axis=0)
+            midpoints = gs.expand_dims(midpoints, axis=0)
+            num_points = midpoints.shape[0]
+        else:
+            if initial_point.ndim == 2:
+                initial_point_need_squeeze = True
+                initial_point = gs.expand_dims(initial_point, axis=0)
+                num_points = end_point.shape[0]
+            if end_point.ndim == 2:
+                end_point_need_squeeze = True
+                end_point = gs.expand_dims(end_point, axis=0)
+                num_points = initial_point.shape[0]
+            midpoints = gs.reshape(
+                midpoints, (num_points, self.n_times - 2, n_points, 3)
+            )
+        # num_points = midpoints.shape[0]
+        print("after dimension expansion:")
+        print("midpoints.shape", midpoints.shape)
+        print("initial_point.shape", initial_point.shape)
+        print("end_point.shape", end_point.shape)
+        print("num_points", num_points)
 
         # needs to be differentiable with respect to midpoints
         def funopt(midpoint):
             if times is None:
                 midpoint = gs.reshape(
-                    gs.array(midpoint), (self.n_times - 2, n_points, 3)
+                    gs.array(midpoint), (num_points, self.n_times - 2, n_points, 3)
                 )
-                self.remove_degenerate_faces(midpoint, n_points)
+                # midpoint = self.remove_degenerate_faces(midpoint, n_points)
             else:
-                midpoint = gs.reshape(gs.array(midpoint), (len(times) - 2, n_points, 3))
-                self.remove_degenerate_faces(midpoint, n_points, times)
-
-            return self.path_energy(
-                gs.concatenate(
-                    [initial_point[None, :, :], midpoint, end_point[None, :, :]], axis=0
+                midpoint = gs.reshape(
+                    gs.array(midpoint), (num_points, len(times) - 2, n_points, 3)
                 )
-            )
+                # midpoint = self.remove_degenerate_faces(midpoint, n_points, times)
 
+            paths = []
+            for one_midpoint, one_initial_point, one_end_point in zip(
+                midpoint, initial_point, end_point
+            ):
+                print("one_midpoint", one_midpoint.shape)
+                print("one_initial_point", one_initial_point.shape)
+                print("one_endpoint", one_end_point.shape)
+                one_path = gs.concatenate(
+                    [
+                        one_initial_point[None, :, :],
+                        one_midpoint,
+                        one_end_point[None, :, :],
+                    ],
+                    axis=0,
+                )
+                paths.append(one_path)
+            paths = gs.array(paths)
+
+            return self.path_energy(paths)
+
+        initial_geod = gs.flatten(midpoints)
         # CHANGE ALERT: "ftol": 0.001" originally
         # find midpoints that minimize path energy
         sol = minimize(
             gs.autodiff.value_and_grad(funopt, to_numpy=True),
-            gs.flatten(midpoints),
+            initial_geod.detach().numpy(),
             method="L-BFGS-B",
             jac=True,
             options={"disp": True, "ftol": 1},
         )
         if times is None:
-            out = gs.reshape(gs.array(sol.x), (self.n_times - 2, n_points, 3))
+            out = gs.reshape(
+                gs.array(sol.x), (num_points, self.n_times - 2, n_points, 3)
+            )
         else:
-            out = gs.reshape(gs.array(sol.x), (len(times) - 2, n_points, 3))
-        geod = gs.concatenate(
-            [initial_point[None, :, :], out, end_point[None, :, :]], axis=0
-        )
+            out = gs.reshape(gs.array(sol.x), (num_points, len(times) - 2, n_points, 3))
+
+        geod = []
+        for one_out, one_initial_point, one_end_point in zip(
+            out, initial_point, end_point
+        ):
+            one_geod = gs.concatenate(
+                [one_initial_point[None, :, :], one_out, one_end_point[None, :, :]],
+                axis=0,
+            )
+            geod.append(one_geod)
+        geod = gs.array(geod)
+        if all_need_squeeze:
+            geod = gs.squeeze(geod, axis=0)
+
         return geod
 
     def _ivp(self, initial_point, initial_tangent_vec, times=None):
+        initial_point = gs.array(initial_point)
+        initial_tangent_vec = gs.array(initial_tangent_vec)
+
         if times is None:
             initial_tangent_vec = initial_tangent_vec / (self.n_times - 1)
         else:
@@ -880,6 +951,8 @@ class ElasticMetric(RiemannianMetric):
         return gs.stack(ivp, axis=0)
 
     def _stepforward(self, vertex_0, vertex_1):
+        vertex_0 = gs.array(vertex_0)
+        vertex_1 = gs.array(vertex_1)
         n_points = vertex_0.shape[0]
         B = gs.zeros([n_points, 3]).requires_grad_(True)
         qV1 = vertex_1.clone().requires_grad_(True)
@@ -908,10 +981,12 @@ class ElasticMetric(RiemannianMetric):
             vertex_2 = gs.reshape(gs.array(vertex_2), (n_points, 3))
             return energy(vertex_2)
 
+        input = gs.flatten((2 * (vertex_1 - vertex_0) + vertex_0))
+
         # CHANGE ALERT: "ftol": 0.001" originally
         sol = minimize(
             gs.autodiff.value_and_grad(funopt, to_numpy=True),
-            gs.flatten(2 * (vertex_1 - vertex_0) + vertex_0),
+            input.detach().numpy(),
             method="L-BFGS-B",
             jac=True,
             options={"disp": True, "ftol": 1},
@@ -944,15 +1019,15 @@ class ElasticMetric(RiemannianMetric):
         midpoint = vertices_list
         for i_mesh in range(len(midpoint)):
             point = midpoint[i_mesh]
-            point = torch.Tensor(point).detach().numpy()
-            # point = torch.Tensor(point)
+            point = gs.array(point).detach().numpy()
+            # point = gs.array(point)
             area_threshold = 0.01
             mesh = trimesh.Trimesh(point, self.space.faces)
             # make sure that the midpoints don't have degenerate faces
             face_areas = self.space.face_areas(point)
             face_mask = ~gs.less(face_areas, area_threshold)
             mesh.update_faces(face_mask)
-            vertices = torch.Tensor(mesh.vertices)
+            vertices = gs.array(mesh.vertices)
             if i_mesh == 0:
                 nondegenerate_meshes = vertices
             else:
