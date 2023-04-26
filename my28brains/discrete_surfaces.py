@@ -169,7 +169,7 @@ class DiscreteSurfaces(Manifold):
 
         Parameters
         ----------
-        point : array-like, shape=[n_vertices,3]
+        point : array-like, shape=[..., n_vertices,3]
              Surface, i.e. the vertices of its triangulation.
 
         Returns
@@ -177,16 +177,25 @@ class DiscreteSurfaces(Manifold):
         vertareas :  array-like, shape=[n_vertices,1]
             vertex areas
         """
-        n_vertices = point.shape[0]
-        face_coordinates = point[self.faces]
-        vertex0, vertex1, vertex2 = (
-            face_coordinates[:, 0],
-            face_coordinates[:, 1],
-            face_coordinates[:, 2],
+        need_squeeze = False
+        if point.ndim == 2:
+            point = gs.expand_dims(point, 0)
+            need_squeeze = True
+        n_vertices = point.shape[-2]
+        vertex_0, vertex_1, vertex_2 = (
+            gs.take(point, indices=self.faces[:, 0], axis=-2),
+            gs.take(point, indices=self.faces[:, 1], axis=-2),
+            gs.take(point, indices=self.faces[:, 2], axis=-2),
         )
-        len_edge_12 = gs.linalg.norm((vertex1 - vertex2), axis=1)
-        len_edge_02 = gs.linalg.norm((vertex0 - vertex2), axis=1)
-        len_edge_01 = gs.linalg.norm((vertex0 - vertex1), axis=1)
+        # face_coordinates = point[self.faces]
+        # vertex0, vertex1, vertex2 = (
+        #     face_coordinates[:, 0],
+        #     face_coordinates[:, 1],
+        #     face_coordinates[:, 2],
+        # )
+        len_edge_12 = gs.linalg.norm((vertex_1 - vertex_2), axis=-1)
+        len_edge_02 = gs.linalg.norm((vertex_0 - vertex_2), axis=-1)
+        len_edge_01 = gs.linalg.norm((vertex_0 - vertex_1), axis=-1)
         half_perimeter = 0.5 * (len_edge_12 + len_edge_02 + len_edge_01)
         area = gs.sqrt(
             (
@@ -198,9 +207,12 @@ class DiscreteSurfaces(Manifold):
         )
         id_vertices = gs.flatten(gs.array(self.faces))
         incident_areas = gs.zeros(n_vertices)
-        val = gs.flatten(gs.stack([area] * 3, axis=1))
+        val = gs.flatten(gs.stack([area] * 3, axis=-1))
         incident_areas.scatter_add_(0, id_vertices, val)
         vertex_areas = 2 * incident_areas / 3.0
+
+        if need_squeeze:
+            vertex_areas = gs.squeeze(vertex_areas, 0)
         return vertex_areas
 
     def get_laplacian(self, point):
@@ -226,16 +238,26 @@ class DiscreteSurfaces(Manifold):
             Function that will evaluate the mesh Laplacian operator
             at a tangent vector to the surface
         """
-        n_vertices, n_faces = point.shape[0], self.faces.shape[0]
-        face_coordinates = point[self.faces]
-        vertex0, vertex1, vertex2 = (
-            face_coordinates[:, 0],
-            face_coordinates[:, 1],
-            face_coordinates[:, 2],
+        need_squeeze1 = False
+        if point.ndim == 2:
+            point = gs.expand_dims(point, 0)
+            need_squeeze1 = True
+
+        n_vertices, n_faces = point.shape[-2], self.faces.shape[-2]
+        vertex_0, vertex_1, vertex_2 = (
+            gs.take(point, indices=self.faces[:, 0], axis=-2),
+            gs.take(point, indices=self.faces[:, 1], axis=-2),
+            gs.take(point, indices=self.faces[:, 2], axis=-2),
         )
-        len_edge_12 = gs.linalg.norm((vertex1 - vertex2), axis=1)
-        len_edge_02 = gs.linalg.norm((vertex0 - vertex2), axis=1)
-        len_edge_01 = gs.linalg.norm((vertex0 - vertex1), axis=1)
+        # face_coordinates = point[self.faces]
+        # vertex0, vertex1, vertex2 = (
+        #     face_coordinates[:, 0],
+        #     face_coordinates[:, 1],
+        #     face_coordinates[:, 2],
+        # )
+        len_edge_12 = gs.linalg.norm((vertex_1 - vertex_2), axis=-1)
+        len_edge_02 = gs.linalg.norm((vertex_0 - vertex_2), axis=-1)
+        len_edge_01 = gs.linalg.norm((vertex_0 - vertex_1), axis=-1)
         half_perimeter = 0.5 * (len_edge_12 + len_edge_02 + len_edge_01)
         area = gs.sqrt(
             (
@@ -253,7 +275,7 @@ class DiscreteSurfaces(Manifold):
         cot_12 = (sq_len_edge_02 + sq_len_edge_01 - sq_len_edge_12) / area
         cot_02 = (sq_len_edge_12 + sq_len_edge_01 - sq_len_edge_02) / area
         cot_01 = (sq_len_edge_12 + sq_len_edge_02 - sq_len_edge_01) / area
-        cot = gs.stack([cot_12, cot_02, cot_01], axis=1)
+        cot = gs.stack([cot_12, cot_02, cot_01], axis=-1)
         cot /= 2.0
         ii = self.faces[:, [1, 2, 0]]
         jj = self.faces[:, [2, 0, 1]]
@@ -484,7 +506,7 @@ class ElasticMetric(RiemannianMetric):
             Tangent vector at base point.
         tangent_vec_b: array-like, shape=[n_vertices, dim]
             Tangent vector at base point.
-        base_point: array-like, shape=[n_vertices, dim]
+        base_point: array-like, shape=[..., n_vertices, dim]
             Base point.
 
         Returns
@@ -497,8 +519,14 @@ class ElasticMetric(RiemannianMetric):
             need_squeeze = True
             tangent_vec_a = gs.expand_dims(tangent_vec_a, axis=0)
             tangent_vec_b = gs.expand_dims(tangent_vec_b, axis=0)
+        if base_point.ndim == 2:
+            base_point = gs.expand_dims(base_point, axis=0)
+            need_squeeze = True
         h = tangent_vec_a
         k = tangent_vec_b
+        print("INNER PRODUCT")
+        print("h", h.shape)
+        print("base_point", base_point.shape)
         point_a = base_point + h
         point_b = base_point + k
         norm = gs.zeros(len(tangent_vec_a))
@@ -648,7 +676,7 @@ class ElasticMetric(RiemannianMetric):
 
         Parameters
         ----------
-        vector: array-like, shape=[n_vertices, 3]
+        vector: array-like, shape=[..., n_vertices, 3]
             Tangent vector at base point.
         base_point: array-like, shape=[n_vertices, dim]
             Base point.
@@ -658,7 +686,23 @@ class ElasticMetric(RiemannianMetric):
         squared_norm : float
             Squared Norm.
         """
-        return self.inner_product(vector, vector, base_point)
+        need_squeeze = False
+        if base_point.ndim == 2:
+            need_squeeze = True
+            base_point = gs.expand_dims(base_point, axis=0)
+        if vector.ndim == 2:
+            need_squeeze = True
+            vector = gs.expand_dims(vector, axis=0)
+
+        inner_products = []
+        for one_base_point, one_vector in zip(base_point, vector):
+            inner_products.append(
+                self.inner_product(one_vector, one_vector, one_base_point)
+            )
+        inner_products = gs.array(inner_products)
+        if need_squeeze:
+            inner_products = gs.squeeze(inner_products, axis=0)
+        return inner_products
 
     def stepwise_path_energy(self, path):
         """Compute stepwise path energy of a PL path in the space of discrete surfaces.
