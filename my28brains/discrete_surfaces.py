@@ -480,6 +480,14 @@ class ElasticMetric(RiemannianMetric):
         self.dim = self.space.dim
         self.shape = self.space.shape
 
+    def parallel_transport(self, tan_a, base_point, tan_b):
+        """Parallel transport of a tangent vector tan_a along the geodesic.
+
+        NOTE: this is not actually implemented. just doing this to make
+        code run in geodesic_regression.py
+        """
+        return self.space.to_tangent(tan_a, base_point)
+
     def inner_product(self, tangent_vec_a, tangent_vec_b, base_point):
         """Inner product between two tangent vectors at a base point.
 
