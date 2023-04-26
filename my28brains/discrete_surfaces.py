@@ -800,12 +800,22 @@ class ElasticMetric(RiemannianMetric):
         """
         logs = []
         need_squeeze = False
+
+        print("LOG before squeeze:")
+        print("point.shape: ", point.shape)
+        print("base_point.shape: ", base_point.shape)
         if point.ndim == 2:
             point = gs.expand_dims(point, axis=0)
             need_squeeze = True
+        if base_point.ndim == 2:
+            base_point = gs.expand_dims(base_point, axis=0)
+            need_squeeze = True
         for one_point in point:
-            geod = self._bvp(base_point, one_point)
-            logs.append(geod[1] - geod[0])
+            print("one_point.shape: ", one_point.shape)
+            for one_base_point in base_point:
+                print("one_base_point.shape: ", one_base_point.shape)
+                geod = self._bvp(one_base_point, one_point)
+                logs.append(geod[1] - geod[0])
         logs = gs.array(logs)
         if need_squeeze:
             logs = gs.squeeze(logs, axis=0)
