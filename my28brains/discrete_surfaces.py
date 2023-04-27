@@ -10,6 +10,7 @@ import geomstats.backend as gs
 import numpy as np
 import torch
 import trimesh
+from geomstats.geometry.connection import Connection as connection
 from geomstats.geometry.hypersphere import Hypersphere
 from geomstats.geometry.manifold import Manifold
 from geomstats.geometry.riemannian_metric import RiemannianMetric
@@ -486,7 +487,11 @@ class ElasticMetric(RiemannianMetric):
         NOTE: this is not actually implemented. just doing this to make
         code run in geodesic_regression.py
         """
-        return self.space.to_tangent(tan_a, base_point)
+        parallel_transport_dict = connection.ladder_parallel_transport(
+            self, tan_a, base_point, tan_b, n_rungs=1, scheme="pole", alpha=1
+        )
+        return gs.array(parallel_transport_dict["transported_tangent_vec"])
+        # return self.space.to_tangent(tan_a, base_point)
 
     def inner_product(self, tangent_vec_a, tangent_vec_b, base_point):
         """Inner product between two tangent vectors at a base point.
