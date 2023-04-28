@@ -48,6 +48,7 @@ warnings.filterwarnings("ignore")
 centered_dir = default_config.centered_dir
 centered_nondegenerate_dir = default_config.centered_nondegenerate_dir
 geodesics_dir = default_config.geodesics_dir
+parameterized_meshes_dir = default_config.parameterized_meshes_dir
 
 
 def interpolate_with_geodesic(args_with_queue):
@@ -71,7 +72,15 @@ def interpolate_with_geodesic(args_with_queue):
     try:
         ident = multiprocessing.current_process().ident
         print("{}: starting process on GPU {}".format(ident, gpu_id))
-        _interpolate_with_geodesic(i_pair, i_template, paths, n_geodesic_time, gpu_id)
+        if default_config.interpolate_geodesics:
+            _interpolate_with_geodesic(
+                i_pair, i_template, paths, n_geodesic_time, gpu_id
+            )
+        elif default_config.generate_parameterized_data:
+            _generate_parameterized_data(
+                i_pair, i_template, paths, n_geodesic_time, gpu_id
+            )
+
         print("{}: finished".format(ident))
     finally:
         queue.put(gpu_id)
@@ -252,6 +261,149 @@ def _interpolate_with_geodesic(i_pair, i_template, paths, n_geodesic_time, gpu_i
         print(f"Geodesic interpolation {i_pair} saved to: " f"{geodesics_dir}.")
 
 
+def _generate_parameterized_data(i_pair, i_template, paths, n_geodesic_time, gpu_id):
+    """Auxiliary function that will be run in parallel on different GPUs.
+
+    Note the decimation of faces: decrease the resolution of the mesh,
+    ie the number of face and vertices.
+
+    TODO: at this point, this is copy-pasted from the function above. need to edit it.
+
+    Parameters
+    ----------
+    i_pair : int
+        Index of the pair of meshes to process.
+    i_template : int
+        Index of the template mesh which defines the vertices and faces that all mesh should have.
+    paths : list
+        List of paths to the meshes.
+    gpu_id : int
+        ID of the GPU to use.
+    """
+    device = torch.device(f"cuda:{gpu_id}" if torch.cuda.is_available() else "cpu")
+    start_time = time.time()
+    # make the start path the first mesh in the list
+    start_path = paths[0]
+    # make the end path the mesh that needs to be re-parameterized
+    end_path = paths[i_pair + 1]
+    # template_path = paths[i_template]
+
+    # We use the start mesh as the basename for the ply files
+    ply_prefix = os.path.join(parameterized_meshes_dir, os.path.basename(start_path))
+
+    # check to see if complete geodesic already has been written
+    geodesic_exists = True
+    geodesic_exists = os.path.exists(
+        os.path.join(parameterized_meshes_dir, f"parameterized_{end_path}")
+    )
+    # for i_geodesic_time in range(n_geodesic_time):
+    #     file_name = ply_prefix + "{}".format(i_geodesic_time)
+    #     file_ply = file_name + ".ply"
+    #     geodesic_exists = os.path.exists(os.path.join(parameterized_meshes_dir, file_ply))
+
+    if geodesic_exists:
+        print(f"Geodesic for pair {i_pair} already exists. Skipping to next pair.")
+        return
+
+    # Source preprocessing
+    [
+        vertices_source,
+        faces_source,
+        FunS,
+    ] = H2_SurfaceMatch.utils.input_output.loadData(start_path)
+    vertices_source = vertices_source  # was / 10
+
+    # Initial decimation for source
+    n_faces_after_decimation = int(
+        faces_source.shape[0] / default_config.initial_decimation_fact
+    )
+    [
+        vertices_source,
+        faces_source,
+    ] = H2_SurfaceMatch.utils.utils.decimate_mesh(  # noqa E231
+        vertices_source, faces_source, n_faces_after_decimation
+    )
+
+    sources = [[vertices_source, faces_source]]
+
+    # Target preprocessing
+    [
+        vertices_target,
+        faces_target,
+        FunT,
+    ] = H2_SurfaceMatch.utils.input_output.loadData(end_path)
+    vertices_target = vertices_target  # was / 10
+
+    # Initial decimation for target
+    n_faces_after_decimation = int(
+        faces_target.shape[0] / default_config.initial_decimation_fact
+    )
+    [
+        vertices_target,
+        faces_target,
+    ] = H2_SurfaceMatch.utils.utils.decimate_mesh(  # noqa E231
+        vertices_target, faces_target, n_faces_after_decimation
+    )
+    targets = [[vertices_target, faces_target]]
+
+    # Template preprocessing
+    [
+        vertices_template,
+        faces_template,
+        FunTemplate,
+    ] = H2_SurfaceMatch.utils.input_output.loadData(template_path)
+    vertices_template = vertices_template  # was / 10
+
+    # Initial decimation for template
+    n_faces_after_decimation = int(
+        faces_template.shape[0] / default_config.initial_decimation_fact
+    )
+    [
+        vertices_template,
+        faces_template,
+    ] = H2_SurfaceMatch.utils.utils.decimate_mesh(  # noqa E231
+        vertices_template, faces_template, n_faces_after_decimation
+    )
+    template = [[vertices_template, faces_template]]
+
+    source = sources[0]
+    target = targets[0]
+    template = template[0]
+
+    # decimation also happens at the start of h2_match.H2multires
+    geod, F0 = H2_SurfaceMatch.H2_match.H2MultiRes(
+        source=source,
+        target=target,
+        a0=default_config.a0,
+        a1=default_config.a1,
+        b1=default_config.b1,
+        c1=default_config.c1,
+        d1=default_config.d1,
+        a2=default_config.a2,
+        resolutions=default_config.resolutions,
+        start=None,
+        paramlist=default_config.paramlist,
+        device=device,
+    )
+    comp_time = time.time() - start_time
+    print(f"Geodesic interpolation {i_pair} took: {comp_time / 60:.2f} minutes.")
+
+    # TODO: edit this to save the geodesic, but only save the last one
+    for i_geodesic_time in range(geod.shape[0]):
+        file_name = ply_prefix + "{}".format(i_geodesic_time)
+        H2_SurfaceMatch.utils.input_output.plotGeodesic(
+            [geod[i_geodesic_time]],
+            F0,
+            stepsize=default_config.stepsize,  # open3d plotting parameter - unused
+            file_name=file_name,
+            axis=[0, 1, 0],
+            angle=-1 * np.pi / 2,
+        )
+        print(
+            f"Geodesic interpolation {i_pair} saved to: " f"{parameterized_meshes_dir}."
+        )
+
+
 if __name__ == "__main__":
     """Parse the default_config file and launch all experiments.
 
@@ -290,10 +442,21 @@ if __name__ == "__main__":
 
         pool = multiprocessing.Pool(processes=default_config.n_gpus)
         i_pairs = list(range(default_config.day_range[0], default_config.day_range[1]))
+
+        if default_config.interpolate_geodesics:
+            print(f"Launching geodesic interpolation.")
+        elif default_config.generate_parameterized_data:
+            print(f"Launching parameterized data generation.")
+        else:
+            raise ValueError(
+                "No action specified. Please check the config file and make sure that either interpolate_geodesics or generate_parameterized_data is set to True."
+            )
+
         args_with_queue = [
             (i_pair, default_config.i_template, paths, n_geodesic_time, queue)
             for i_pair in i_pairs
         ]
+
         for _ in pool.imap_unordered(interpolate_with_geodesic, args_with_queue):
             pass
         pool.close()

@@ -40,8 +40,12 @@ i_template = 0
 # Looking at the first 10 days is interesting because:
 # - we have 10 gpus, so we can run 10 interpolations at once
 # - they contain most of the progesterone peak.
-day_range = [0, 30] # first menstrual cycle is day 1-30 (pre-pill)
+day_range = [0, 30]  # first menstrual cycle is day 1-30 (pre-pill)
 
+# determine whether to generate parameterized data or to interpolate between
+# meshes with a geodesic.
+generate_parameterized_data = True
+interpolate_geodesics = not generate_parameterized_data
 
 # face area threshold for non-degenerate meshes:
 # the less we decimate, the more likely it is to have small faces
@@ -62,6 +66,9 @@ centered_nondegenerate_dir = os.path.join(
     os.getcwd(), "my28brains", "results", "meshes_centered_nondegenerate"
 )
 geodesics_dir = os.path.join(os.getcwd(), "my28brains", "results", "meshes_geodesics")
+parameterized_meshes_dir = os.path.join(
+    os.getcwd(), "my28brains", "results", "meshes_parameterized"
+)
 
 for mesh_dir in [meshes_dir, centered_dir, centered_nondegenerate_dir, geodesics_dir]:
     if not os.path.exists(mesh_dir):
@@ -71,7 +78,7 @@ for mesh_dir in [meshes_dir, centered_dir, centered_nondegenerate_dir, geodesics
 h2_dir = os.path.join(work_dir, "H2_SurfaceMatch")
 
 # weighted l2 energy: penalizes how much you have to move points (vertices) weighted by local area around that vertex
-a0 = 0.01 # was 0.1
+a0 = 0.01  # was 0.1
 # In our case: could be higher (1 max)? if it's too high, it might shrink the mesh down, match and then blow up again
 # See paper's figure that highlights links between these parameters.
 
