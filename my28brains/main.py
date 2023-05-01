@@ -16,6 +16,7 @@ To fix this, run the following commands:
     >>> import pykeops
 """
 
+os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import glob
 import itertools
 import multiprocessing

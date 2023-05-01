@@ -885,13 +885,13 @@ class ElasticMetric(RiemannianMetric):
             # create a straight line between initial and end points for initialization
             geod = gs.array([initial_point + i * step for i in range(0, self.n_times)])
             midpoints = geod[1 : self.n_times - 1]  # NOQA
-            # self.remove_degenerate_faces(midpoints, n_points)
+            midpoints = self.remove_degenerate_faces(midpoints, n_points)
         else:
             step = (end_point - initial_point) / (len(times) - 1)
             # create a straight line between initial and end points for initialization
             geod = gs.array([initial_point + i * step for i in times])
             midpoints = geod[1 : len(times) - 1]
-            # self.remove_degenerate_faces(midpoints, n_points, times)
+            midpoints = self.remove_degenerate_faces(midpoints, n_points, times)
 
         print("before dimension expansion:")
         print("midpoints.shape", midpoints.shape)
