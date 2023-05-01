@@ -151,8 +151,10 @@ def _interpolate_with_geodesic(i_pair, i_template, paths, n_geodesic_time, gpu_i
     end_path = paths[i_pair + 1]
     template_path = paths[i_template]
 
+    # CHANGE ALERT: using os.path.split instead of os.path.basename
     # We use the start mesh as the basename for the ply files
-    ply_prefix = os.path.join(geodesics_dir, os.path.basename(start_path))
+    ply_prefix = os.path.split(os.path.join(geodesics_dir, start_path))[0]
+    # ply_prefix =  os.path.join(geodesics_dir, os.path.basename(start_path))
 
     # check to see if complete geodesic already has been written
     geodesic_exists = True
@@ -286,24 +288,28 @@ def _generate_parameterized_data(i_pair, i_template, paths, n_geodesic_time, gpu
     start_path = paths[0]
     # make the end path the mesh that needs to be re-parameterized
     end_path = paths[i_pair + 1]
+    print(f"end_path: {end_path}")
     # template_path = paths[i_template]
 
-    # We use the start mesh as the basename for the ply files
-    ply_prefix = os.path.join(parameterized_meshes_dir, os.path.basename(start_path))
+    # We use the end mesh as the basename for the ply files becuase that is the
+    # mesh that we are re-parameterizing
+    ply_prefix = os.path.split(os.path.join(parameterized_meshes_dir, end_path))[0]
+    print(f"ply_prefix: {ply_prefix}")
+    file_name = ply_prefix + "_parameterized"
+    print(f"file_name: {file_name}")
+    file_ply = file_name + ".ply"
 
     # check to see if complete geodesic already has been written
     geodesic_exists = True
-    geodesic_exists = os.path.exists(
-        os.path.join(parameterized_meshes_dir, f"parameterized_{end_path}")
-    )
+    geodesic_exists = os.path.exists(os.path.join(parameterized_meshes_dir, file_ply))
+    if geodesic_exists:
+        print(f"Geodesic for pair {i_pair} already exists. Skipping to next pair.")
+        return
+
     # for i_geodesic_time in range(n_geodesic_time):
     #     file_name = ply_prefix + "{}".format(i_geodesic_time)
     #     file_ply = file_name + ".ply"
     #     geodesic_exists = os.path.exists(os.path.join(parameterized_meshes_dir, file_ply))
-
-    if geodesic_exists:
-        print(f"Geodesic for pair {i_pair} already exists. Skipping to next pair.")
-        return
 
     # Source preprocessing
     [
@@ -347,28 +353,28 @@ def _generate_parameterized_data(i_pair, i_template, paths, n_geodesic_time, gpu
     targets = [[vertices_target, faces_target]]
 
     # Template preprocessing
-    [
-        vertices_template,
-        faces_template,
-        FunTemplate,
-    ] = H2_SurfaceMatch.utils.input_output.loadData(template_path)
-    vertices_template = vertices_template  # was / 10
+    # [
+    #     vertices_template,
+    #     faces_template,
+    #     FunTemplate,
+    # ] = H2_SurfaceMatch.utils.input_output.loadData(template_path)
+    # vertices_template = vertices_template  # was / 10
 
     # Initial decimation for template
-    n_faces_after_decimation = int(
-        faces_template.shape[0] / default_config.initial_decimation_fact
-    )
-    [
-        vertices_template,
-        faces_template,
-    ] = H2_SurfaceMatch.utils.utils.decimate_mesh(  # noqa E231
-        vertices_template, faces_template, n_faces_after_decimation
-    )
-    template = [[vertices_template, faces_template]]
+    # n_faces_after_decimation = int(
+    #     faces_template.shape[0] / default_config.initial_decimation_fact
+    # )
+    # [
+    #     vertices_template,
+    #     faces_template,
+    # ] = H2_SurfaceMatch.utils.utils.decimate_mesh(  # noqa E231
+    #     vertices_template, faces_template, n_faces_after_decimation
+    # )
+    # template = [[vertices_template, faces_template]]
 
     source = sources[0]
     target = targets[0]
-    template = template[0]
+    # template = template[0]
 
     # decimation also happens at the start of h2_match.H2multires
     geod, F0 = H2_SurfaceMatch.H2_match.H2MultiRes(
@@ -388,20 +394,30 @@ def _generate_parameterized_data(i_pair, i_template, paths, n_geodesic_time, gpu
     comp_time = time.time() - start_time
     print(f"Geodesic interpolation {i_pair} took: {comp_time / 60:.2f} minutes.")
 
-    # TODO: edit this to save the geodesic, but only save the last one
-    for i_geodesic_time in range(geod.shape[0]):
-        file_name = ply_prefix + "{}".format(i_geodesic_time)
-        H2_SurfaceMatch.utils.input_output.plotGeodesic(
-            [geod[i_geodesic_time]],
-            F0,
-            stepsize=default_config.stepsize,  # open3d plotting parameter - unused
-            file_name=file_name,
-            axis=[0, 1, 0],
-            angle=-1 * np.pi / 2,
-        )
-        print(
-            f"Geodesic interpolation {i_pair} saved to: " f"{parameterized_meshes_dir}."
-        )
+    # save the last point in the geodesic
+    H2_SurfaceMatch.utils.input_output.plotGeodesic(
+        [geod[-1]],
+        F0,
+        stepsize=default_config.stepsize,  # open3d plotting parameter - unused
+        file_name=file_name,
+        axis=[0, 1, 0],
+        angle=-1 * np.pi / 2,
+    )
+    print(f"Geodesic interpolation {i_pair} saved to: " f"{parameterized_meshes_dir}.")
+
+    # for i_geodesic_time in range(geod.shape[0]):
+    #     file_name = ply_prefix + "{}".format(i_geodesic_time)
+    #     H2_SurfaceMatch.utils.input_output.plotGeodesic(
+    #         [geod[i_geodesic_time]],
+    #         F0,
+    #         stepsize=default_config.stepsize,  # open3d plotting parameter - unused
+    #         file_name=file_name,
+    #         axis=[0, 1, 0],
+    #         angle=-1 * np.pi / 2,
+    #     )
+    #     print(
+    #         f"Geodesic interpolation {i_pair} saved to: " f"{parameterized_meshes_dir}."
+    #     )
 
 
 if __name__ == "__main__":
@@ -444,9 +460,9 @@ if __name__ == "__main__":
         i_pairs = list(range(default_config.day_range[0], default_config.day_range[1]))
 
         if default_config.interpolate_geodesics:
-            print(f"Launching geodesic interpolation.")
+            print(f"LAUNCHING GEODESIC INTERPOLATION.")
         elif default_config.generate_parameterized_data:
-            print(f"Launching parameterized data generation.")
+            print(f"LAUNCHING PARAMETERIZED DATA GENERATION.")
         else:
             raise ValueError(
                 "No action specified. Please check the config file and make sure that either interpolate_geodesics or generate_parameterized_data is set to True."
