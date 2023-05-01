@@ -151,9 +151,12 @@ def _interpolate_with_geodesic(i_pair, i_template, paths, n_geodesic_time, gpu_i
     end_path = paths[i_pair + 1]
     template_path = paths[i_template]
 
-    # CHANGE ALERT: using os.path.split instead of os.path.basename
+    # CHANGE ALERT: using os.path.splitext to extract basename without extension
     # We use the start mesh as the basename for the ply files
-    ply_prefix = os.path.split(os.path.join(geodesics_dir, start_path))[0]
+    ply_prefix = os.path.join(
+        geodesics_dir, os.path.splitext(os.path.basename(start_path))[0]
+    )
+
     # ply_prefix =  os.path.join(geodesics_dir, os.path.basename(start_path))
 
     # check to see if complete geodesic already has been written
@@ -293,7 +296,12 @@ def _generate_parameterized_data(i_pair, i_template, paths, n_geodesic_time, gpu
 
     # We use the end mesh as the basename for the ply files becuase that is the
     # mesh that we are re-parameterizing
-    ply_prefix = os.path.split(os.path.join(parameterized_meshes_dir, end_path))[0]
+    print("basename: ", os.path.basename(end_path))
+    print("split: ", os.path.splitext(os.path.basename(end_path)))
+    ply_prefix = os.path.join(
+        parameterized_meshes_dir, os.path.splitext(os.path.basename(end_path))[0]
+    )
+    # ply_prefix = os.path.split(os.path.join(parameterized_meshes_dir, os.path.basename(end_path)))[0]
     print(f"ply_prefix: {ply_prefix}")
     file_name = ply_prefix + "_parameterized"
     print(f"file_name: {file_name}")
