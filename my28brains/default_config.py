@@ -1,4 +1,38 @@
-"""Default configuration."""
+"""Default configuration.
+
+Structure_ID names, numbers, and colors:
+----------------------------------------
+1   255    0    0        1  1  1    "CA1"
+2     0  255    0        1  1  1    "CA2+3"
+3     0    0  255        1  1  1    "DG"
+4   255  255    0        1  1  1    "ERC"
+5     0  255  255        1  1  1    "PHC"
+6   255    0  255        1  1  1    "PRC"
+7    80  179  221        1  1  1    "SUB"
+8   255  215    0        1  1  1    "AntHipp"
+9   184  115   51        1  1  1    "PostHipp"
+2, 6 are expected to grow in volume with progesterone
+4, 5 are expected to shrink in volume with progesterone
+
+Information to help elastic metric parameter choosing:
+----------------------------------------
+The elastic metric is a weighted sum of 3 terms:
+    - TODO: add description of the terms
+
+The weights are:
+a0 = weighted l2 energy: penalizes how much you have to move points (vertices) weighted by local area around that vertex.
+        Max value 1. If it's too high, it might shrink the mesh down, match and then blow up again
+
+a1 = penalizes stretching (was 10)
+b1 = penalizes shearing (was 10)
+c1 = (was 1) penalizes change in normals: for high deformations we want c1 pretty low, e.g. when moving an arm.
+        in our case try with a1 b1 a bit smaller (10), and c1 a bit large (1 or even up to 10)
+d1 = (was 0) penalizes how a triangle rotate about normal vector, without stretching or shearing. almost never used
+        it is everything that a1, b1, c1 don't penalize.
+
+a2 = (was 1) high value = 1. a2 penalizes the laplacian of the mesh. it wants to get a smooth mesh.
+        if it is too high, we will get bloating. It wants to blow the mesh up to get a super smooth mesh.
+"""
 
 import os
 import subprocess
@@ -8,15 +42,16 @@ n_gpus = 10
 
 # specify brain hemispheres to analyze
 hemispheres = ["left"]  # , "right"]
-
 structure_ids = [-1]
 
 # number of time points along each interpolating geodesic
 n_geodesic_times = [10]  # will not be used
 stepsize = 1  # will not be used.
 resolutions = 0  # don't do several resolutions for our case.
+# WORKING
 # initial_decimation_fact = 10
 # scaling_factor = 2*initial_decimation_fact
+# NOT WORKING
 initial_decimation_fact = 4
 scaling_factor = 10
 
@@ -58,32 +93,20 @@ geodesics_dir = os.path.join(os.getcwd(), "my28brains", "results", "meshes_geode
 parameterized_meshes_dir = os.path.join(
     os.getcwd(), "my28brains", "results", "meshes_parameterized"
 )
+h2_dir = os.path.join(work_dir, "H2_SurfaceMatch")
 
 for mesh_dir in [meshes_dir, centered_dir, centered_nondegenerate_dir, geodesics_dir]:
     if not os.path.exists(mesh_dir):
         os.makedirs(mesh_dir)
 
-# parameters for h2_match
-h2_dir = os.path.join(work_dir, "H2_SurfaceMatch")
 
-# weighted l2 energy: penalizes how much you have to move points (vertices) weighted by local area around that vertex
+# ELASTIC METRIC PARAMETERS
 a0 = 0.01  # was 0.1
-# In our case: could be higher (1 max)? if it's too high, it might shrink the mesh down, match and then blow up again
-# See paper's figure that highlights links between these parameters.
-
-a1 = 10  # penalizes stretching (was 10)
-b1 = 10  # penalizes shearing (was 10)
-c1 = 1  # (was 1) penalizes change in normals: for high deformations we want c1 pretty low, e.g. when moving an arm.
-# in our case try with a1 b1 a bit smaller (10), and c1 a bit large (1 or even up to 10)
-
-# penalizes how a triangle rotate about normal vector,
-# without stretching or shearing. almost never uses,
-# usually d1 = 0, it's every thing that the others a1, b1, and c1, dont penalize
+a1 = 10  # (was 10)
+b1 = 10  # (was 10)
+c1 = 1  # (was 1)
 d1 = 0
-
-a2 = 1  # (was 1) high value = 1.
-# If a2 is too high, we get bloding : it wants to blow up and get super smooth mesh and then shrink back down to get the matching
-# a2 high wants to get a smooth mesh because we're penalizing the mesh laplacian
+a2 = 1  # (was 1)
 
 # NOTE: "time_steps" is the number of time points that we will have in the interpolated geodesic
 # the "time_steps" value in the last param will set the number of time points in the interpolated geodesic
@@ -156,25 +179,3 @@ param3 = {
 # }
 
 paramlist = [param1, param2, param3]  # , param4]  # param5, param6]
-
-################ FOR PARAMETERIZED REGRESSION ################
-
-# choose a dataset
-"""Other information:
-
-Structure_ID names, numbers, and colors:
-----------------------------------------
-1   255    0    0        1  1  1    "CA1"
-2     0  255    0        1  1  1    "CA2+3"
-3     0    0  255        1  1  1    "DG"
-4   255  255    0        1  1  1    "ERC"
-5     0  255  255        1  1  1    "PHC"
-6   255    0  255        1  1  1    "PRC"
-7    80  179  221        1  1  1    "SUB"
-8   255  215    0        1  1  1    "AntHipp"
-9   184  115   51        1  1  1    "PostHipp"
-2, 6 are expected to grow in volume with progesterone
-4, 5 are expected to shrink in volume with progesterone
-
-
-"""
