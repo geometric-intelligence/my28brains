@@ -28,8 +28,10 @@ structure_ids = [-1]
 n_geodesic_times = [10]  # will not be used
 stepsize = 1  # will not be used.
 resolutions = 0  # don't do several resolutions for our case.
+# initial_decimation_fact = 10
+# scaling_factor = 2*initial_decimation_fact
 initial_decimation_fact = 4
-substructure_diameter_fact = 2
+scaling_factor = 10
 
 # Define template structure of the mesh that will be used for all mesh in the interpolation
 # Every mesh will have the same number of vertices and faces.
@@ -50,7 +52,7 @@ interpolate_geodesics = not generate_parameterized_data
 # face area threshold for non-degenerate meshes:
 # the less we decimate, the more likely it is to have small faces
 # thus the thresholt needs to be higher
-area_thresholds = [0.001]
+area_thresholds = [0.00]
 
 # build work path from git root path
 gitroot_path = subprocess.check_output(
@@ -82,17 +84,17 @@ a0 = 0.01  # was 0.1
 # In our case: could be higher (1 max)? if it's too high, it might shrink the mesh down, match and then blow up again
 # See paper's figure that highlights links between these parameters.
 
-a1 = 100  # penalizes stretching (was 10)
-b1 = 100  # penalizes shearing (was 10)
-c1 = 0.2  # (was 1) penalizes change in normals: for high deformations we want c1 pretty low, e.g. when moving an arm.
+a1 = 10  # penalizes stretching (was 10)
+b1 = 10  # penalizes shearing (was 10)
+c1 = 1  # (was 1) penalizes change in normals: for high deformations we want c1 pretty low, e.g. when moving an arm.
 # in our case try with a1 b1 a bit smaller (10), and c1 a bit large (1 or even up to 10)
 
 # penalizes how a triangle rotate about normal vector,
 # without stretching or shearing. almost never uses,
 # usually d1 = 0, it's every thing that the others a1, b1, and c1, dont penalize
-d1 = 0.01
+d1 = 0
 
-a2 = 0.3  # (was 1) high value = 1.
+a2 = 1  # (was 1) high value = 1.
 # If a2 is too high, we get bloding : it wants to blow up and get super smooth mesh and then shrink back down to get the matching
 # a2 high wants to get a smooth mesh because we're penalizing the mesh laplacian
 
@@ -167,3 +169,7 @@ param3 = {
 # }
 
 paramlist = [param1, param2, param3]  # , param4]  # param5, param6]
+
+################ FOR PARAMETERIZED REGRESSION ################
+
+# choose a dataset

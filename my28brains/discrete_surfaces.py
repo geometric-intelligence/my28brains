@@ -885,13 +885,12 @@ class ElasticMetric(RiemannianMetric):
             # create a straight line between initial and end points for initialization
             geod = gs.array([initial_point + i * step for i in range(0, self.n_times)])
             midpoints = geod[1 : self.n_times - 1]  # NOQA
-            midpoints = self.remove_degenerate_faces(midpoints, n_points)
+
         else:
             step = (end_point - initial_point) / (len(times) - 1)
             # create a straight line between initial and end points for initialization
             geod = gs.array([initial_point + i * step for i in times])
             midpoints = geod[1 : len(times) - 1]
-            midpoints = self.remove_degenerate_faces(midpoints, n_points, times)
 
         print("before dimension expansion:")
         print("midpoints.shape", midpoints.shape)
@@ -920,6 +919,12 @@ class ElasticMetric(RiemannianMetric):
             midpoints = gs.reshape(
                 midpoints, (num_points, self.n_times - 2, n_points, 3)
             )
+
+        # if times is None:
+        #     midpoints = self.remove_degenerate_faces(midpoints, n_points)
+        # else:
+        #     midpoints = self.remove_degenerate_faces(midpoints, n_points, times)
+
         # num_points = midpoints.shape[0]
         print("after dimension expansion:")
         print("midpoints.shape", midpoints.shape)
@@ -1079,31 +1084,40 @@ class ElasticMetric(RiemannianMetric):
         energy = self.stepwise_path_energy(geod)
         return gs.sum(gs.sqrt(energy))
 
-    def remove_degenerate_faces(self, vertices_list, n_points, times=None):
-        """
-        Remove degenerate faces from a list of vertices
-        """
-        midpoint = vertices_list
-        for i_mesh in range(len(midpoint)):
-            point = midpoint[i_mesh]
-            point = gs.array(point).detach().numpy()
-            # point = gs.array(point)
-            area_threshold = 0.01
-            mesh = trimesh.Trimesh(point, self.space.faces)
-            # make sure that the midpoints don't have degenerate faces
-            face_areas = self.space.face_areas(point)
-            face_mask = ~gs.less(face_areas, area_threshold)
-            mesh.update_faces(face_mask)
-            vertices = gs.array(mesh.vertices)
-            if i_mesh == 0:
-                nondegenerate_meshes = vertices
-            else:
-                nondegenerate_meshes = gs.concatenate(
-                    [nondegenerate_meshes, vertices], axis=0
-                )
-        midpoint = nondegenerate_meshes
-        if times is None:
-            midpoint = gs.reshape(gs.array(midpoint), (self.n_times - 2, n_points, 3))
-        else:
-            midpoint = gs.reshape(gs.array(midpoint), (len(times) - 2, n_points, 3))
-        return midpoint
+    # def remove_degenerate_faces(self, vertices_list, n_points, times=None):
+    #     """
+    #     Remove degenerate faces from a list of vertices
+
+    #     NOT USED RIGHT NOW -- broken
+    #     """
+    #     midpoints = vertices_list
+    #     print("midpoints", midpoints.shape)
+    #     nondegenerate_midpoints = []
+    #     for one_midpoint in midpoints:
+    #         one_nondegenerate_midpoint = []
+    #         for i_mesh in range(len(one_midpoint)):
+    #             point = one_midpoint[i_mesh]
+    #             point = gs.array(point).detach().numpy()
+    #             # point = gs.array(point)
+    #             area_threshold = 0.01
+    #             mesh = trimesh.Trimesh(point, self.space.faces)
+    #             # make sure that the midpoints don't have degenerate faces
+    #             face_areas = self.space.face_areas(point)
+    #             face_mask = ~gs.less(face_areas, area_threshold)
+    #             mesh.update_faces(face_mask)
+    #             vertices = gs.array(mesh.vertices)
+    #             one_nondegenerate_midpoint.append(vertices)
+    #             # if i_mesh == 0:
+    #             #     nondegenerate_meshes = vertices
+    #             # else:
+    #             #     nondegenerate_meshes = gs.concatenate(
+    #             #         [nondegenerate_meshes, vertices], axis=0
+    #             #     )
+    #         one_nondegenerate_midpoint = gs.array(one_nondegenerate_midpoint)
+    #         # if times is None:
+    #         #     nondegenerate_meshes = gs.reshape(gs.array(nondegenerate_meshes), (len(one_midpoint), n_points, 3))
+    #         # else:
+    #         #     nondegenerate_meshes = gs.reshape(gs.array(nondegenerate_meshes), (len(one_midpoint), n_points, 3))
+    #         nondegenerate_midpoints.append(one_nondegenerate_midpoint)
+    #     nondegenerate_midpoints = gs.array(nondegenerate_midpoints)
+    #     return nondegenerate_midpoints
