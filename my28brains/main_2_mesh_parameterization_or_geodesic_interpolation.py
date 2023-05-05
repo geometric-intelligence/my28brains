@@ -5,7 +5,19 @@ Note that the preprocessing should be done before running this script.
 Run:
 >>> python main_preprocessing.py && python main.py
 
+What this file does:
+--------------------
+- Load the meshes from the centered directory.
+- Remove degenerate faces.
+THEN
+- Compute the geodesic interpolations between the meshes.
+(aka, take a mesh at time t and a mesh at time t+1, and interpolate
+between them) --> outputs in geodesics_dir
+OR
+- Compute the parameterizations of the meshes. --> outputs in parameterized_meshes_dir
+
 Note on pykeops:
+----------------
 If main cannot run because of:
 EOFError: Ran out of input
 This is probably because of a pykeops issue.

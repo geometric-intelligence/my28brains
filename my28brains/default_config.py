@@ -9,19 +9,6 @@ n_gpus = 10
 # specify brain hemispheres to analyze
 hemispheres = ["left"]  # , "right"]
 
-# specify hippocampus structures to analyze
-# 1   255    0    0        1  1  1    "CA1"
-# 2     0  255    0        1  1  1    "CA2+3"
-# 3     0    0  255        1  1  1    "DG"
-# 4   255  255    0        1  1  1    "ERC"
-# 5     0  255  255        1  1  1    "PHC"
-# 6   255    0  255        1  1  1    "PRC"
-# 7    80  179  221        1  1  1    "SUB"
-# 8   255  215    0        1  1  1    "AntHipp"
-# 9   184  115   51        1  1  1    "PostHipp"
-# 2, 6 are expected to grow in volume with progesterone
-# 4, 5 are expected to shrink in volume with progesterone
-
 structure_ids = [-1]
 
 # number of time points along each interpolating geodesic
@@ -173,3 +160,21 @@ paramlist = [param1, param2, param3]  # , param4]  # param5, param6]
 ################ FOR PARAMETERIZED REGRESSION ################
 
 # choose a dataset
+"""Other information:
+
+Structure_ID names, numbers, and colors:
+----------------------------------------
+1   255    0    0        1  1  1    "CA1"
+2     0  255    0        1  1  1    "CA2+3"
+3     0    0  255        1  1  1    "DG"
+4   255  255    0        1  1  1    "ERC"
+5     0  255  255        1  1  1    "PHC"
+6   255    0  255        1  1  1    "PRC"
+7    80  179  221        1  1  1    "SUB"
+8   255  215    0        1  1  1    "AntHipp"
+9   184  115   51        1  1  1    "PostHipp"
+2, 6 are expected to grow in volume with progesterone
+4, 5 are expected to shrink in volume with progesterone
+
+
+"""
