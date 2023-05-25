@@ -48,7 +48,7 @@ def loadData(file_name):
     return V, F, Rho
 
 
-def saveData(file_name, extension, V, F, Rho=None, color=None):
+def save_data(file_name, extension, V, F, Rho=None, color=None):
     """Save mesh information either as a mat file or ply file.
 
     Input:
@@ -250,9 +250,9 @@ def plotGeodesic(
             mesh += ls[i]
         V, F, Color = getDataFromMesh(mesh)
         if mesh.has_vertex_colors():
-            saveData(file_name, "ply", V, F, color=Color)
+            save_data(file_name, "ply", V, F, color=Color)
         else:
-            saveData(file_name, "ply", V, F)
+            save_data(file_name, "ply", V, F)
 
 
 def plotPartialGeodesic(
@@ -325,9 +325,9 @@ def plotPartialGeodesic(
         if mesh.has_vertex_colors():
             if Rho is not None:
                 Rhot = np.asarray(255 * Rhot, dtype=np.int32)  # was np.int
-                saveData(file_name, "ply", V, F, Rho=Rhot, color=Color)
+                save_data(file_name, "ply", V, F, Rho=Rhot, color=Color)
             else:
-                saveData(file_name, "ply", V, F, color=Color)
+                save_data(file_name, "ply", V, F, color=Color)
 
         else:
-            saveData(file_name, "ply", V, F)
+            save_data(file_name, "ply", V, F)

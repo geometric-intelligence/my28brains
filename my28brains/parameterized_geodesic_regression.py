@@ -4,7 +4,7 @@ Performs regression on parameterized meshes.
 Mesh sequence chosen in default_config.py
 Returns the slope and intercept of the regression fit.
 """
-# imports
+##################### Standard Imports #####################
 
 import os
 import subprocess
@@ -17,8 +17,7 @@ import trimesh
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
 
-import my28brains.discrete_surfaces
-
+##################### Set up paths and imports #####################
 gitroot_path = subprocess.check_output(
     ["git", "rev-parse", "--show-toplevel"], universal_newlines=True
 )
@@ -26,22 +25,27 @@ os.chdir(gitroot_path[:-1])
 work_dir = os.getcwd()
 
 my28brains_dir = os.path.join(work_dir, "my28brains")
+data_dir = os.path.join(work_dir, "data")
 
 sys_dir = os.path.dirname(work_dir)
 sys.path.append(sys_dir)
 sys.path.append(my28brains_dir)
+sys.path.append(data_dir)
 
-import geomstats.backend as gs
+##################### Regression Imports #####################
 import geomstats.visualization as visualization
 import matplotlib.pyplot as plt
 from geomstats.geometry.special_euclidean import SpecialEuclidean
 from geomstats.learning.frechet_mean import FrechetMean, variance
 from geomstats.learning.geodesic_regression import GeodesicRegression
 
+import data.synthetic_data.generate_syntetic_geodesics as generate_syntetic_geodesics
 import my28brains.default_config as default_config
+import my28brains.discrete_surfaces as discrete_surfaces
 from my28brains.discrete_surfaces import DiscreteSurfaces, ElasticMetric
 
-# Regression imports
+synthetic = default_config.synthetic
+real_data = default_config.real_data
 
 
 def perform_parameterized_regression(mesh_sequence, times):
@@ -82,5 +86,9 @@ def perform_parameterized_regression(mesh_sequence, times):
     gr.fit(times, mesh_sequence, compute_training_score=False)
 
     intercept_hat, coef_hat = gr.intercept_, gr.coef_
+
+    # Save the regression fit
+    true_intercept_file_name = "true_intercept"
+    H2_SurfaceMatch.utils.input_output.save_data(file_name, extension, V, F)
 
     return intercept_hat, coef_hat

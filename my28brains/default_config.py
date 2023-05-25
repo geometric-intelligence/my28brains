@@ -37,16 +37,18 @@ a2 = (was 1) high value = 1. a2 penalizes the laplacian of the mesh. it wants to
 import os
 import subprocess
 
+##################### Choose Real Data or Synthetic #####################
+real_data = False
+synthetic = True
+
+##################### GPU Parameters #####################
+
 use_cuda = 1
 n_gpus = 10
 
-# specify brain hemispheres to analyze
-hemispheres = ["left"]  # , "right"]
-structure_ids = [-1]
+##################### General Mesh Parameters #####################
 
 # number of time points along each interpolating geodesic
-n_geodesic_times = [10]  # will not be used
-stepsize = 1  # will not be used.
 resolutions = 0  # don't do several resolutions for our case.
 # WORKING
 # initial_decimation_fact = 10
@@ -58,6 +60,17 @@ scaling_factor = 10
 # Define template structure of the mesh that will be used for all mesh in the interpolation
 # Every mesh will have the same number of vertices and faces.
 i_template = 0
+
+# face area threshold for non-degenerate meshes:
+# the less we decimate, the more likely it is to have small faces
+# thus the thresholt needs to be higher
+area_thresholds = [0.00]  # 0.0001, 0.001, 0.01, 0.1, 1.0]
+
+#################### Real Data Specific ####################
+
+# specify brain hemispheres to analyze
+hemispheres = ["left"]  # , "right"]
+structure_ids = [-1]
 
 
 # range of days to interpolate in between
@@ -71,10 +84,7 @@ day_range = [0, 30]  # first menstrual cycle is day 1-30 (pre-pill)
 generate_parameterized_data = True
 interpolate_geodesics = not generate_parameterized_data
 
-# face area threshold for non-degenerate meshes:
-# the less we decimate, the more likely it is to have small faces
-# thus the thresholt needs to be higher
-area_thresholds = [0.00]
+#################### Building Paths ####################
 
 # build work path from git root path
 gitroot_path = subprocess.check_output(
@@ -99,14 +109,16 @@ for mesh_dir in [meshes_dir, centered_dir, centered_nondegenerate_dir, geodesics
     if not os.path.exists(mesh_dir):
         os.makedirs(mesh_dir)
 
+#################### Elastic Metric Parameters ####################
 
-# ELASTIC METRIC PARAMETERS
 a0 = 0.01  # was 0.1
 a1 = 10  # (was 10)
 b1 = 10  # (was 10)
 c1 = 1  # (was 1)
 d1 = 0
 a2 = 1  # (was 1)
+
+#################### Geodesic Parameters ####################
 
 # NOTE: "time_steps" is the number of time points that we will have in the interpolated geodesic
 # the "time_steps" value in the last param will set the number of time points in the interpolated geodesic
