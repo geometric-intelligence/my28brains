@@ -23,11 +23,11 @@ import trimesh
 
 import my28brains.meshing as meshing
 
-data_dir = default_config.data_dir
-meshes_dir = default_config.meshes_dir
+my28brains_data_dir = default_config.my28brains_data_dir
+meshed_data_dir = default_config.meshed_data_dir
 centered_dir = default_config.centered_dir
 
-day_dirs = [os.path.join(data_dir, f"Day{i:02d}") for i in range(1, 61)]
+day_dirs = [os.path.join(my28brains_data_dir, f"Day{i:02d}") for i in range(1, 61)]
 
 
 def write_meshes(hemisphere, structure_id):
@@ -56,7 +56,7 @@ def write_meshes(hemisphere, structure_id):
     for i_path, nii_path in enumerate(nii_paths):
         day = i_path + 1
         ply_path = os.path.join(
-            meshes_dir,
+            meshed_data_dir,
             f"{hemisphere}_structure_{structure_id}_day{day:02}.ply",
         )
         if os.path.exists(ply_path):
@@ -86,7 +86,7 @@ def write_whole_hippocampus_centered_mesh(hemisphere):
     """
     structure_id = -1
     string_base = os.path.join(
-        meshes_dir, f"{hemisphere}_structure_{structure_id}**.ply"
+        meshed_data_dir, f"{hemisphere}_structure_{structure_id}**.ply"
     )
     paths = sorted(glob.glob(string_base))
 
@@ -125,7 +125,7 @@ def write_substructure_centered_mesh(hemisphere, structure_id, hippocampus_cente
         for each day.
     """
     string_base = os.path.join(
-        meshes_dir, f"{hemisphere}_structure_{structure_id}**.ply"
+        meshed_data_dir, f"{hemisphere}_structure_{structure_id}**.ply"
     )
     paths = sorted(glob.glob(string_base))
 

@@ -37,9 +37,12 @@ a2 = (was 1) high value = 1. a2 penalizes the laplacian of the mesh. it wants to
 import os
 import subprocess
 
-##################### Choose Real Data or Synthetic #####################
-real_data = False
-synthetic = True
+##################### Regression Parameters #####################
+
+data_type = "synthetic"  # "synthetic" or "real"
+sped_up = "false"  # 'True' or 'False'
+n_decimations = 5  # number of times to decimate the dataset
+regression_decimation_factor_step = 3  # how much to decimate the dataset each time
 
 ##################### GPU Parameters #####################
 
@@ -93,8 +96,12 @@ gitroot_path = subprocess.check_output(
 os.chdir(gitroot_path[:-1])
 work_dir = os.getcwd()
 
-data_dir = "/home/data/28andMeOC_correct"
-meshes_dir = os.path.join(os.getcwd(), "my28brains", "results", "meshes")
+my28brains_data_dir = "/home/data/28andMeOC_correct"
+my28brains_dir = os.path.join(os.getcwd(), "my28brains")
+
+data_dir = os.path.join(os.getcwd(), "data")
+synthetic_data_dir = os.path.join(data_dir, "synthetic")
+meshed_data_dir = os.path.join(os.getcwd(), "my28brains", "results", "meshes")
 centered_dir = os.path.join(os.getcwd(), "my28brains", "results", "meshes_centered")
 centered_nondegenerate_dir = os.path.join(
     os.getcwd(), "my28brains", "results", "meshes_centered_nondegenerate"
@@ -103,9 +110,14 @@ geodesics_dir = os.path.join(os.getcwd(), "my28brains", "results", "meshes_geode
 parameterized_meshes_dir = os.path.join(
     os.getcwd(), "my28brains", "results", "meshes_parameterized"
 )
-h2_dir = os.path.join(work_dir, "H2_SurfaceMatch")
+h2_dir = os.path.join(os.getcwd(), "H2_SurfaceMatch")
 
-for mesh_dir in [meshes_dir, centered_dir, centered_nondegenerate_dir, geodesics_dir]:
+for mesh_dir in [
+    meshed_data_dir,
+    centered_dir,
+    centered_nondegenerate_dir,
+    geodesics_dir,
+]:
     if not os.path.exists(mesh_dir):
         os.makedirs(mesh_dir)
 
