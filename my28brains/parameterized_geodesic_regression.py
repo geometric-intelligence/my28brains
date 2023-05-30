@@ -100,9 +100,9 @@ def perform_single_res_parameterized_regression(
     mesh_sequence,
     mesh_faces,
     times,
-    intercept_hat_guess,
-    coeff_hat_guess,
     tolerance,
+    intercept_hat_guess,
+    # coeff_hat_guess,
     regression_initialization="warm_start",
 ):
     """Performs regression on parameterized meshes.
@@ -143,8 +143,20 @@ def perform_single_res_parameterized_regression(
         initialization=regression_initialization,
     )
 
+    if intercept_hat_guess is None:
+        intercept_hat_guess = mesh_sequence[0]
+    elif intercept_hat_guess.shape != mesh_sequence[0].shape:
+        raise ValueError(
+            "intercept_hat_guess must be None or have the same shape as mesh_sequence[0]"
+        )
+
+    coeff_hat_guess = METRIC.log(mesh_sequence[1], mesh_sequence[0])
+
     gr.intercept_ = intercept_hat_guess
     gr.coef_ = coeff_hat_guess
+
+    print("Intercept guess: ", gr.intercept_.shape)
+    print("Coeff guess: ", gr.coef_.shape)
 
     gr.fit(times, mesh_sequence, compute_training_score=False)
 
@@ -171,31 +183,52 @@ def perform_multi_res_geodesic_regression(
     - intercept_hat: intercept of regression fit
     - coef_hat: slope of regression fit
     """
-    for i_geod in range(default_config.n_decimations):
+    for i_geod in range(
+        1, default_config.n_decimations + 1, 1
+    ):  # start at 1 because 0 is the original mesh
+        print(
+            "######### Performing regression on decimation level ", i_geod, " #########"
+        )
+
         geodesic = decimated_geodesics_list[
             -i_geod
         ]  # reverse order so that the original mesh is last
         mesh_faces = mesh_faces_list[-i_geod]
-        tolerance = tols[i_geod]
-        if i_geod == 0:
-            regression_initialization = "frechet"
+        tolerance = tols[i_geod - 1]  # tols is 0-indexed, but i_geod is 1-indexed
+        if i_geod == 1:
             intercept_hat_guess = None
-            coeff_hat_guess = None
-        else:
-            regression_initialization = "warm_start"
+        #     regression_initialization = "frechet"
+        #     intercept_hat_guess = None
+        #     coeff_hat_guess = None
+        # else:
+        #     regression_initialization = "warm_start"
 
         intercept_hat, coef_hat = perform_single_res_parameterized_regression(
             geodesic,
             mesh_faces,
             times,
-            intercept_hat_guess,
-            coeff_hat_guess,
             tolerance,
+            intercept_hat_guess,
+            # coeff_hat_guess,
             regression_initialization=regression_initialization,
         )
-        # TODO: upsample intercept and coef to the next resolution level: might have to re-parameterize
-        intercept_hat_guess = intercept_hat
-        coeff_hat_guess = coef_hat
+
+        # TODO: must upsample coef_hat to the next resolution level
+        print("INTERCEPT HAT SHAPE: ", intercept_hat.shape)
+        print("COEFF HAT SHAPE: ", coef_hat.shape)
+
+        intercept_hat_mesh = trimesh.Trimesh(vertices=intercept_hat, faces=mesh_faces)
+        num_upsampled_vertices = len(decimated_geodesics_list[-i_geod - 1][0])
+        upsampled_intercept_hat = trimesh.sample.sample_surface(
+            intercept_hat_mesh,
+            num_upsampled_vertices,
+            face_weight=None,
+            sample_color=False,
+        )
+        intercept_hat_guess = gs.array(upsampled_intercept_hat[0])
+        assert (
+            intercept_hat_guess.shape == decimated_geodesics_list[-i_geod - 1][0].shape
+        )
 
     return intercept_hat, coef_hat
 
@@ -226,8 +259,6 @@ for i_decimation in range(default_config.n_decimations):
         mesh_faces_list.append(decimated_faces)
     one_decimated_geodesic = gs.array(one_decimated_geodesic)
     decimated_geodesics_list.append(one_decimated_geodesic)
-# decimated_geodesics_list = decimated_geodesics_list.reverse()  # reverse so that the original mesh is last
-# print("Decimated geodesics list: ", decimated_geodesics_list)
 
 # Note: decimated_mesh_sequences must remain a list. It is not a numpy array.
 

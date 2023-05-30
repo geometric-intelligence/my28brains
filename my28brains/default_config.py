@@ -41,8 +41,8 @@ import subprocess
 
 data_type = "synthetic"  # "synthetic" or "real"
 sped_up = "false"  # 'True' or 'False'
-n_decimations = 5  # number of times to decimate the dataset
-regression_decimation_factor_step = 3  # how much to decimate the dataset each time
+n_decimations = 2  # number of times to decimate the dataset
+regression_decimation_factor_step = 100  # how much to decimate the dataset each time
 
 ##################### GPU Parameters #####################
 
