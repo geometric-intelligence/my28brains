@@ -40,9 +40,9 @@ import subprocess
 ##################### Regression Parameters #####################
 
 data_type = "synthetic"  # "synthetic" or "real"
-sped_up = "false"  # 'True' or 'False'
-n_decimations = 2  # number of times to decimate the dataset
-regression_decimation_factor_step = 100  # how much to decimate the dataset each time
+sped_up = True  # 'True' or 'False'
+n_decimations = 5  # number of times to decimate the dataset
+regression_decimation_factor_step = 3  # how much to decimate the dataset each time
 
 ##################### GPU Parameters #####################
 
@@ -112,14 +112,22 @@ parameterized_meshes_dir = os.path.join(
 )
 h2_dir = os.path.join(os.getcwd(), "H2_SurfaceMatch")
 
+regression_dir = os.path.join(os.getcwd(), "my28brains", "results", "regression")
+
 for mesh_dir in [
     meshed_data_dir,
     centered_dir,
     centered_nondegenerate_dir,
     geodesics_dir,
+    regression_dir,
 ]:
     if not os.path.exists(mesh_dir):
         os.makedirs(mesh_dir)
+
+
+# TODO: refactor. have main1 go to /home/adele/code/my28brains/results/main_1
+# etc.
+
 
 #################### Elastic Metric Parameters ####################
 
@@ -130,7 +138,7 @@ c1 = 1  # (was 1)
 d1 = 0
 a2 = 1  # (was 1)
 
-#################### Geodesic Parameters ####################
+#################### Unparameterized Geodesic Parameters ####################
 
 # NOTE: "time_steps" is the number of time points that we will have in the interpolated geodesic
 # the "time_steps" value in the last param will set the number of time points in the interpolated geodesic

@@ -537,9 +537,6 @@ class ElasticMetric(RiemannianMetric):
             need_squeeze = True
         h = tangent_vec_a
         k = tangent_vec_b
-        print("INNER PRODUCT")
-        print("h", h.shape)
-        print("base_point", base_point.shape)
         point_a = base_point + h
         point_b = base_point + k
         norm = gs.zeros(len(tangent_vec_a))
@@ -858,9 +855,6 @@ class ElasticMetric(RiemannianMetric):
         logs = []
         need_squeeze = False
 
-        print("LOG before squeeze:")
-        print("point.shape: ", point.shape)
-        print("base_point.shape: ", base_point.shape)
         if point.ndim == 2:
             point = gs.expand_dims(point, axis=0)
             need_squeeze = True
@@ -868,9 +862,7 @@ class ElasticMetric(RiemannianMetric):
             base_point = gs.expand_dims(base_point, axis=0)
             need_squeeze = True
         for one_point in point:
-            print("one_point.shape: ", one_point.shape)
             for one_base_point in base_point:
-                print("one_base_point.shape: ", one_base_point.shape)
                 geod = self._bvp(one_base_point, one_point)
                 logs.append(geod[1] - geod[0])
         logs = gs.array(logs)
@@ -892,10 +884,14 @@ class ElasticMetric(RiemannianMetric):
             geod = gs.array([initial_point + i * step for i in times])
             midpoints = geod[1 : len(times) - 1]
 
-        print("before dimension expansion:")
-        print("midpoints.shape", midpoints.shape)
-        print("initial_point.shape", initial_point.shape)
-        print("end_point.shape", end_point.shape)
+        # TODO: MAKE ABOVE CODE BETTER (use format below)
+        # if times is None:
+        #     times = self.n_times
+
+        # step = (end_point - initial_point) / (len(times) - 1)
+        # # create a straight line between initial and end points for initialization
+        # geod = gs.array([initial_point + i * step for i in times])
+        # midpoints = geod[1 : len(times) - 1]
 
         # if vectorizing code: expanding dimension if there is only one midpoint
         all_need_squeeze = False
@@ -926,12 +922,6 @@ class ElasticMetric(RiemannianMetric):
         #     midpoints = self.remove_degenerate_faces(midpoints, n_points, times)
 
         # num_points = midpoints.shape[0]
-        print("after dimension expansion:")
-        print("midpoints.shape", midpoints.shape)
-        print("initial_point.shape", initial_point.shape)
-        print("end_point.shape", end_point.shape)
-        print("num_points", num_points)
-
         # needs to be differentiable with respect to midpoints
         def funopt(midpoint):
             if times is None:
@@ -949,9 +939,7 @@ class ElasticMetric(RiemannianMetric):
             for one_midpoint, one_initial_point, one_end_point in zip(
                 midpoint, initial_point, end_point
             ):
-                print("one_midpoint", one_midpoint.shape)
-                print("one_initial_point", one_initial_point.shape)
-                print("one_endpoint", one_end_point.shape)
+
                 one_path = gs.concatenate(
                     [
                         one_initial_point[None, :, :],
@@ -973,7 +961,7 @@ class ElasticMetric(RiemannianMetric):
             initial_geod.detach().numpy(),
             method="L-BFGS-B",
             jac=True,
-            options={"disp": True, "ftol": 1},
+            options={"disp": False, "ftol": 1},
         )
         if times is None:
             out = gs.reshape(
@@ -1061,7 +1049,7 @@ class ElasticMetric(RiemannianMetric):
             input.detach().numpy(),
             method="L-BFGS-B",
             jac=True,
-            options={"disp": True, "ftol": 1},
+            options={"disp": False, "ftol": 1},
         )
         return gs.reshape(gs.array(sol.x), (n_points, 3))
 
