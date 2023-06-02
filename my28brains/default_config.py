@@ -36,20 +36,30 @@ a2 = (was 1) high value = 1. a2 penalizes the laplacian of the mesh. it wants to
 
 import os
 import subprocess
+import time
 
-##################### Regression Parameters #####################
+import numpy as np
+
+##################### Regression Parameters to be adjusted #####################
 
 data_type = "synthetic"  # "synthetic" or "real"
 sped_up = True  # 'True' or 'False'
 n_decimations = 5  # number of times to decimate the dataset
-regression_decimation_factor_step = 3  # how much to decimate the dataset each time
+min_num_sampling_points = 20  # minimum number of sampling points in a decimated mesh
+
+##################### Regression Parameters not for Adjustment #####################
+
+regression_decimation_factor_step = np.log(min_num_sampling_points) / np.log(
+    n_decimations
+)  # how much to decimate the dataset each time
+now = time.time()
 
 ##################### GPU Parameters #####################
 
 use_cuda = 1
 n_gpus = 10
 
-##################### General Mesh Parameters #####################
+##################### Unparameterized Geodesic Mesh Parameters #####################
 
 # number of time points along each interpolating geodesic
 resolutions = 0  # don't do several resolutions for our case.

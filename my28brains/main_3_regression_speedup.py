@@ -3,11 +3,11 @@
 What this script does:
 - Fetch a sequence of parameterized meshes, based on data specified in default_config.py
 THEN
-- Decimates the geodesic to a LOW number of points.
-- Performs geodesic regression on the decimated geodesic.
+- Decimates the mesh_sequence to a LOW number of points.
+- Performs geodesic regression on the decimated mesh_sequence.
 - Uses decimated mesh slope and intercept as starting point for next regression.
 REPEATS ABOVE STEPS UNTIL THE INTERCEPT IS CLOSE TO THE TRUE INTERCEPT.
-- Compares the regression results to the true slope and intercept of the geodesic.
+- Compares the regression results to the true slope and intercept of the mesh_sequence.
 """
 
 """
@@ -71,7 +71,7 @@ if data_type == "synthetic":
     sphere_mesh = generate_syntetic_geodesics.generate_sphere_mesh()
     ellipsoid_mesh = generate_syntetic_geodesics.generate_ellipsoid_mesh()
     (
-        original_geodesic_vertices,
+        original_mesh_sequence_vertices,
         original_mesh_faces,
         times,
         true_intercept,
@@ -79,7 +79,7 @@ if data_type == "synthetic":
     ) = generate_syntetic_geodesics.generate_synthetic_parameterized_geodesic(
         sphere_mesh, ellipsoid_mesh
     )
-    print("Original geodesic vertices: ", original_geodesic_vertices.shape)
+    print("Original mesh_sequence vertices: ", original_mesh_sequence_vertices.shape)
     print("Original mesh faces: ", original_mesh_faces.shape)
     print("Times: ", times.shape)
 
@@ -100,13 +100,13 @@ if sped_up:
         decimated_mesh_sequences,
         decimated_faces,
     ) = parameterized_regression.create_decimated_mesh_sequence_list(
-        original_geodesic_vertices, original_mesh_faces
+        original_mesh_sequence_vertices, original_mesh_faces
     )
 
-    tols = []
-    for i_tol in range(1, default_config.n_decimations + 1):
-        tols.append(10 ** (-i_tol))
-    tols = gs.array(tols)
+tols = []
+for i_tol in range(1, default_config.n_decimations + 1):
+    tols.append(10 ** (-i_tol))
+tols = gs.array(tols)
 
 ##################### Perform Regression #####################
 
@@ -127,7 +127,7 @@ else:
         intercept_hat,
         coef_hat,
     ) = parameterized_regression.perform_single_res_parameterized_regression(
-        original_geodesic_vertices,
+        original_mesh_sequence_vertices,
         original_mesh_faces,
         times,
         tolerance=0.0001,
@@ -155,7 +155,9 @@ METRIC = ElasticMetric(
     a2=default_config.a2,
 )
 
-true_coef = METRIC.log(original_geodesic_vertices[1], original_geodesic_vertices[0])
+true_coef = METRIC.log(
+    original_mesh_sequence_vertices[1], original_mesh_sequence_vertices[0]
+)
 true_coef = gs.array(true_slope)
 
 ##################### Save Results #####################
@@ -163,7 +165,7 @@ true_coef = gs.array(true_slope)
 parameterized_regression.save_regression_results(
     data_type,
     sped_up,
-    original_geodesic_vertices,
+    original_mesh_sequence_vertices,
     original_mesh_faces,
     true_coef,
     regression_intercept=intercept_hat,
