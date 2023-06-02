@@ -476,10 +476,10 @@ class ElasticMetric(RiemannianMetric):
         self.c1 = c1
         self.d1 = d1
         self.a2 = a2
-        self.space = space
+        self._space = space
         self.n_times = 5
-        self.dim = self.space.dim
-        self.shape = self.space.shape
+        self.dim = self._space.dim
+        self.shape = self._space.shape
 
     def parallel_transport(self, tan_a, base_point, tan_b):
         """Parallel transport of a tangent vector tan_a along the geodesic.
@@ -491,7 +491,7 @@ class ElasticMetric(RiemannianMetric):
             self, tan_a, base_point, tan_b, n_rungs=1, scheme="pole", alpha=1
         )
         return gs.array(parallel_transport_dict["transported_tangent_vec"])
-        # return self.space.to_tangent(tan_a, base_point)
+        # return self._space.to_tangent(tan_a, base_point)
 
     def inner_product(self, tangent_vec_a, tangent_vec_b, base_point):
         """Inner product between two tangent vectors at a base point.
@@ -541,9 +541,9 @@ class ElasticMetric(RiemannianMetric):
         point_b = base_point + k
         norm = gs.zeros(len(tangent_vec_a))
         if self.a0 > 0 or self.a2 > 0:
-            v_areas = self.space.vertex_areas(base_point)
+            v_areas = self._space.vertex_areas(base_point)
             if self.a2 > 0:
-                laplacian_at_base_point = self.space.get_laplacian(base_point)
+                laplacian_at_base_point = self._space.get_laplacian(base_point)
                 norm += self.a2 * gs.sum(
                     gs.einsum(
                         "...bi,...bi->...b",
@@ -559,7 +559,7 @@ class ElasticMetric(RiemannianMetric):
                 )
         # CHANGE ALERT: changed second self.b1 to be self.d1
         if self.a1 > 0 or self.b1 > 0 or self.c1 > 0 or self.d1 > 0:
-            one_forms_base_point = self.space.surface_one_forms(base_point)
+            one_forms_base_point = self._space.surface_one_forms(base_point)
             # CHANGE ALERT: switched the order so that it is dq_f*dq_f^T.
             # surface_metrics = gs.matmul(
             #     one_forms_base_point, gs.transpose(one_forms_base_point, axes=(0, 2, 1))
@@ -570,17 +570,17 @@ class ElasticMetric(RiemannianMetric):
             # these are face areas. we know this because a1, b1, c1, d1 are in the face
             # sum in the H2 metric.
             face_areas = gs.sqrt(gs.linalg.det(surface_metrics))
-            normals_at_base_point = self.space.normals(base_point)
+            normals_at_base_point = self._space.normals(base_point)
             if self.c1 > 0:
-                dn1 = self.space.normals(point_a) - normals_at_base_point
-                dn2 = self.space.normals(point_b) - normals_at_base_point
+                dn1 = self._space.normals(point_a) - normals_at_base_point
+                dn2 = self._space.normals(point_b) - normals_at_base_point
                 norm += self.c1 * gs.sum(
                     gs.einsum("...bi,...bi->...b", dn1, dn2) * face_areas, axis=-1
                 )
             if self.d1 > 0 or self.b1 > 0 or self.a1 > 0:
                 ginv = gs.linalg.inv(surface_metrics)
-                one_forms_a = self.space.surface_one_forms(point_a)
-                one_forms_b = self.space.surface_one_forms(point_b)
+                one_forms_a = self._space.surface_one_forms(point_a)
+                one_forms_b = self._space.surface_one_forms(point_b)
                 # QUESTION: Isn't this missing a 1/2 factor?
                 if self.d1 > 0:
                     xi1 = one_forms_a - one_forms_base_point
@@ -1088,9 +1088,9 @@ class ElasticMetric(RiemannianMetric):
     #             point = gs.array(point).detach().numpy()
     #             # point = gs.array(point)
     #             area_threshold = 0.01
-    #             mesh = trimesh.Trimesh(point, self.space.faces)
+    #             mesh = trimesh.Trimesh(point, self._space.faces)
     #             # make sure that the midpoints don't have degenerate faces
-    #             face_areas = self.space.face_areas(point)
+    #             face_areas = self._space.face_areas(point)
     #             face_mask = ~gs.less(face_areas, area_threshold)
     #             mesh.update_faces(face_mask)
     #             vertices = gs.array(mesh.vertices)
