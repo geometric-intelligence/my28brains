@@ -42,6 +42,9 @@ import my28brains.default_config as default_config
 import my28brains.discrete_surfaces as discrete_surfaces
 from my28brains.discrete_surfaces import DiscreteSurfaces, ElasticMetric
 
+# import geomstats.geometry.discrete_surfaces as discrete_surfaces
+# from geomstats.geometry.discrete_surfaces import DiscreteSurfaces, ElasticMetric
+
 
 def save_regression_results(
     data_type,
