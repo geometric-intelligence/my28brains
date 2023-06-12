@@ -1,26 +1,28 @@
-name: my28brains
+name: my28brains_temp
 channels:
   - defaults
 dependencies:
-  - python=3.8
+  - python=3.10
   - pip
   - matplotlib>=3.5.1
   - pip:
-    - git+https://github.com/geomstats/geomstats.git
+    # - git+https://github.com/geomstats/geomstats.git
+    - git+https://github.com/ninamiolane/geomstats.git@surfaces_w_metric
     - jupyter
     - jupyterlab-code-formatter
     - kaleido
-    - nibabel>=4.0.0
-    - nilearn>=0.9.2
+    # - nibabel>=4.0.0
+    # - nilearn>=0.9.2
     - numpy
-    - open3d
     - pykeops
     - plotly
     - psutil
+    - open3d
     - requests
     - rtree
     - scikit-image>=0.19.3
-    - torch
+    - torch==2.0.0
     - trimesh
     - -r dev-requirements.txt
     - joblib
+    - wandb
