@@ -43,7 +43,7 @@ import numpy as np
 ##################### Regression Parameters to be adjusted #####################
 
 data_type = "synthetic"  # "synthetic" or "real"
-sped_up = True  # 'True' or 'False'
+sped_up = False  # 'True' or 'False'
 n_decimations = 5  # number of times to decimate the dataset
 min_num_sampling_points = 20  # minimum number of sampling points in a decimated mesh
 

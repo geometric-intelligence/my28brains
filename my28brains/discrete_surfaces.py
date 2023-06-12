@@ -5,6 +5,8 @@ Lead authors: Emmanuel Hartman, Adele Myers.
 import math
 
 import geomstats.backend as gs
+import numpy as np
+import torch
 from geomstats.geometry.euclidean import Euclidean
 from geomstats.geometry.manifold import Manifold
 from geomstats.geometry.riemannian_metric import RiemannianMetric
@@ -826,6 +828,8 @@ class ElasticMetric(RiemannianMetric):
         if tangent_vec_b.ndim == 2:
             tangent_vec_b = gs.expand_dims(tangent_vec_b, axis=0)
 
+        print(f"base_point.shape = {base_point.shape}")  # (n_vertices, 3)
+        print(f"tangent_vec_a.shape = {tangent_vec_a.shape}")  # (1, n_vertices, 3)
         point_a = base_point + tangent_vec_a
         point_b = base_point + tangent_vec_b
         inner_prod = gs.zeros((gs.maximum(len(tangent_vec_a), len(tangent_vec_b)), 1))
@@ -1020,13 +1024,22 @@ class ElasticMetric(RiemannianMetric):
             # energy_3 = energy_3.requires_grad_(True)
 
             energy_1 = grad(
-                _inner_product_with_current_to_next(zeros), zeros, create_graph=True
+                _inner_product_with_current_to_next(zeros),
+                zeros,
+                retain_graph=True,
+                create_graph=True,
             )[0]
             energy_2 = grad(
-                _inner_product_with_next_to_next_next(zeros), zeros, create_graph=True
+                _inner_product_with_next_to_next_next(zeros),
+                zeros,
+                retain_graph=True,
+                create_graph=True,
             )[0]
             energy_3 = grad(
-                _norm(next_point_clone), next_point_clone, create_graph=True
+                _norm(next_point_clone),
+                next_point_clone,
+                retain_graph=True,
+                create_graph=True,
             )[0]
 
             energy_tot = 2 * energy_1 - 2 * energy_2 + energy_3
@@ -1037,7 +1050,8 @@ class ElasticMetric(RiemannianMetric):
         )
 
         sol = minimize(
-            gs.autodiff.value_and_grad(energy_objective, to_numpy=True),
+            # gs.autodiff.value_and_grad(energy_objective, to_numpy=True),
+            value_and_grad(energy_objective, to_numpy=True),
             initial_next_next_point.detach().numpy(),
             method="L-BFGS-B",
             jac=True,
@@ -1194,7 +1208,8 @@ class ElasticMetric(RiemannianMetric):
         initial_geod = gs.flatten(midpoints)
 
         sol = minimize(
-            gs.autodiff.value_and_grad(objective, to_numpy=True),
+            # gs.autodiff.value_and_grad(objective, to_numpy=True),
+            value_and_grad(objective, to_numpy=True),
             initial_geod.detach().numpy(),
             method="L-BFGS-B",
             jac=True,
@@ -1216,3 +1231,84 @@ class ElasticMetric(RiemannianMetric):
             geod = gs.squeeze(geod, axis=0)
 
         return geod
+
+
+def value_and_grad(func, argnums=0, to_numpy=False):
+    """Return a function that returns func's value and gradients' values.
+
+    Suitable for use in scipy.optimize with to_numpy=True.
+
+    Parameters
+    ----------
+    func : callable
+        Function whose value and gradient values
+        will be computed. It must be real-valued.
+    to_numpy : bool
+        Determines if the outputs value and grad will be cast
+        to numpy arrays. Set to "True" when using scipy.optimize.
+        Optional, default: False.
+
+    Returns
+    -------
+    func_with_grad : callable
+        Function that returns func's value and
+        func's gradients' values at its inputs args.
+    """
+    if isinstance(argnums, int):
+        argnums = (argnums,)
+
+    def func_with_grad(*args, **kwargs):
+        """Return func's value and func's gradients' values at args.
+
+        Parameters
+        ----------
+        args : list
+            Argument to function func and its gradients.
+        kwargs : dict
+            Keyword arguments to function func and its gradients.
+
+        Returns
+        -------
+        value : any
+            Value of func at input arguments args.
+        all_grads : list or any
+            Values of func's gradients at input arguments args.
+        """
+        new_args = []
+        for i_arg, one_arg in enumerate(args):
+            if isinstance(one_arg, float):
+                # one_arg = _torch.from_numpy(_np.array(one_arg))
+                one_arg = torch.from_numpy(np.array(one_arg))
+            # if isinstance(one_arg, _np.ndarray):
+            #     one_arg = _torch.from_numpy(one_arg)
+            if isinstance(one_arg, np.ndarray):
+                one_arg = torch.from_numpy(one_arg)
+
+            requires_grad = i_arg in argnums
+            one_arg = one_arg.detach().requires_grad_(requires_grad)
+            new_args.append(one_arg)
+
+        value = func(*new_args, **kwargs)
+
+        if value.ndim > 0:
+            sum_value = value.sum()
+            sum_value.backward(retain_graph=True)
+        else:
+            value.backward(retain_graph=True)
+
+        all_grads = []
+        for i_arg, one_arg in enumerate(new_args):
+            if i_arg in argnums:
+                all_grads.append(
+                    one_arg.grad,
+                )
+
+        if to_numpy:
+            value = value.detach().numpy()
+            all_grads = [one_grad.detach().numpy() for one_grad in all_grads]
+
+        if len(new_args) == 1:
+            return value, all_grads[0]
+        return value, tuple(all_grads)
+
+    return func_with_grad

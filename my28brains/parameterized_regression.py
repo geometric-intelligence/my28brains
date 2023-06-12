@@ -202,6 +202,8 @@ def perform_single_res_parameterized_regression(
     """
     SURFACE_SPACE = DiscreteSurfaces(faces=mesh_faces)
 
+    print("SURFACE_SPACE: ", SURFACE_SPACE.default_point_type)
+
     METRIC = ElasticMetric(
         space=SURFACE_SPACE,
         a0=default_config.a0,
@@ -211,6 +213,8 @@ def perform_single_res_parameterized_regression(
         d1=default_config.d1,
         a2=default_config.a2,
     )
+
+    print("METRIC: ", METRIC._space.default_point_type)
 
     # maxiter was 100
     gr = GeodesicRegression(
@@ -224,6 +228,8 @@ def perform_single_res_parameterized_regression(
         verbose=False,
         initialization=regression_initialization,
     )
+
+    print(f"GEODESIC REGRESSION DEFAULT POINT TYPE", gr.space.default_point_type)
 
     if intercept_hat_guess is None:
         intercept_hat_guess = mesh_sequence[0]
