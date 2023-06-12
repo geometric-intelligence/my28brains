@@ -43,15 +43,12 @@ import numpy as np
 ##################### Regression Parameters to be adjusted #####################
 
 data_type = "synthetic"  # "synthetic" or "real"
+if data_type == "synthetic":
+    n_times = 5
 sped_up = False  # 'True' or 'False'
-n_decimations = 5  # number of times to decimate the dataset
-min_num_sampling_points = 20  # minimum number of sampling points in a decimated mesh
+geodesic_regression_with_linear_warm_start = True  # 'True' or 'False'
+geodesic_regression_with_linear_residual_calculations = False  # 'True' or 'False'
 
-##################### Regression Parameters not for Adjustment #####################
-
-regression_decimation_factor_step = np.log(min_num_sampling_points) / np.log(
-    n_decimations
-)  # how much to decimate the dataset each time
 now = time.time()
 
 ##################### GPU Parameters #####################
@@ -123,6 +120,7 @@ parameterized_meshes_dir = os.path.join(
 h2_dir = os.path.join(os.getcwd(), "H2_SurfaceMatch")
 
 regression_dir = os.path.join(os.getcwd(), "my28brains", "results", "regression")
+
 
 for mesh_dir in [
     meshed_data_dir,

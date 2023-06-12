@@ -75,16 +75,16 @@ if data_type == "synthetic":
     sphere_mesh = generate_syntetic_geodesics.generate_sphere_mesh()
     ellipsoid_mesh = generate_syntetic_geodesics.generate_ellipsoid_mesh()
     (
-        original_mesh_sequence_vertices,
-        original_mesh_faces,
+        mesh_sequence_vertices,
+        mesh_faces,
         times,
         true_intercept,
         true_slope,
     ) = generate_syntetic_geodesics.generate_synthetic_parameterized_geodesic(
         sphere_mesh, ellipsoid_mesh
     )
-    print("Original mesh_sequence vertices: ", original_mesh_sequence_vertices.shape)
-    print("Original mesh faces: ", original_mesh_faces.shape)
+    print("Original mesh_sequence vertices: ", mesh_sequence_vertices.shape)
+    print("Original mesh faces: ", mesh_faces.shape)
     print("Times: ", times.shape)
 
 elif data_type == "real":
@@ -95,50 +95,31 @@ elif data_type == "real":
     # when i do this, i will most likely change main_2_mesh_parameterization to take in a list of meshes
     # and then call it here.
 
-
-##################### Construct Decimated Mesh Sequences #####################
-if sped_up:
-    start_time = time.time()
-
-    (
-        decimated_mesh_sequences,
-        decimated_faces,
-    ) = parameterized_regression.create_decimated_mesh_sequence_list(
-        original_mesh_sequence_vertices, original_mesh_faces
-    )
-
-tols = []
-for i_tol in range(1, default_config.n_decimations + 1):
-    tols.append(10 ** (-i_tol))
-tols = gs.array(tols)
-
 ##################### Perform Regression #####################
 
-if sped_up:
-    (
-        intercept_hat,
-        coef_hat,
-    ) = parameterized_regression.perform_multi_res_geodesic_regression(
-        decimated_mesh_sequences,
-        decimated_faces,
-        tols,
-        times,
-        regression_initialization="warm_start",
-    )
-else:
-    start_time = time.time()
-    (
-        intercept_hat,
-        coef_hat,
-    ) = parameterized_regression.perform_single_res_parameterized_regression(
-        original_mesh_sequence_vertices,
-        original_mesh_faces,
-        times,
-        tolerance=0.0001,
-        intercept_hat_guess=None,
-        coef_hat_guess=None,
-        regression_initialization="warm_start",
-    )
+start_time = time.time()
+
+(
+    lr_intercept_hat,
+    lr_coef_hat,
+) = parameterized_regression.perform_parameterized_linear_regression(
+    mesh_sequence_vertices, times
+)
+
+# if (residual magnitude is too big... have max residual as a param): then do geodesic regression
+
+(
+    intercept_hat,
+    coef_hat,
+) = parameterized_regression.perform_parameterized_geodesic_regression(
+    mesh_sequence_vertices,
+    mesh_faces,
+    times,
+    tolerance=0.0001,
+    intercept_hat_guess=lr_intercept_hat,
+    coef_hat_guess=lr_coef_hat,
+    regression_initialization="warm_start",
+)
 
 end_time = time.time()
 duration_time = end_time - start_time
@@ -147,7 +128,7 @@ print("Duration: ", duration_time)
 
 ##################### Calculate True Slope #####################
 
-SURFACE_SPACE = DiscreteSurfaces(faces=original_mesh_faces)
+SURFACE_SPACE = DiscreteSurfaces(faces=mesh_faces)
 
 METRIC = ElasticMetric(
     space=SURFACE_SPACE,
@@ -159,9 +140,7 @@ METRIC = ElasticMetric(
     a2=default_config.a2,
 )
 
-true_coef = METRIC.log(
-    original_mesh_sequence_vertices[1], original_mesh_sequence_vertices[0]
-)
+true_coef = METRIC.log(mesh_sequence_vertices[1], mesh_sequence_vertices[0])
 true_coef = gs.array(true_slope)
 
 ##################### Save Results #####################
@@ -169,8 +148,8 @@ true_coef = gs.array(true_slope)
 parameterized_regression.save_regression_results(
     data_type,
     sped_up,
-    original_mesh_sequence_vertices,
-    original_mesh_faces,
+    mesh_sequence_vertices,
+    mesh_faces,
     true_coef,
     regression_intercept=intercept_hat,
     regression_coef=coef_hat,
