@@ -92,6 +92,7 @@ if data_type == "synthetic":
                 start_mesh = generate_syntetic_geodesics.generate_synthetic_mesh(
                     start_shape
                 )
+                # start_mesh = generate_syntetic_geodesics.generate_sphere_mesh()
                 start_mesh_vertices = start_mesh.vertices
                 start_mesh_faces = start_mesh.faces
 
@@ -167,18 +168,24 @@ if data_type == "synthetic":
             print(
                 f"Synthetic geodesic ALREADY EXISTS with start mesh {start_shape}, end mesh {end_shape}, and n_times {n_times}. Loading now."
             )
-            mesh_sequence_vertices = np.load(
-                os.path.join(synthetic_mesh_sequence_dir, "mesh_sequence_vertices.npy")
+            mesh_sequence_vertices = gs.array(
+                np.load(
+                    os.path.join(
+                        synthetic_mesh_sequence_dir, "mesh_sequence_vertices.npy"
+                    )
+                )
             )
-            mesh_faces = np.load(
-                os.path.join(synthetic_mesh_sequence_dir, "mesh_faces.npy")
+            mesh_faces = gs.array(
+                np.load(os.path.join(synthetic_mesh_sequence_dir, "mesh_faces.npy"))
             )
-            times = np.load(os.path.join(synthetic_mesh_sequence_dir, "times.npy"))
-            true_intercept = np.load(
-                os.path.join(synthetic_mesh_sequence_dir, "true_intercept.npy")
+            times = gs.array(
+                np.load(os.path.join(synthetic_mesh_sequence_dir, "times.npy"))
             )
-            true_slope = np.load(
-                os.path.join(synthetic_mesh_sequence_dir, "true_slope.npy")
+            true_intercept = gs.array(
+                np.load(os.path.join(synthetic_mesh_sequence_dir, "true_intercept.npy"))
+            )
+            true_slope = gs.array(
+                np.load(os.path.join(synthetic_mesh_sequence_dir, "true_slope.npy"))
             )
 
 elif data_type == "real":
