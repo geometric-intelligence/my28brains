@@ -43,16 +43,16 @@ import numpy as np
 ##################### Regression Parameters to be adjusted #####################
 
 data_type = "synthetic"  # "synthetic" or "real"
+if data_type == "synthetic":
+    n_times = 5
+    start_shape = "sphere"  # "sphere" or "ellipsoid" or "pill"
+    end_shape = "ellipsoid"  # "sphere" or "ellipsoid" or "pill"
 sped_up = False  # 'True' or 'False'
-n_decimations = 5  # number of times to decimate the dataset
-min_num_sampling_points = 20  # minimum number of sampling points in a decimated mesh
+geodesic_regression_with_linear_warm_start = True  # 'True' or 'False'
+geodesic_regression_with_linear_residual_calculations = False  # 'True' or 'False'
 
-##################### Regression Parameters not for Adjustment #####################
-
-regression_decimation_factor_step = np.log(min_num_sampling_points) / np.log(
-    n_decimations
-)  # how much to decimate the dataset each time
 now = time.time()
+
 
 ##################### GPU Parameters #####################
 
@@ -109,8 +109,16 @@ work_dir = os.getcwd()
 my28brains_data_dir = "/home/data/28andMeOC_correct"
 my28brains_dir = os.path.join(os.getcwd(), "my28brains")
 
+## Data ##
 data_dir = os.path.join(os.getcwd(), "data")
-synthetic_data_dir = os.path.join(data_dir, "synthetic")
+synthetic_data_dir = os.path.join(data_dir, "synthetic_data")
+start_shape_dir = os.path.join(synthetic_data_dir, start_shape)
+end_shape_dir = os.path.join(synthetic_data_dir, end_shape)
+synthetic_mesh_sequence_dir = os.path.join(
+    synthetic_data_dir, f"geodesic_{start_shape}_{end_shape}_{n_times}"
+)
+
+## Results ##
 meshed_data_dir = os.path.join(os.getcwd(), "my28brains", "results", "meshes")
 centered_dir = os.path.join(os.getcwd(), "my28brains", "results", "meshes_centered")
 centered_nondegenerate_dir = os.path.join(
@@ -124,12 +132,14 @@ h2_dir = os.path.join(os.getcwd(), "H2_SurfaceMatch")
 
 regression_dir = os.path.join(os.getcwd(), "my28brains", "results", "regression")
 
+
 for mesh_dir in [
     meshed_data_dir,
     centered_dir,
     centered_nondegenerate_dir,
     geodesics_dir,
     regression_dir,
+    synthetic_data_dir,
 ]:
     if not os.path.exists(mesh_dir):
         os.makedirs(mesh_dir)
@@ -137,6 +147,75 @@ for mesh_dir in [
 
 # TODO: refactor. have main1 go to /home/adele/code/my28brains/results/main_1
 # etc.
+
+##################### Creating synthetic geodesic if it does not already exist #####################
+
+## Note: change this to go to results_main_3.
+
+# if data_type == "synthetic":
+
+#     if not os.path.exists(synthetic_mesh_sequence_dir):
+#         os.makedirs(synthetic_mesh_sequence_dir)
+#         print(f"Creating synthetic geodesic with start mesh {start_shape}, end mesh {end_shape}, and n_times {n_times}")
+
+#         if not os.path.exists(start_shape_dir):
+#             print(f"Creating start shape {start_shape} in {start_shape_dir}")
+#             os.makedirs(start_shape_dir)
+#             start_mesh = generate_syntetic_geodesics.generate_mesh(start_shape)
+#             start_mesh_vertices = start_mesh.vertices
+#             start_mesh_faces = start_mesh.faces
+
+#             np.save(os.path.join(start_shape_dir, "vertices.npy"), start_mesh_vertices)
+#             np.save(os.path.join(start_shape_dir, "faces.npy"), start_mesh_faces)
+#         else:
+#             print(f"Start shape {start_shape} already exists in {start_shape_dir}. Loading now.")
+#             start_mesh_vertices = np.load(
+#                 os.path.join(start_shape_dir, "vertices.npy")
+#             )
+#             start_mesh_faces = np.load(os.path.join(start_shape_dir, "faces.npy"))
+#             start_mesh = trimesh.Trimesh(vertices = start_mesh_vertices, faces = start_mesh_faces)
+
+#         if not os.path.exists(end_shape_dir):
+#             print(f"Creating end shape {end_shape} in {end_shape_dir}")
+#             os.makedirs(end_shape_dir)
+#             end_mesh = generate_syntetic_geodesics.generate_mesh(end_shape)
+#             end_mesh_vertices = end_mesh.vertices
+#             end_mesh_faces = end_mesh.faces
+
+#             np.save(os.path.join(end_shape_dir, "vertices.npy"), end_mesh_vertices)
+#             np.save(os.path.join(end_shape_dir, "faces.npy"), end_mesh_faces)
+#         else:
+#             print(f"End shape {end_shape} already exists in {end_shape_dir}. Loading now.")
+#             end_mesh_vertices = np.load(os.path.join(end_shape_dir, "vertices.npy"))
+#             end_mesh_faces = np.load(os.path.join(end_shape_dir, "faces.npy"))
+#             end_mesh = trimesh.Trimesh(vertices = end_mesh_vertices, faces = end_mesh_faces)
+
+#         (
+#             mesh_sequence_vertices,
+#             mesh_faces,
+#             times,
+#             true_intercept,
+#             true_slope,
+#         ) = generate_syntetic_geodesics.generate_synthetic_parameterized_geodesic(
+#             start_mesh, end_mesh, n_times
+#         )
+#         print("Original mesh_sequence vertices: ", mesh_sequence_vertices.shape)
+#         print("Original mesh faces: ", mesh_faces.shape)
+#         print("Times: ", times.shape)
+
+#         np.save(os.path.join(synthetic_mesh_sequence_dir, "mesh_sequence_vertices.npy"), mesh_sequence_vertices)
+#         np.save(os.path.join(synthetic_mesh_sequence_dir, "mesh_faces.npy"), mesh_faces)
+#         np.save(os.path.join(synthetic_mesh_sequence_dir, "times.npy"), times)
+#         np.save(os.path.join(synthetic_mesh_sequence_dir, "true_intercept.npy"), true_intercept)
+#         np.save(os.path.join(synthetic_mesh_sequence_dir, "true_slope.npy"), true_slope)
+
+#     else:
+#         print(f"Synthetic geodesic ALREADY EXISTS with start mesh {start_shape}, end mesh {end_shape}, and n_times {n_times}. Loading now.")
+#         mesh_sequence_vertices = np.load(os.path.join(synthetic_mesh_sequence_dir, "mesh_sequence_vertices.npy"))
+#         mesh_faces = np.load(os.path.join(synthetic_mesh_sequence_dir, "mesh_faces.npy"))
+#         times = np.load(os.path.join(synthetic_mesh_sequence_dir, "times.npy"))
+#         true_intercept = np.load(os.path.join(synthetic_mesh_sequence_dir, "true_intercept.npy"))
+#         true_slope = np.load(os.path.join(synthetic_mesh_sequence_dir, "true_slope.npy"))
 
 
 #################### Elastic Metric Parameters ####################
