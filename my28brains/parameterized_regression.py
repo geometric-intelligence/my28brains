@@ -193,7 +193,8 @@ def perform_parameterized_geodesic_regression(
     """Performs regression on parameterized meshes.
 
     inputs:
-        mesh_sequence: list of vertices of meshes. Each mesh is a numpy array of shape (n, 3)
+        mesh_sequence: list of vertices of meshes. EACH MESH is a numpy array of shape (n, 3)
+        mesh_faces: numpy array of shape (m, 3) where m is the number of faces
         times: list of times corresponding to mesh_sequence
         intercept_hat_guess: initial guess for intercept of regression fit
         coef_hat_guess: initial guess for slope of regression fit
@@ -252,6 +253,8 @@ def perform_parameterized_geodesic_regression(
 
     print("Intercept guess: ", gr.intercept_.shape)
     print("Coef guess: ", gr.coef_.shape)
+
+    # times = gs.reshape(times, (len(times), 1))
 
     gr.fit(times, mesh_sequence, compute_training_score=False)
 
