@@ -36,6 +36,9 @@ import matplotlib.pyplot as plt
 from geomstats.geometry.special_euclidean import SpecialEuclidean
 from geomstats.learning.frechet_mean import FrechetMean, variance
 from geomstats.learning.geodesic_regression import GeodesicRegression
+from sklearn import linear_model
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
 
 import data.synthetic_data.generate_syntetic_geodesics as generate_syntetic_geodesics
 import my28brains.default_config as default_config
@@ -178,7 +181,7 @@ def create_decimated_mesh_sequence_list(
     return decimated_geodesics_list, mesh_faces_list
 
 
-def perform_single_res_parameterized_regression(
+def perform_parameterized_geodesic_regression(
     mesh_sequence,
     mesh_faces,
     times,
@@ -190,7 +193,8 @@ def perform_single_res_parameterized_regression(
     """Performs regression on parameterized meshes.
 
     inputs:
-        mesh_sequence: list of vertices of meshes. Each mesh is a numpy array of shape (n, 3)
+        mesh_sequence: list of vertices of meshes. EACH MESH is a numpy array of shape (n, 3)
+        mesh_faces: numpy array of shape (m, 3) where m is the number of faces
         times: list of times corresponding to mesh_sequence
         intercept_hat_guess: initial guess for intercept of regression fit
         coef_hat_guess: initial guess for slope of regression fit
@@ -250,6 +254,8 @@ def perform_single_res_parameterized_regression(
     print("Intercept guess: ", gr.intercept_.shape)
     print("Coef guess: ", gr.coef_.shape)
 
+    # times = gs.reshape(times, (len(times), 1))
+
     gr.fit(times, mesh_sequence, compute_training_score=False)
 
     intercept_hat, coef_hat = gr.intercept_, gr.coef_
@@ -257,85 +263,35 @@ def perform_single_res_parameterized_regression(
     return intercept_hat, coef_hat
 
 
-def perform_multi_res_geodesic_regression(
-    decimated_geodesics_list,
-    mesh_faces_list,
-    tols,
-    times,
-    regression_initialization="warm_start",
-):
-    """Performs regression on parameterized meshes in multiple resolutions.
+def perform_parameterized_linear_regression(mesh_sequence_vertices, times):
+    """Performs linear regression on parameterized meshes.
 
     inputs:
-    -------
-    - decimated_geodesics_list: list of geodesics (one for each decimation level).
-    - tols: list of tolerances (one for each decimation level).
+    --------
+    mesh_sequence_vertices: vertices of mesh sequence to be fit
+    times: list of times corresponding to mesh_sequence_vertices
 
     returns:
     --------
-    - intercept_hat: intercept of regression fit
-    - coef_hat: slope of regression fit
+    intercept_hat: intercept of regression fit
+    coef_hat: slope of regression fit
     """
-    for i_geod in range(
-        1, default_config.n_decimations + 1, 1
-    ):  # start at 1 because 0 is the original mesh
-        print(
-            "######### Performing regression on decimation level ", i_geod, " #########"
-        )
+    original_mesh_shape = mesh_sequence_vertices[0].shape
 
-        geodesic = decimated_geodesics_list[
-            -i_geod
-        ]  # reverse order so that the original mesh is last
-        mesh_faces = mesh_faces_list[-i_geod]
-        tolerance = tols[i_geod - 1]  # tols is 0-indexed, but i_geod is 1-indexed
-        if i_geod == 1:
-            intercept_hat_guess = None
-            coef_hat_guess = None
-        #     regression_initialization = "frechet"
-        #     intercept_hat_guess = None
-        #     coeff_hat_guess = None
-        # else:
-        #     regression_initialization = "warm_start"
+    mesh_sequence_vertices = mesh_sequence_vertices.reshape((len(times), -1))
 
-        intercept_hat, coef_hat = perform_single_res_parameterized_regression(
-            geodesic,
-            mesh_faces,
-            times,
-            tolerance,
-            intercept_hat_guess,
-            coef_hat_guess,
-            regression_initialization=regression_initialization,
-        )
+    times = np.reshape(times, (len(times), 1))
 
-        # TODO: must upsample coef_hat to the next resolution level
-        print("INTERCEPT HAT SHAPE: ", intercept_hat.shape)
-        print("COEFF HAT SHAPE: ", coef_hat.shape)
+    lr = LinearRegression()
 
-        intercept_hat_mesh = trimesh.Trimesh(vertices=intercept_hat, faces=mesh_faces)
-        coef_hat_mesh = trimesh.Trimesh(vertices=coef_hat, faces=mesh_faces)
-        if i_geod < default_config.n_decimations:
-            num_upsampled_vertices = len(decimated_geodesics_list[-i_geod - 1][0])
-            upsampled_intercept_hat = trimesh.sample.sample_surface(
-                intercept_hat_mesh,
-                num_upsampled_vertices,
-                face_weight=None,
-                sample_color=False,
-            )
-            intercept_hat_guess = gs.array(upsampled_intercept_hat[0])
-            assert (
-                intercept_hat_guess.shape
-                == decimated_geodesics_list[-i_geod - 1][0].shape
-            )
+    lr.fit(times, mesh_sequence_vertices)
 
-            upsampled_coef_hat = trimesh.sample.sample_surface(
-                coef_hat_mesh,
-                num_upsampled_vertices,
-                face_weight=None,
-                sample_color=False,
-            )
-            coef_hat_guess = gs.array(upsampled_coef_hat[0])
-            assert (
-                coef_hat_guess.shape == decimated_geodesics_list[-i_geod - 1][0].shape
-            )
+    intercept_hat, coef_hat = lr.intercept_, lr.coef_
+
+    intercept_hat = intercept_hat.reshape(original_mesh_shape)
+    coef_hat = coef_hat.reshape(original_mesh_shape)
+
+    intercept_hat = gs.array(intercept_hat)
+    coef_hat = gs.array(coef_hat)
 
     return intercept_hat, coef_hat
