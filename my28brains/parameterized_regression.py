@@ -1,52 +1,23 @@
-""" Functions for parameterized regression."""
-##################### Standard Imports #####################
+"""Functions for parameterized regression."""
 
 import os
-import subprocess
-import sys
-import time
 
 import numpy as np
-import torch
-import trimesh
 
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
-
-import my28brains.default_config as default_config
-
-##################### Set up paths and imports #####################
-
-sys_dir = os.path.dirname(default_config.work_dir)
-sys.path.append(sys_dir)
-sys.path.append(default_config.h2_dir)
+from geomstats.geometry.discrete_surfaces import DiscreteSurfaces, ElasticMetric
+from sklearn.linear_model import LinearRegression
 
 import H2_SurfaceMatch.utils.input_output  # noqa: E402
 import H2_SurfaceMatch.utils.utils  # noqa: E402
+import my28brains.default_config as default_config
+from my28brains.geodesic_regression import GeodesicRegression
 
 my28brains_dir = default_config.my28brains_dir
 synthetic_data_dir = default_config.synthetic_data_dir
 parameterized_meshes_dir = default_config.parameterized_meshes_dir
 data_dir = default_config.data_dir
-
-##################### Regression Imports #####################
-
-import geomstats.visualization as visualization
-import matplotlib.pyplot as plt
-from geomstats.geometry.special_euclidean import SpecialEuclidean
-from geomstats.learning.frechet_mean import FrechetMean, variance
-from geomstats.learning.geodesic_regression import GeodesicRegression
-from sklearn import linear_model
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
-
-import data.synthetic_data.generate_syntetic_geodesics as generate_syntetic_geodesics
-import my28brains.default_config as default_config
-import my28brains.discrete_surfaces as discrete_surfaces
-from my28brains.discrete_surfaces import DiscreteSurfaces, ElasticMetric
-
-# import geomstats.geometry.discrete_surfaces as discrete_surfaces
-# from geomstats.geometry.discrete_surfaces import DiscreteSurfaces, ElasticMetric
 
 
 def save_regression_results(
@@ -59,16 +30,17 @@ def save_regression_results(
     regression_coef,
     duration_time,
 ):
-    """Saves regression results to file.
+    """Save regression results to file.
 
-    parameters:
-        data_type: string, either "synthetic" or "real"
-        sped_up: boolean, whether or not the data was sped up
-        true_intercept: numpy array, the true intercept
-        true_coef: numpy array, the true slope
-        regression_intercept: numpy array, the intercept calculated via regression
-        regression_coef: numpy array, the slope calculated via regression
-        duration_time: float, the duration of the regression
+    Parameters
+    ----------
+    data_type: string, either "synthetic" or "real"
+    sped_up: boolean, whether or not the data was sped up
+    true_intercept: numpy array, the true intercept
+    true_coef: numpy array, the true slope
+    regression_intercept: numpy array, the intercept calculated via regression
+    regression_coef: numpy array, the slope calculated via regression
+    duration_time: float, the duration of the regression
     """
     path_prefix = default_config.regression_dir
 
@@ -124,7 +96,7 @@ def save_regression_results(
 def create_decimated_mesh_sequence_list(
     original_mesh_sequence_vertices, original_mesh_faces
 ):
-    """Creates a list of decimated meshes from a list of original meshes.
+    """Create a list of decimated meshes from a list of original meshes.
 
     The original mesh sequence is first in this list. The second mesh is slightly
     decimated, and the last mesh is very decimated (very few vertices).
@@ -181,7 +153,7 @@ def create_decimated_mesh_sequence_list(
     return decimated_geodesics_list, mesh_faces_list
 
 
-def perform_parameterized_geodesic_regression(
+def geodesic_regression(
     mesh_sequence,
     mesh_faces,
     times,
@@ -190,19 +162,22 @@ def perform_parameterized_geodesic_regression(
     coef_hat_guess,
     regression_initialization="warm_start",
 ):
-    """Performs regression on parameterized meshes.
+    """Perform regression on parameterized meshes.
 
-    inputs:
-        mesh_sequence: list of vertices of meshes. EACH MESH is a numpy array of shape (n, 3)
-        mesh_faces: numpy array of shape (m, 3) where m is the number of faces
-        times: list of times corresponding to mesh_sequence
-        intercept_hat_guess: initial guess for intercept of regression fit
-        coef_hat_guess: initial guess for slope of regression fit
+    Parameters
+    ----------
+    mesh_sequence: list of vertices of meshes.
+    EACH MESH is a numpy array of shape (n, 3)
+    mesh_faces: numpy array of shape (m, 3)
+    where m is the number of faces
+    times: list of times corresponding to mesh_sequence
+    intercept_hat_guess: initial guess for intercept of regression fit
+    coef_hat_guess: initial guess for slope of regression fit
 
-
-    returns:
-        intercept_hat: intercept of regression fit
-        coef_hat: slope of regression fit
+    Returns
+    -------
+    intercept_hat: intercept of regression fit
+    coef_hat: slope of regression fit
     """
     SURFACE_SPACE = DiscreteSurfaces(faces=mesh_faces)
 
@@ -233,13 +208,14 @@ def perform_parameterized_geodesic_regression(
         initialization=regression_initialization,
     )
 
-    print(f"GEODESIC REGRESSION DEFAULT POINT TYPE", gr.space.default_point_type)
+    print("GEODESIC REGRESSION DEFAULT POINT TYPE", gr.space.default_point_type)
 
     if intercept_hat_guess is None:
         intercept_hat_guess = mesh_sequence[0]
     elif intercept_hat_guess.shape != mesh_sequence[0].shape:
         raise ValueError(
-            "intercept_hat_guess must be None or have the same shape as mesh_sequence[0]"
+            "intercept_hat_guess must be None or "
+            "have the same shape as mesh_sequence[0]"
         )
 
     if coef_hat_guess is None:
@@ -263,16 +239,16 @@ def perform_parameterized_geodesic_regression(
     return intercept_hat, coef_hat
 
 
-def perform_parameterized_linear_regression(mesh_sequence_vertices, times):
-    """Performs linear regression on parameterized meshes.
+def linear_regression(mesh_sequence_vertices, times):
+    """Perform linear regression on parameterized meshes.
 
-    inputs:
-    --------
+    Parameters
+    ----------
     mesh_sequence_vertices: vertices of mesh sequence to be fit
     times: list of times corresponding to mesh_sequence_vertices
 
-    returns:
-    --------
+    Returns
+    -------
     intercept_hat: intercept of regression fit
     coef_hat: slope of regression fit
     """

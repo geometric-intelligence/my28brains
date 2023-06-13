@@ -308,7 +308,6 @@ def H2MultiRes(
     rotate=False,
     device=None,
 ):
-
     """Compute geodesic between source and target meshes.
 
     Parameters

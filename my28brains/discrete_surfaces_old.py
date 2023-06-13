@@ -939,7 +939,6 @@ class ElasticMetric(RiemannianMetric):
             for one_midpoint, one_initial_point, one_end_point in zip(
                 midpoint, initial_point, end_point
             ):
-
                 one_path = gs.concatenate(
                     [
                         one_initial_point[None, :, :],
