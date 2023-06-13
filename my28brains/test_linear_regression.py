@@ -108,7 +108,7 @@ elif data_type == "real":
 #         decimated_faces,
 #         tols,
 #         times,
-#         regression_initialization="warm_start",
+#         initialization="warm_start",
 #     )
 # else:
 
@@ -132,7 +132,7 @@ coef_hat = lr.coef_
 #     tolerance=0.0001,
 #     intercept_hat_guess=None,
 #     coef_hat_guess=None,
-#     regression_initialization="warm_start",
+#     initialization="warm_start",
 # )
 
 # end_time = time.time()

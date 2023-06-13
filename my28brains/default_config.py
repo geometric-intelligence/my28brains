@@ -43,9 +43,12 @@ a2 = (was 1) high value = 1. a2 penalizes the laplacian of the mesh.
     mesh up to get a super smooth mesh.
 """
 
+import datetime
 import os
 import subprocess
 import time
+
+now = datetime.datetime.now()
 
 # Regression Parameters
 
@@ -134,7 +137,8 @@ centered_nondegenerate_dir = os.path.join(results_dir, "meshes_centered_nondegen
 geodesics_dir = os.path.join(results_dir, "meshes_geodesics")
 parameterized_meshes_dir = os.path.join(results_dir, "meshes_parameterized")
 regression_dir = os.path.join(results_dir, "regression")
-
+linear_regression_dir = os.path.join(regression_dir, f"{now}_linear")
+geodesic_regression_dir = os.path.join(regression_dir, f"{now}_geodesic")
 
 for mesh_dir in [
     meshed_data_dir,
@@ -143,6 +147,8 @@ for mesh_dir in [
     geodesics_dir,
     regression_dir,
     synthetic_data_dir,
+    linear_regression_dir,
+    geodesic_regression_dir,
 ]:
     if not os.path.exists(mesh_dir):
         os.makedirs(mesh_dir)
