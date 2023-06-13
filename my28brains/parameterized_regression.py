@@ -29,6 +29,7 @@ def save_regression_results(
     regression_intercept,
     regression_coef,
     duration_time,
+    regression_dir,
 ):
     """Save regression results to file.
 
@@ -42,7 +43,6 @@ def save_regression_results(
     regression_coef: numpy array, the slope calculated via regression
     duration_time: float, the duration of the regression
     """
-    path_prefix = default_config.regression_dir
 
     true_intercept_file_name = (
         "true_intercept_" + data_type + "_sped_up_" + str(sped_up)
@@ -55,20 +55,20 @@ def save_regression_results(
         "regression_slope_" + data_type + "_sped_up_" + str(sped_up)
     )
 
-    true_intercept_path = os.path.join(path_prefix, true_intercept_file_name)
-    true_slope_path = os.path.join(path_prefix, true_slope_file_name)
+    true_intercept_path = os.path.join(regression_dir, true_intercept_file_name)
+    true_slope_path = os.path.join(regression_dir, true_slope_file_name)
     regression_intercept_path = os.path.join(
-        path_prefix, regression_intercept_file_name
+        regression_dir, regression_intercept_file_name
     )
-    regression_slope_path = os.path.join(path_prefix, regression_slope_file_name)
+    regression_slope_path = os.path.join(regression_dir, regression_slope_file_name)
 
-    true_intercept_path = os.path.join(path_prefix, true_intercept_file_name)
-    true_slope_path = os.path.join(path_prefix, true_slope_file_name)
+    true_intercept_path = os.path.join(regression_dir, true_intercept_file_name)
+    true_slope_path = os.path.join(regression_dir, true_slope_file_name)
     regression_intercept_path = os.path.join(
-        path_prefix, regression_intercept_file_name + str(duration_time)
+        regression_dir, regression_intercept_file_name + str(duration_time)
     )
     regression_slope_path = os.path.join(
-        path_prefix, regression_slope_file_name + str(duration_time)
+        regression_dir, regression_slope_file_name + str(duration_time)
     )
 
     # NOTE: is t = 0 the intercept? let's check this if things aren't working.
@@ -157,10 +157,10 @@ def geodesic_regression(
     mesh_sequence,
     mesh_faces,
     times,
-    tolerance,
+    tol,
     intercept_hat_guess,
     coef_hat_guess,
-    regression_initialization="warm_start",
+    initialization="warm_start",
 ):
     """Perform regression on parameterized meshes.
 
@@ -203,9 +203,9 @@ def geodesic_regression(
         method="riemannian",
         max_iter=5,
         init_step_size=0.1,
-        tol=tolerance,
+        tol=tol,
         verbose=False,
-        initialization=regression_initialization,
+        initialization=initialization,
     )
 
     print("GEODESIC REGRESSION DEFAULT POINT TYPE", gr.space.default_point_type)

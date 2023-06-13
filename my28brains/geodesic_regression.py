@@ -176,13 +176,7 @@ class GeodesicRegression(BaseEstimator):
             base_point = intercept
             penalty = 0
         tangent_vec = self.space.to_tangent(coef, base_point)
-        # tangent_vec_copy = gs.copy(tangent_vec)
 
-        print(f"coef.requires_grad = {coef.requires_grad}")
-        print(f"tangent_vec.requires_grad = {tangent_vec.requires_grad}")
-        print(f"base_point.requires_grad = {base_point.requires_grad}")
-        print(f"X.requires_grad = {X.requires_grad}")
-        print(f"y.requires_grad = {y.requires_grad}")
         distances = (
             gs.linalg.norm(
                 self._model(X, tangent_vec.detach(), base_point.detach()) - y

@@ -38,29 +38,55 @@ mesh_sequence_vertices, mesh_faces, times, true_intercept, true_coef = data_util
 
 start_time = time.time()
 
-(
-    lr_intercept_hat,
-    lr_coef_hat,
-) = parameterized_regression.linear_regression(mesh_sequence_vertices, times)
+print("\n--- Linear Regression ---")
+linear_intercept_hat, linear_coef_hat = parameterized_regression.linear_regression(
+    mesh_sequence_vertices, times
+)
+
+
+linear_duration_time = time.time() - start_time
+
+print(">> Duration: ", linear_duration_time)
+
+linear_intercept_err = gs.linalg.norm(linear_intercept_hat - true_intercept)
+linear_coef_err = gs.linalg.norm(linear_coef_hat - true_coef)
+print(">> Linear regression errors:")
+print(f"On intercept: {linear_intercept_err}, on coef: {linear_coef_err}")
+
+print("Saving results...")
+parameterized_regression.save_regression_results(
+    default_config.data_type,
+    default_config.sped_up,
+    mesh_sequence_vertices,
+    mesh_faces,
+    gs.array(true_coef),
+    regression_intercept=linear_intercept_hat,
+    regression_coef=linear_coef_hat,
+    duration_time=linear_duration_time,
+    regression_dir=default_config.linear_regression_dir,
+)
 
 # if (residual magnitude is too big... have max residual as a param):
 # then do geodesic regression
 
-(intercept_hat, coef_hat,) = parameterized_regression.geodesic_regression(
+print("\n--- Geodesic Regression ---")
+intercept_hat, coef_hat = parameterized_regression.geodesic_regression(
     mesh_sequence_vertices,
     mesh_faces,
     times,
-    tolerance=0.0001,
-    intercept_hat_guess=lr_intercept_hat,
-    coef_hat_guess=lr_coef_hat,
-    regression_initialization="warm_start",
+    tol=10000,
+    intercept_hat_guess=linear_intercept_hat,
+    coef_hat_guess=linear_coef_hat,
+    initialization="warm_start",
 )
 
-end_time = time.time()
-duration_time = end_time - start_time
+duration_time = time.time() - start_time
 
-print("Duration: ", duration_time)
+print(">> Duration: ", duration_time)
+print(">> Geodesic regression errors:")
+print(f"On intercept: {linear_intercept_err}, on coef: {linear_coef_err}")
 
+print("Saving results...")
 parameterized_regression.save_regression_results(
     default_config.data_type,
     default_config.sped_up,
@@ -70,4 +96,7 @@ parameterized_regression.save_regression_results(
     regression_intercept=intercept_hat,
     regression_coef=coef_hat,
     duration_time=duration_time,
+    regression_dir=default_config.geodesic_regression_dir,
 )
+
+print("Evaluating the results")
