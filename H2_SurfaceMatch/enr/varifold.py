@@ -18,7 +18,6 @@ torch_dtype = torch.float64
 
 def lossVarifoldSurf(FS, FunS, VT, FT, FunT, K):
     def CompCLNn(F, V, Fun):
-
         if F.shape[1] == 2:
             V0, V1 = V.index_select(0, F[:, 0]), V.index_select(0, F[:, 1])
             Fun0, Fun1 = Fun.index_select(0, F[:, 0]), Fun.index_select(0, F[:, 1])

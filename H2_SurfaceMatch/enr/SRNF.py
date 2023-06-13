@@ -26,7 +26,6 @@ def enr_invert_SRNF(F, Q):
 
 
 def SRNF_cost(nX, nY):
-
     normX = torch.norm(nX, p=2, dim=1).view(nX.shape[0], 1)
     normY = torch.norm(nY, p=2, dim=1).view(nY.shape[0], 1)
 
@@ -94,7 +93,6 @@ def enr_match_SRNF(
     weight_MCV=0,
     **objfun
 ):
-
     K = VKerenl(
         objfun["kernel_geom"],
         objfun["kernel_grass"],
@@ -140,7 +138,6 @@ def enr_match_SRNF_sym(
     weight_MCV=0,
     **objfun
 ):
-
     K = VKerenl(
         objfun["kernel_geom"],
         objfun["kernel_grass"],

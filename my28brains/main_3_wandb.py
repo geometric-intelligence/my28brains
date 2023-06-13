@@ -34,13 +34,13 @@ data_dir = default_config.data_dir
 
 ##################### Regression Imports #####################
 
+import datasets.synthetic
 import geomstats.visualization as visualization
 import matplotlib.pyplot as plt
 from geomstats.geometry.special_euclidean import SpecialEuclidean
 from geomstats.learning.frechet_mean import FrechetMean, variance
 from geomstats.learning.geodesic_regression import GeodesicRegression
 
-import data.synthetic_data.generate_syntetic_geodesics as generate_syntetic_geodesics
 import my28brains.default_config as default_config
 import my28brains.discrete_surfaces as discrete_surfaces
 from my28brains.discrete_surfaces import DiscreteSurfaces, ElasticMetric
@@ -119,15 +119,15 @@ def run_wandb(
     if data_type == "synthetic":
         print("Using synthetic data")
         mesh_dir = synthetic_data_dir
-        sphere_mesh = generate_syntetic_geodesics.generate_sphere_mesh()
-        ellipsoid_mesh = generate_syntetic_geodesics.generate_ellipsoid_mesh()
+        sphere_mesh = datasets.synthetic.generate_sphere_mesh()
+        ellipsoid_mesh = datasets.synthetic.generate_ellipsoid_mesh()
         (
             original_mesh_sequence_vertices,
             original_mesh_faces,
             times,
             true_intercept,
             true_slope,
-        ) = generate_syntetic_geodesics.generate_synthetic_parameterized_geodesic(
+        ) = datasets.synthetic.generate_synthetic_parameterized_geodesic(
             sphere_mesh, ellipsoid_mesh
         )
         print(

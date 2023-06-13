@@ -1,4 +1,4 @@
-'''This file calculates the "path energy" of the geodesic between two shapes.'''
+"""This file calculates the "path energy" of the geodesic between two shapes."""
 import glob
 import itertools
 import multiprocessing
@@ -22,8 +22,8 @@ sys_dir = os.path.dirname(default_config.work_dir)
 sys.path.append(sys_dir)
 sys.path.append(default_config.h2_dir)
 
+import H2_SurfaceMatch.enr.H2  # noqa: E402
 import H2_SurfaceMatch.H2_match  # noqa: E402
-import H2_SurfaceMatch.enr.H2 # noqa: E402
 import H2_SurfaceMatch.utils.input_output  # noqa: E402
 import H2_SurfaceMatch.utils.utils  # noqa: E402
 
@@ -38,8 +38,8 @@ energies_dir = os.path.join(os.getcwd(), "my28brains", "results", "meshes_energi
 # (2) The energy of this geodesic
 hemisphere = "left"
 structure_id = -1
-area_threshold = '0.0'
-days = np.array([1,10])
+area_threshold = "0.0"
+days = np.array([1, 10])
 
 centered_nondegenerate_dir = os.path.join(
     os.getcwd(), "my28brains", "results", "meshes_centered_nondegenerate"
@@ -62,6 +62,7 @@ print(
 )
 for path in paths:
     print(path)
+
 
 # template copied from main
 def _interpolate_with_geodesic(paths, gpu_id=0):
@@ -198,13 +199,19 @@ def _interpolate_with_geodesic(paths, gpu_id=0):
             angle=-1 * np.pi / 2,
         )
         print(f"Geodesic interpolation saved to: " f"{energies_dir}.")
-    
-    path_energy = H2_SurfaceMatch.enr.H2.getPathEnergyH2(geod, a0=default_config.a0,
+
+    path_energy = H2_SurfaceMatch.enr.H2.getPathEnergyH2(
+        geod,
+        a0=default_config.a0,
         a1=default_config.a1,
         b1=default_config.b1,
         c1=default_config.c1,
         d1=default_config.d1,
-        a2=default_config.a2, F_sol=F0, stepwise=False, device=None)
+        a2=default_config.a2,
+        F_sol=F0,
+        stepwise=False,
+        device=None,
+    )
 
     print(f"Path Energy: {path_energy}")
 

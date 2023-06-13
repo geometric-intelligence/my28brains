@@ -57,7 +57,6 @@ def quartic_pen(
 
     # Define function that will evaluate the clipped quartic penalty at the weights defined on the triangulated surface
     def penalty(V, F, Rho):
-
         # Get number of vertices
         nV = V.shape[0]
 

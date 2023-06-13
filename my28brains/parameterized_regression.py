@@ -31,13 +31,13 @@ data_dir = default_config.data_dir
 
 ##################### Regression Imports #####################
 
+import datasets.synthetic
 import geomstats.visualization as visualization
 import matplotlib.pyplot as plt
 from geomstats.geometry.special_euclidean import SpecialEuclidean
 from geomstats.learning.frechet_mean import FrechetMean, variance
 from geomstats.learning.geodesic_regression import GeodesicRegression
 
-import data.synthetic_data.generate_syntetic_geodesics as generate_syntetic_geodesics
 import my28brains.default_config as default_config
 import my28brains.discrete_surfaces as discrete_surfaces
 from my28brains.discrete_surfaces import DiscreteSurfaces, ElasticMetric
