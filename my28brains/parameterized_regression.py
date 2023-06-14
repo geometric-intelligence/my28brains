@@ -6,8 +6,7 @@ import numpy as np
 
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
-from geomstats.geometry.discrete_surfaces import (DiscreteSurfaces,
-                                                  ElasticMetric)
+from geomstats.geometry.discrete_surfaces import DiscreteSurfaces, ElasticMetric
 from sklearn.linear_model import LinearRegression
 
 import H2_SurfaceMatch.utils.input_output  # noqa: E402
@@ -44,7 +43,6 @@ def save_regression_results(
     regression_coef: numpy array, the slope calculated via regression
     duration_time: float, the duration of the regression
     """
-
     true_intercept_file_name = (
         "true_intercept_" + dataset_name + "_sped_up_" + str(sped_up)
     )

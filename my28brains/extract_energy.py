@@ -1,7 +1,4 @@
 """This file calculates the "path energy" of the geodesic between two shapes."""
-import glob
-import itertools
-import multiprocessing
 import os
 import sys
 import time
@@ -9,10 +6,8 @@ import warnings
 
 import numpy as np
 import torch
-import trimesh
 
 import my28brains.default_config as default_config
-import my28brains.meshing as meshing
 
 # from multiprocessing import cpu_count
 
@@ -76,7 +71,8 @@ def _interpolate_with_geodesic(paths, gpu_id=0):
     i_pair : int
         Index of the pair of meshes to process.
     i_template : int
-        Index of the template mesh which defines the vertices and faces that all mesh should have.
+        Index of the template mesh which defines
+        the vertices and faces that all mesh should have.
     paths : list
         List of paths to the meshes.
     gpu_id : int
