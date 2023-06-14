@@ -170,7 +170,6 @@ def main():
         default_config.gr_with_linear_warm_start,
         default_config.gr_with_linear_residuals,
     ):
-
         main_config = {
             "dataset_name": dataset_name,
             "sped_up": sped_up,

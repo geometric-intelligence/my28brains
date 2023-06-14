@@ -17,7 +17,8 @@ sys.path.append(sys_dir)
 sys.path.append(h2_dir)
 sys.path.append(my28brains_dir)
 
-from geomstats.geometry.discrete_surfaces import DiscreteSurfaces, ElasticMetric
+from geomstats.geometry.discrete_surfaces import (DiscreteSurfaces,
+                                                  ElasticMetric)
 
 import H2_SurfaceMatch.H2_match  # noqa: E402
 import H2_SurfaceMatch.utils.input_output  # noqa: E402
