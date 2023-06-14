@@ -67,10 +67,10 @@ from my28brains.discrete_surfaces import DiscreteSurfaces, ElasticMetric
 
 ##################### Regression Parameters #####################
 
-data_type = default_config.data_type
+dataset_name = default_config.dataset_name
 sped_up = default_config.sped_up
 
-if data_type == "synthetic":
+if dataset_name == "synthetic":
     print("Using synthetic data")
     mesh_dir = synthetic_data_dir
     sphere_mesh = datasets.synthetic.generate_sphere_mesh()
@@ -88,7 +88,7 @@ if data_type == "synthetic":
     print("Original mesh faces: ", original_mesh_faces.shape)
     print("Times: ", times.shape)
 
-elif data_type == "real":
+elif dataset_name == "real":
     print("Using real data")
     mesh_dir = parameterized_meshes_dir
     raise (NotImplementedError)
@@ -170,7 +170,7 @@ print("diff intercept: ", intercept_hat - true_intercept)
 ##################### Save Results #####################
 
 # parameterized_regression.save_regression_results(
-#     data_type,
+#     dataset_name,
 #     sped_up,
 #     original_mesh_sequence_vertices,
 #     original_mesh_faces,

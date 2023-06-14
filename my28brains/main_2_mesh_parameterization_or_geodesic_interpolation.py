@@ -612,7 +612,7 @@ if __name__ == "__main__":
     - area threshold for removing degenerate faces.
     """
     for hemisphere, structure_id, n_geodesic_time, area_threshold in itertools.product(
-        default_config.hemispheres,
+        default_config.hemisphere,
         default_config.structure_ids,
         default_config.n_geodesic_times,
         default_config.area_thresholds,

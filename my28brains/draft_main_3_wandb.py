@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import torch
 import trimesh
+
 import wandb
 
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"
@@ -51,7 +52,7 @@ from my28brains.discrete_surfaces import DiscreteSurfaces, ElasticMetric
 
 ##################### Regression Parameters #####################
 
-data_type = default_config.data_type
+dataset_name = default_config.dataset_name
 sped_up = default_config.sped_up
 
 
@@ -61,30 +62,30 @@ def run_tests():
     uncomment the for loop once we are running multiple tests.
     """
     # for (
-    #     data_type,
+    #     dataset_name,
     #     sped_up,
     #     n_decimations,
     #     regression_decimation_factor_step,
     # ) in itertools.product(
-    #     default_config.data_type,
+    #     default_config.dataset_name,
     #     default_config.sped_up,
     #     default_config.n_decimations,
     #     default_config.regression_decimation_factor_step,
     # ):
     #     logging.info(
-    #         f"Running tests for {data_type} data with sped_up = {sped_up}, n_decimations = {default_config.n_decimations}:\n"
+    #         f"Running tests for {dataset_name} data with sped_up = {sped_up}, n_decimations = {default_config.n_decimations}:\n"
     #         f"- regression_decimation_factor_step = {regression_decimation_factor_step}\n"
     #     )
 
     #     run_wandb(
-    #         data_type=data_type,
+    #         dataset_name=dataset_name,
     #         sped_up=sped_up,
     #         n_decimations=default_config.n_decimations,
     #         regression_decimation_factor_step=default_config.regression_decimation_factor_step,
     #     )
 
     run_wandb(
-        data_type=data_type,
+        dataset_name=dataset_name,
         sped_up=sped_up,
         n_decimations=default_config.n_decimations,
         regression_decimation_factor_step=default_config.regression_decimation_factor_step,
@@ -92,20 +93,20 @@ def run_tests():
 
 
 def run_wandb(
-    data_type=data_type,
+    dataset_name=dataset_name,
     sped_up=sped_up,
     n_decimations=default_config.n_decimations,
     regression_decimation_factor_step=default_config.regression_decimation_factor_step,
 ):
     """Run wandb script for the following parameters."""
-    run_name = f"{data_type}_sped{sped_up}_ndec_{default_config.n_decimations}_factor_{regression_decimation_factor_step}_{default_config.now}"
+    run_name = f"{dataset_name}_sped{sped_up}_ndec_{default_config.n_decimations}_factor_{regression_decimation_factor_step}_{default_config.now}"
 
     wandb.init(
         project="regression_speedup",
         dir=tempfile.gettempdir(),
         config={
             "run_name": run_name,
-            "data_type": data_type,
+            "dataset_name": dataset_name,
             "sped_up": sped_up,
             "n_decimations": default_config.n_decimations,
             "regression_decimation_factor_step": default_config.regression_decimation_factor_step,
@@ -115,37 +116,14 @@ def run_wandb(
     config = wandb.config
     wandb.run.name = config.run_name
 
-    logging.info(f"Load {data_type} dataset")
-    if data_type == "synthetic":
-        print("Using synthetic data")
-        mesh_dir = synthetic_data_dir
-        sphere_mesh = datasets.synthetic.generate_sphere_mesh()
-        ellipsoid_mesh = datasets.synthetic.generate_ellipsoid_mesh()
-        (
-            original_mesh_sequence_vertices,
-            original_mesh_faces,
-            times,
-            true_intercept,
-            true_slope,
-        ) = datasets.synthetic.generate_synthetic_parameterized_geodesic(
-            sphere_mesh, ellipsoid_mesh
-        )
-        print(
-            "Original mesh_sequence vertices: ", original_mesh_sequence_vertices.shape
-        )
-        print("Original mesh faces: ", original_mesh_faces.shape)
-        print("Times: ", times.shape)
-
-    elif data_type == "real":
-        print("Using real data")
-        mesh_dir = parameterized_meshes_dir
-        raise (NotImplementedError)
-        # in progress...
-        # when i do this, i will most likely change main_2_mesh_parameterization to take in a list of meshes
-        # and then call it here.
-
-    else:
-        raise ValueError(f"Unknown dataset name {data_type}")
+    logging.info(f"Load {dataset_name} dataset")
+    (
+        mesh_sequence_vertices,
+        mesh_faces,
+        times,
+        true_intercept,
+        true_coef,
+    ) = data_utils.load(default_config)
 
     ##################### Construct Decimated Mesh Sequences #####################
 
@@ -224,7 +202,7 @@ def run_wandb(
     logging.info("Save results")
 
     parameterized_regression.save_regression_results(
-        data_type,
+        dataset_name,
         sped_up,
         original_mesh_sequence_vertices,
         original_mesh_faces,

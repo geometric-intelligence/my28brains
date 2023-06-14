@@ -261,7 +261,7 @@ class GeodesicRegression(BaseEstimator):
         objective_with_grad = gs.autodiff.value_and_grad(
             lambda param: self._loss(X, y, param, shape, weights), to_numpy=True
         )
-
+        print(f"HAHA {self.verbose}")
         res = minimize(
             objective_with_grad,
             initial_guess,
@@ -270,6 +270,7 @@ class GeodesicRegression(BaseEstimator):
             options={"disp": self.verbose, "maxiter": self.max_iter},
             tol=self.tol,
         )
+        print(f"Done with {self.verbose}")
 
         intercept_hat, coef_hat = gs.split(gs.array(res.x), 2)
         intercept_hat = gs.reshape(intercept_hat, shape)

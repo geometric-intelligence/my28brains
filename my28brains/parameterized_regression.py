@@ -21,7 +21,7 @@ data_dir = default_config.data_dir
 
 
 def save_regression_results(
-    data_type,
+    dataset_name,
     sped_up,
     true_intercept_vertices,
     true_intercept_faces,
@@ -35,7 +35,7 @@ def save_regression_results(
 
     Parameters
     ----------
-    data_type: string, either "synthetic" or "real"
+    dataset_name: string, either "synthetic" or "real"
     sped_up: boolean, whether or not the data was sped up
     true_intercept: numpy array, the true intercept
     true_coef: numpy array, the true slope
@@ -45,14 +45,14 @@ def save_regression_results(
     """
 
     true_intercept_file_name = (
-        "true_intercept_" + data_type + "_sped_up_" + str(sped_up)
+        "true_intercept_" + dataset_name + "_sped_up_" + str(sped_up)
     )
-    true_slope_file_name = "true_slope_" + data_type + "_sped_up_" + str(sped_up)
+    true_slope_file_name = "true_slope_" + dataset_name + "_sped_up_" + str(sped_up)
     regression_intercept_file_name = (
-        "regression_intercept_" + data_type + "_sped_up_" + str(sped_up)
+        "regression_intercept_" + dataset_name + "_sped_up_" + str(sped_up)
     )
     regression_slope_file_name = (
-        "regression_slope_" + data_type + "_sped_up_" + str(sped_up)
+        "regression_slope_" + dataset_name + "_sped_up_" + str(sped_up)
     )
 
     true_intercept_path = os.path.join(regression_dir, true_intercept_file_name)
@@ -72,9 +72,6 @@ def save_regression_results(
     )
 
     # NOTE: is t = 0 the intercept? let's check this if things aren't working.
-
-    print("Vertices Data Type: ", type(gs.array(true_intercept_vertices)))
-    print(" Faces Data Type: ", type(gs.array(true_intercept_faces)))
 
     H2_SurfaceMatch.utils.input_output.save_data(
         true_intercept_path,
@@ -181,8 +178,6 @@ def geodesic_regression(
     """
     SURFACE_SPACE = DiscreteSurfaces(faces=mesh_faces)
 
-    print("SURFACE_SPACE: ", SURFACE_SPACE.default_point_type)
-
     METRIC = ElasticMetric(
         space=SURFACE_SPACE,
         a0=default_config.a0,
@@ -193,22 +188,19 @@ def geodesic_regression(
         a2=default_config.a2,
     )
 
-    print("METRIC: ", METRIC._space.default_point_type)
-
     # maxiter was 100
+    # method was riemannian
     gr = GeodesicRegression(
         SURFACE_SPACE,
         metric=METRIC,
         center_X=False,
-        method="riemannian",
+        method="extrinsic",
         max_iter=5,
         init_step_size=0.1,
         tol=tol,
-        verbose=False,
+        verbose=True,
         initialization=initialization,
     )
-
-    print("GEODESIC REGRESSION DEFAULT POINT TYPE", gr.space.default_point_type)
 
     if intercept_hat_guess is None:
         intercept_hat_guess = mesh_sequence[0]

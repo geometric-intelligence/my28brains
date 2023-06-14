@@ -4,17 +4,11 @@ import os
 import subprocess
 import sys
 
+import geomstats.backend as gs
 import numpy as np
 import torch
 import trimesh
 
-os.environ["GEOMSTATS_BACKEND"] = "pytorch"
-import geomstats.backend as gs
-
-gitroot_path = subprocess.check_output(
-    ["git", "rev-parse", "--show-toplevel"], universal_newlines=True
-)
-os.chdir(gitroot_path[:-1])
 work_dir = os.getcwd()
 my28brains_dir = os.path.join(work_dir, "my28brains")
 h2_dir = os.path.join(work_dir, "H2_SurfaceMatch")

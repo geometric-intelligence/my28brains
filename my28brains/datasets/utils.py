@@ -2,6 +2,7 @@
 
 import os
 
+import default_config
 import geomstats.backend as gs
 import numpy as np
 import trimesh
@@ -11,14 +12,18 @@ import my28brains.datasets.synthetic as synthetic
 
 def load(config):
     """Load data according to values in config file."""
-    if config.data_type == "synthetic":
+    if config.dataset_name == "synthetic":
         print("Using synthetic data")
-        mesh_dir = config.synthetic_mesh_sequence_dir
-        start_shape_dir = config.start_shape_dir
-        end_shape_dir = config.end_shape_dir
+        data_dir = default_config.synthetic_data_dir
         start_shape = config.start_shape
         end_shape = config.end_shape
         n_times = config.n_times
+
+        start_shape_dir = os.path.join(data_dir, start_shape)
+        end_shape_dir = os.path.join(data_dir, end_shape)
+        mesh_dir = os.path.join(
+            data_dir, f"geodesic_{start_shape}_{end_shape}_{n_times}"
+        )
 
         start_vertices_path = os.path.join(start_shape_dir, "vertices.npy")
         start_faces_path = os.path.join(start_shape_dir, "faces.npy")
@@ -110,11 +115,13 @@ def load(config):
             true_coef = gs.array(np.load(os.path.join(mesh_dir, "true_coef.npy")))
             return mesh_sequence_vertices, mesh_faces, times, true_intercept, true_coef
 
-    elif config.data_type == "real":
+    elif config.dataset_name == "real":
         print("Using real data")
         mesh_dir = config.parameterized_meshes_dir
         print(mesh_dir)
         raise NotImplementedError
+    else:
+        raise ValueError(f"Unknown dataset name {config.dataset_name}")
 
 
 # in progress...
