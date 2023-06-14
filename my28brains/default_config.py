@@ -46,22 +46,32 @@ a2 = (was 1) high value = 1. a2 penalizes the laplacian of the mesh.
 import datetime
 import os
 import subprocess
-import time
+
+gitroot_path = subprocess.check_output(
+    ["git", "rev-parse", "--show-toplevel"], universal_newlines=True
+)
+
+os.chdir(os.path.join(gitroot_path[:-1], "my28brains"))
 
 now = datetime.datetime.now()
+use_wandb = True
+
+# WANDB API KEY
+# Find it here: https://wandb.ai/authorize
+# Story it in file: api_key.txt (without extra line break)
+with open("api_key.txt") as f:
+    api_key = f.read()
 
 # Regression Parameters
 
-data_type = "synthetic"  # "synthetic" or "real"
-if data_type == "synthetic":
-    n_times = 5
-    start_shape = "sphere"  # "sphere" or "ellipsoid" or "pill"
-    end_shape = "ellipsoid"  # "sphere" or "ellipsoid" or "pill"
-sped_up = False  # 'True' or 'False'
-geodesic_regression_with_linear_warm_start = True  # 'True' or 'False'
-geodesic_regression_with_linear_residual_calculations = False  # 'True' or 'False'
-
-now = time.time()
+dataset_name = ["synthetic"]  # "synthetic" or "real"
+# Only for dataset_name == synthetic:
+n_times = [5]
+start_shape = ["sphere"]  # "sphere" or "ellipsoid" or "pill"
+end_shape = ["ellipsoid"]  # "sphere" or "ellipsoid" or "pill"
+sped_up = [False]  # 'True' or 'False'
+gr_with_linear_warm_start = [True]  # 'True' or 'False'
+gr_with_linear_residuals = [False]  # 'True' or 'False'
 
 # GPU Parameters
 
@@ -92,7 +102,7 @@ area_thresholds = [0.00]  # 0.0001, 0.001, 0.01, 0.1, 1.0]
 # Real Data Specific
 
 # specify brain hemispheres to analyze
-hemispheres = ["left"]  # , "right"]
+hemisphere = ["left"]  # , "right"]
 structure_ids = [-1]
 
 
@@ -123,11 +133,6 @@ h2_dir = os.path.join(os.getcwd(), "H2_SurfaceMatch")
 # Data
 data_dir = os.path.join(os.getcwd(), "data")
 synthetic_data_dir = os.path.join(data_dir, "synthetic_data")
-start_shape_dir = os.path.join(synthetic_data_dir, start_shape)
-end_shape_dir = os.path.join(synthetic_data_dir, end_shape)
-synthetic_mesh_sequence_dir = os.path.join(
-    synthetic_data_dir, f"geodesic_{start_shape}_{end_shape}_{n_times}"
-)
 
 # Results
 results_dir = os.path.join(os.getcwd(), "my28brains", "results")
@@ -137,8 +142,6 @@ centered_nondegenerate_dir = os.path.join(results_dir, "meshes_centered_nondegen
 geodesics_dir = os.path.join(results_dir, "meshes_geodesics")
 parameterized_meshes_dir = os.path.join(results_dir, "meshes_parameterized")
 regression_dir = os.path.join(results_dir, "regression")
-linear_regression_dir = os.path.join(regression_dir, f"{now}_linear")
-geodesic_regression_dir = os.path.join(regression_dir, f"{now}_geodesic")
 
 for mesh_dir in [
     meshed_data_dir,
@@ -147,8 +150,6 @@ for mesh_dir in [
     geodesics_dir,
     regression_dir,
     synthetic_data_dir,
-    linear_regression_dir,
-    geodesic_regression_dir,
 ]:
     if not os.path.exists(mesh_dir):
         os.makedirs(mesh_dir)

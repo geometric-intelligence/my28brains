@@ -5,3 +5,4 @@ ignore = W503, W504
 import_order_style = smarkets
 max-line-length = 88
 extend-ignore = E203, E402, D101, D102, D103, D105, D100, D101, D102, D103, D106, D200, D201, D205, D400, D401, D404, D405, D406, D407, D409, I100, I101, I201, I202
+exclude = H2_SurfaceMatch, my28brains/blender/create_animation.py, my28brains/notebooks/.ipynb_checkpoints

@@ -148,17 +148,17 @@ def write_substructure_centered_mesh(hemisphere, structure_id, hippocampus_cente
 if __name__ == "__main__":
     """Parse the default_config file and run all preprocessing."""
     for hemisphere, structure_id in itertools.product(
-        default_config.hemispheres, default_config.structure_ids
+        default_config.hemisphere, default_config.structure_ids
     ):
         write_meshes(hemisphere, structure_id)
 
     # Need to add the whole hippocampus meshes to the list of structures
     # in order to be able to compute its center and center the substructures.
     if -1 not in default_config.structure_ids:
-        for hemisphere in default_config.hemispheres:
+        for hemisphere in default_config.hemisphere:
             write_meshes(hemisphere, -1)
 
-    for hemisphere in default_config.hemispheres:
+    for hemisphere in default_config.hemisphere:
         hippocampus_centers = write_whole_hippocampus_centered_mesh(hemisphere)
         for structure_id in default_config.structure_ids:
             if structure_id != -1:

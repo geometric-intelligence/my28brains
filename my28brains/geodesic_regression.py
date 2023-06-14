@@ -261,7 +261,6 @@ class GeodesicRegression(BaseEstimator):
         objective_with_grad = gs.autodiff.value_and_grad(
             lambda param: self._loss(X, y, param, shape, weights), to_numpy=True
         )
-
         res = minimize(
             objective_with_grad,
             initial_guess,

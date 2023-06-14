@@ -154,7 +154,8 @@ def write_centered_nondegenerate_meshes(hemisphere, structure_id, area_threshold
 #     i_pair : int
 #         Index of the pair of meshes to process.
 #     i_template : int
-#         Index of the template mesh which defines the vertices and faces that all mesh should have.
+#         Index of the template mesh which defines the vertices
+# and faces that all mesh should have.
 #     paths : list
 #         List of paths to the meshes.
 #     gpu_id : int
@@ -292,7 +293,8 @@ def _interpolate_with_geodesic(i_pair, i_template, paths, n_geodesic_time, gpu_i
     i_pair : int
         Index of the pair of meshes to process.
     i_template : int
-        Index of the template mesh which defines the vertices and faces that all mesh should have.
+        Index of the template mesh which defines the vertices
+        and faces that all mesh should have.
     paths : list
         List of paths to the meshes.
     gpu_id : int
@@ -453,7 +455,8 @@ def _generate_parameterized_data(i_pair, i_template, paths, n_geodesic_time, gpu
     i_pair : int
         Index of the pair of meshes to process.
     i_template : int
-        Index of the template mesh which defines the vertices and faces that all mesh should have.
+        Index of the template mesh which defines the vertices
+        and faces that all mesh should have.
     paths : list
         List of paths to the meshes.
     gpu_id : int
@@ -475,7 +478,8 @@ def _generate_parameterized_data(i_pair, i_template, paths, n_geodesic_time, gpu
     ply_prefix = os.path.join(
         parameterized_meshes_dir, os.path.splitext(os.path.basename(end_path))[0]
     )
-    # ply_prefix = os.path.split(os.path.join(parameterized_meshes_dir, os.path.basename(end_path)))[0]
+    # ply_prefix = os.path.split(os.path.join(
+    # parameterized_meshes_dir, os.path.basename(end_path)))[0]
     print(f"ply_prefix: {ply_prefix}")
     file_name = ply_prefix + "_parameterized"
     print(f"file_name: {file_name}")
@@ -491,7 +495,8 @@ def _generate_parameterized_data(i_pair, i_template, paths, n_geodesic_time, gpu
     # for i_geodesic_time in range(n_geodesic_time):
     #     file_name = ply_prefix + "{}".format(i_geodesic_time)
     #     file_ply = file_name + ".ply"
-    #     geodesic_exists = os.path.exists(os.path.join(parameterized_meshes_dir, file_ply))
+    #     geodesic_exists =
+    # os.path.exists(os.path.join(parameterized_meshes_dir, file_ply))
 
     # Source preprocessing
     [
@@ -598,7 +603,8 @@ def _generate_parameterized_data(i_pair, i_template, paths, n_geodesic_time, gpu
     #         angle=-1 * np.pi / 2,
     #     )
     #     print(
-    #         f"Geodesic interpolation {i_pair} saved to: " f"{parameterized_meshes_dir}."
+    #         f"Geodesic interpolation {i_pair}
+    # saved to: " f"{parameterized_meshes_dir}."
     #     )
 
 
@@ -612,7 +618,7 @@ if __name__ == "__main__":
     - area threshold for removing degenerate faces.
     """
     for hemisphere, structure_id, n_geodesic_time, area_threshold in itertools.product(
-        default_config.hemispheres,
+        default_config.hemisphere,
         default_config.structure_ids,
         default_config.n_geodesic_times,
         default_config.area_thresholds,
@@ -642,12 +648,14 @@ if __name__ == "__main__":
         i_pairs = list(range(default_config.day_range[0], default_config.day_range[1]))
 
         if default_config.interpolate_geodesics:
-            print(f"LAUNCHING GEODESIC INTERPOLATION.")
+            print("LAUNCHING GEODESIC INTERPOLATION.")
         elif default_config.generate_parameterized_data:
-            print(f"LAUNCHING PARAMETERIZED DATA GENERATION.")
+            print("LAUNCHING PARAMETERIZED DATA GENERATION.")
         else:
             raise ValueError(
-                "No action specified. Please check the config file and make sure that either interpolate_geodesics or generate_parameterized_data is set to True."
+                "No action specified. Please check the config file and "
+                " make sure that either interpolate_geodesics or "
+                "generate_parameterized_data is set to True."
             )
 
         args_with_queue = [
