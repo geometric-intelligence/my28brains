@@ -1,4 +1,4 @@
-name: my28brains_temp
+name: my28brains
 channels:
   - defaults
 dependencies:
