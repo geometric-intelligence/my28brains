@@ -3,6 +3,7 @@
 import os
 
 import default_config
+os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
 import numpy as np
 import trimesh
@@ -80,6 +81,7 @@ def load(config):
             ) = synthetic.generate_synthetic_parameterized_geodesic(
                 start_mesh, end_mesh, n_times
             )
+
             print("Original mesh_sequence vertices: ", mesh_sequence_vertices.shape)
             print("Original mesh faces: ", mesh_faces.shape)
             print("Times: ", times.shape)

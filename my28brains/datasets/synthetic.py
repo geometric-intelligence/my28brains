@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import trimesh
 
+
 work_dir = os.getcwd()
 my28brains_dir = os.path.join(work_dir, "my28brains")
 h2_dir = os.path.join(work_dir, "H2_SurfaceMatch")
@@ -72,7 +73,7 @@ def generate_pill_mesh():
     return pill
 
 
-def generate_synthetic_parameterized_geodesic(start_mesh, end_mesh, n_times=5):
+def generate_synthetic_parameterized_geodesic(start_mesh, end_mesh, n_times=5, noise_var=0.):
     """Generate a synthetic geodesic between two parameterized meshes.
 
     Parameters
@@ -90,7 +91,7 @@ def generate_synthetic_parameterized_geodesic(start_mesh, end_mesh, n_times=5):
     note: true_intercept and true_slope are useful for evaluating the
     performance of a regression model on this synthetic data.
     """
-    SURFACE_SPACE = DiscreteSurfaces(faces=start_mesh.faces)
+    SURFACE_SPACE = DiscreteSurfaces(faces=gs.array(start_mesh.faces))
     METRIC = ElasticMetric(
         space=SURFACE_SPACE,
         a0=default_config.a0,
@@ -100,16 +101,24 @@ def generate_synthetic_parameterized_geodesic(start_mesh, end_mesh, n_times=5):
         d1=default_config.d1,
         a2=default_config.a2,
     )
+    print(f"surface and metric space created")
     dim = 3
     n_vertices = start_mesh.vertices.shape[0]
     geodesic_points = gs.zeros(n_times, n_vertices, dim)
     times = gs.arange(0, 1, 1 / n_times)
     initial_point = gs.array(start_mesh.vertices)
     end_point = gs.array(end_mesh.vertices)
-    geodesic = METRIC.geodesic(initial_point=initial_point, end_point=end_point)
+    true_slope = initial_point - end_point
+    geodesic = METRIC.geodesic(initial_point=initial_point, initial_tangent_vec=true_slope)
+    print(f"geodesic object created")
     geodesic_points = geodesic(times)
+    # TODO: implement noise code (code noise_var into rest of code)
+    # make geodesic with initial point and initial tangent vector.
+    # noisy_geodesic_points = geodesic_points + gs.random.normal(
+    #     0, noise_var, (n_times, n_vertices, dim)
+    # )
     true_intercept = initial_point
-    true_slope = METRIC.log(end_point, initial_point)
+    print(f"geodesic points created")
     return geodesic_points, start_mesh.faces, times, true_intercept, true_slope
 
 

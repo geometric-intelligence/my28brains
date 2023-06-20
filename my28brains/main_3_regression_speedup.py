@@ -107,8 +107,8 @@ def main_run(config):
     parameterized_regression.save_regression_results(
         wandb_config.dataset_name,
         wandb_config.sped_up,
-        mesh_sequence_vertices,
-        mesh_faces,
+        gs.array(mesh_sequence_vertices),
+        gs.array(mesh_faces),
         gs.array(true_coef),
         regression_intercept=linear_intercept_hat,
         regression_coef=linear_coef_hat,

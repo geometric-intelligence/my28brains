@@ -66,7 +66,7 @@ with open("api_key.txt") as f:
 
 dataset_name = ["synthetic"]  # "synthetic" or "real"
 # Only for dataset_name == synthetic:
-n_times = [5]
+n_times = [30]
 start_shape = ["sphere"]  # "sphere" or "ellipsoid" or "pill"
 end_shape = ["ellipsoid"]  # "sphere" or "ellipsoid" or "pill"
 sped_up = [False]  # 'True' or 'False'
