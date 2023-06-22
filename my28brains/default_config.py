@@ -46,6 +46,7 @@ a2 = (was 1) high value = 1. a2 penalizes the laplacian of the mesh.
 import datetime
 import os
 import subprocess
+import torch
 
 gitroot_path = subprocess.check_output(
     ["git", "rev-parse", "--show-toplevel"], universal_newlines=True
@@ -64,7 +65,7 @@ with open("api_key.txt") as f:
 
 # Regression Parameters
 
-dataset_name = ["synthetic"]  # "synthetic" or "real"
+dataset_name = ["real"]  # "synthetic" or "real"
 # Only for dataset_name == synthetic:
 n_times = [30]
 start_shape = ["sphere"]  # "sphere" or "ellipsoid" or "pill"
@@ -72,11 +73,13 @@ end_shape = ["ellipsoid"]  # "sphere" or "ellipsoid" or "pill"
 sped_up = [False]  # 'True' or 'False'
 gr_with_linear_warm_start = [True]  # 'True' or 'False'
 gr_with_linear_residuals = [False]  # 'True' or 'False'
+n_steps = 3 # n steps for the exp solver of geomstats.
 
 # GPU Parameters
 
 use_cuda = 1
 n_gpus = 10
+torch_dtype = torch.float64
 
 # Unparameterized Geodesic Mesh Parameters
 
@@ -110,7 +113,8 @@ structure_ids = [-1]
 # Looking at the first 10 days is interesting because:
 # - we have 10 gpus, so we can run 10 interpolations at once
 # - they contain most of the progesterone peak.
-day_range = [0, 30]  # first menstrual cycle is day 1-30 (pre-pill)
+# first menstrual cycle is day 1-30 (pre-pill)
+day_range = [2, 11]  # we have parameterized meshes for days 2-11
 
 # determine whether to generate parameterized data or to interpolate between
 # meshes with a geodesic.

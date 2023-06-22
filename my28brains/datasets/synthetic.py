@@ -17,7 +17,7 @@ sys.path.append(sys_dir)
 sys.path.append(h2_dir)
 sys.path.append(my28brains_dir)
 
-from geomstats.geometry.discrete_surfaces import DiscreteSurfaces, ElasticMetric
+from geomstats.geometry.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
 
 import H2_SurfaceMatch.H2_match  # noqa: E402
 import H2_SurfaceMatch.utils.input_output  # noqa: E402
@@ -73,7 +73,7 @@ def generate_pill_mesh():
     return pill
 
 
-def generate_synthetic_parameterized_geodesic(start_mesh, end_mesh, n_times=5, noise_var=0.):
+def generate_synthetic_parameterized_geodesic(start_mesh, end_mesh, n_times=5, device = "cuda:0"):
     """Generate a synthetic geodesic between two parameterized meshes.
 
     Parameters
@@ -101,13 +101,15 @@ def generate_synthetic_parameterized_geodesic(start_mesh, end_mesh, n_times=5, n
         d1=default_config.d1,
         a2=default_config.a2,
     )
+    METRIC.exp_solver = _ExpSolver(n_steps=default_config.n_steps)
+
     print(f"surface and metric space created")
     dim = 3
     n_vertices = start_mesh.vertices.shape[0]
-    geodesic_points = gs.zeros(n_times, n_vertices, dim)
-    times = gs.arange(0, 1, 1 / n_times)
-    initial_point = gs.array(start_mesh.vertices)
-    end_point = gs.array(end_mesh.vertices)
+    geodesic_points = gs.zeros(n_times, n_vertices, dim)#.to(dtype=default_config.torch_dtype, device = device)
+    times = gs.arange(0, 1, 1 / n_times)#.to(dtype=default_config.torch_dtype, device = device)
+    initial_point = torch.tensor(start_mesh.vertices)#.to(dtype=default_config.torch_dtype, device = device)
+    end_point = torch.tensor(end_mesh.vertices)#.to(dtype=default_config.torch_dtype, device = device)
     true_slope = initial_point - end_point
     geodesic = METRIC.geodesic(initial_point=initial_point, initial_tangent_vec=true_slope)
     print(f"geodesic object created")

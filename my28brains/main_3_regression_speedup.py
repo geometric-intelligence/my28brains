@@ -20,6 +20,7 @@ import itertools
 import logging
 import os
 import time
+import torch
 
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
@@ -33,6 +34,8 @@ my28brains_dir = default_config.my28brains_dir
 synthetic_data_dir = default_config.synthetic_data_dir
 parameterized_meshes_dir = default_config.parameterized_meshes_dir
 data_dir = default_config.data_dir
+
+device = torch.device(f"cuda:{default_config.use_cuda}" if torch.cuda.is_available() else "cpu")
 
 
 def main_run(config):
@@ -65,7 +68,7 @@ def main_run(config):
         times,
         true_intercept,
         true_coef,
-    ) = data_utils.load(wandb_config)
+    ) = data_utils.load(wandb_config)#, device=device)
 
     logging.info("\n- Linear Regression")
     linear_intercept_hat, linear_coef_hat = parameterized_regression.linear_regression(
@@ -119,6 +122,11 @@ def main_run(config):
     # if (residual magnitude is too big... have max residual as a param):
     # then do geodesic regression
 
+    print(f"linear_intercept_hat: {linear_intercept_hat.shape}")
+    print(f"linear_coef_hat: {linear_coef_hat.shape}")
+    print(f"mesh_sequence_vertices: {mesh_sequence_vertices.shape}")
+    print(f"mesh_faces: {mesh_faces.shape}")
+
     logging.info("\n- Geodesic Regression")
     (
         geodesic_intercept_hat,
@@ -131,6 +139,7 @@ def main_run(config):
         intercept_hat_guess=linear_intercept_hat,
         coef_hat_guess=linear_coef_hat,
         initialization="warm_start",
+        #device = device,
     )
 
     geodesic_duration_time = time.time() - start_time
