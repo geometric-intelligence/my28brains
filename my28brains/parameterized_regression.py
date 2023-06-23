@@ -14,6 +14,7 @@ import H2_SurfaceMatch.utils.input_output  # noqa: E402
 import H2_SurfaceMatch.utils.utils  # noqa: E402
 import my28brains.default_config as default_config
 from my28brains.geodesic_regression import GeodesicRegression
+import my28brains.datasets.utils as data_utils
 
 my28brains_dir = default_config.my28brains_dir
 synthetic_data_dir = default_config.synthetic_data_dir
@@ -298,7 +299,12 @@ def euclidean_subspace_test(mesh_sequence_vertices, mesh_sequence_faces):
 
     Returns
     -------
-    euclidean_subspace: boolean, whether or not the manifold is euclidean
+    euclidean_subspace_via_ratio: boolean, whether or not the manifold is euclidean
+        based on the ratio of linear distance to geodesic distance
+    euclidean_subspace_via_diffs: boolean, whether or not the manifold is euclidean
+        based on the difference between linear distance and geodesic distance,
+        compared to a tolerance that utilizes the size of the mesh and number of
+        vertices.
     """
     SURFACE_SPACE = DiscreteSurfaces(faces=gs.array(mesh_sequence_faces))
     METRIC = ElasticMetric(
@@ -322,22 +328,31 @@ def euclidean_subspace_test(mesh_sequence_vertices, mesh_sequence_faces):
 
     # calculate linear and geodesic distances between each pair
     diffs = []
+    ratios = []
     for random_pair in random_pairs:
         start_point = mesh_sequence_vertices[random_pair[0]]
         end_point = mesh_sequence_vertices[random_pair[1]]
 
         linear_distance = gs.linalg.norm(end_point - start_point)**2
         geodesic_distance = METRIC.squared_norm(start_point, end_point)
-        diffs.append(linear_distance / geodesic_distance)
+        ratios.append(linear_distance / geodesic_distance)
+        diffs.append(abs(linear_distance - geodesic_distance))
 
     diffs = gs.array(diffs)
+    ratios = gs.array(ratios)
     median_diff = np.median(diffs)
+    median_ratio = np.median(ratios)
 
-    euclidean_subspace = True
-    if median_diff > 1.1 or median_diff < 0.9:
-        euclidean_subspace = False
+    euclidean_subspace_via_ratio = True
+    if median_ratio > 1.1 or median_ratio < 0.9:
+        euclidean_subspace_via_ratio = False
 
-    return euclidean_subspace
+    euclidean_subspace_via_diffs = True
+    tolerance = default_config.tol_factor * data_utils.mesh_diameter(mesh_sequence_vertices[0]) * len(mesh_sequence_vertices[0])
+    if median_diff > tolerance:
+        euclidean_subspace_via_diffs = False
+    
+    return euclidean_subspace_via_ratio, euclidean_subspace_via_diffs
 
 
 

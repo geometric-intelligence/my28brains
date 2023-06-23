@@ -83,14 +83,17 @@ def main_run(config):
     mesh_sequence_vertices = data_utils.add_noise(mesh_sequence_vertices, wandb_config.noise_factor)
 
     logging.info("\n- Testing whether data subspace is euclidean.")
-    euclidean_subspace = parameterized_regression.euclidean_subspace_test(mesh_sequence_vertices, mesh_faces)
-    logging.info(f"\n- Euclidean subspace: {euclidean_subspace}")
+    euclidean_subspace_via_ratio, euclidean_subspace_via_diffs = parameterized_regression.euclidean_subspace_test(mesh_sequence_vertices, mesh_faces)
+    logging.info(f"\n- Euclidean subspace via ratio: {euclidean_subspace_via_ratio}"
+                f"\n- Euclidean subspace via diffs: {euclidean_subspace_via_diffs}")
+
 
     wandb.log({
         "noise_factor": wandb_config.noise_factor,
         "mesh_diameter": mesh_diameter,
         "geodesic_tol": tol,
-        "euclidean_subspace": euclidean_subspace,
+        "euclidean_subspace_via_ratio": euclidean_subspace_via_ratio,
+        "euclidean_subspace_via_diffs": euclidean_subspace_via_diffs,
     })
 
     logging.info("\n- Linear Regression")
