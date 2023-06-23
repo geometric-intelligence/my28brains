@@ -21,6 +21,7 @@ import logging
 import os
 import time
 import torch
+import numpy as np
 
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
@@ -69,6 +70,28 @@ def main_run(config):
         true_intercept,
         true_coef,
     ) = data_utils.load(wandb_config)#, device=device)
+
+
+    logging.info(f"\n- Calculating tolerance for geodesic regression."
+                 "Based on: size of shape, number of time points, number of vertices.")
+    mesh_diameter = data_utils.mesh_diameter(mesh_sequence_vertices[0])
+    tol = default_config.tol_factor * mesh_diameter * len(mesh_sequence_vertices[0]) * len(mesh_sequence_vertices)
+    logging.info(f"\n- Tolerance calculated for geodesic regression: {tol:.3f}.")
+                 
+
+    logging.info(f"\n- Adding noise to data with factor: {wandb_config.noise_factor}")
+    mesh_sequence_vertices = data_utils.add_noise(mesh_sequence_vertices, wandb_config.noise_factor)
+
+    logging.info("\n- Testing whether data subspace is euclidean.")
+    euclidean_subspace = parameterized_regression.euclidean_subspace_test(mesh_sequence_vertices, mesh_faces)
+    logging.info(f"\n- Euclidean subspace: {euclidean_subspace}")
+
+    wandb.log({
+        "noise_factor": wandb_config.noise_factor,
+        "mesh_diameter": mesh_diameter,
+        "geodesic_tol": tol,
+        "euclidean_subspace": euclidean_subspace,
+    })
 
     logging.info("\n- Linear Regression")
     linear_intercept_hat, linear_coef_hat = parameterized_regression.linear_regression(
@@ -135,11 +158,11 @@ def main_run(config):
         mesh_sequence_vertices,
         mesh_faces,
         times,
-        tol=10000,
+        tol=tol,
         intercept_hat_guess=linear_intercept_hat,
         coef_hat_guess=linear_coef_hat,
-        initialization="warm_start",
-        #device = device,
+        initialization=wandb_config.geodesic_initialization,
+        geodesic_residuals = wandb_config.geodesic_residuals,
     )
 
     geodesic_duration_time = time.time() - start_time
@@ -153,6 +176,9 @@ def main_run(config):
             "geodesic_coef_err": geodesic_coef_err,
             "geodesic_intercept_hat": wandb.Object3D(geodesic_intercept_hat.numpy()),
             "geodesic_coef_hat": wandb.Object3D(geodesic_coef_hat.numpy()),
+            "exp_solver_n_steps": default_config.n_steps,
+            "geodesic_residuals": wandb_config.geodesic_residuals,
+            "geodesic_initialization": wandb_config.geodesic_initialization,
         }
     )
 
@@ -186,19 +212,22 @@ def main():
     for (
         dataset_name,
         sped_up,
-        gr_with_linear_warm_start,
-        gr_with_linear_residuals,
+        geodesic_initialization,
+        geodesic_residuals,
+        noise_factor,
     ) in itertools.product(
         default_config.dataset_name,
         default_config.sped_up,
-        default_config.gr_with_linear_warm_start,
-        default_config.gr_with_linear_residuals,
+        default_config.geodesic_initialization,
+        default_config.geodesic_residuals,
+        default_config.noise_factor,
     ):
         main_config = {
             "dataset_name": dataset_name,
             "sped_up": sped_up,
-            "gr_with_linear_warm_start": gr_with_linear_warm_start,
-            "gr_with_linear_residuals": gr_with_linear_residuals,
+            "geodesic_initialization": geodesic_initialization,
+            "geodesic_residuals": geodesic_residuals,
+            "noise_factor": noise_factor,
         }
         if dataset_name == "synthetic":
             for n_times, (start_shape, end_shape) in itertools.product(

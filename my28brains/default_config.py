@@ -66,14 +66,17 @@ with open("api_key.txt") as f:
 # Regression Parameters
 
 dataset_name = ["real"]  # "synthetic" or "real"
-# Only for dataset_name == synthetic:
-n_times = [30]
-start_shape = ["sphere"]  # "sphere" or "ellipsoid" or "pill"
-end_shape = ["ellipsoid"]  # "sphere" or "ellipsoid" or "pill"
-sped_up = [False]  # 'True' or 'False'
-gr_with_linear_warm_start = [True]  # 'True' or 'False'
-gr_with_linear_residuals = [False]  # 'True' or 'False'
+n_times = [30] # Only for dataset_name == synthetic
+start_shape = ["sphere"]  # "sphere" or "ellipsoid" or "pill" for synthetic
+end_shape = ["ellipsoid"]  # "sphere" or "ellipsoid" or "pill" for synthetic
+sped_up = [True]  # 'True' or 'False' (not currently used)
+geodesic_initialization = ["warm_start"]  # "warm_start" or None
+geodesic_residuals = [False]  # 'True' or 'False' (alternative is linear residuals)
 n_steps = 3 # n steps for the exp solver of geomstats.
+tol_factor = 0.001  # tolerance for geodesic regression
+noise_factor = [0.0]  # noise added to the data. 
+                    # Will be multiplied by the size of the mesh to calculate the standard 
+                    # deviation of added noise distribution.
 
 # GPU Parameters
 

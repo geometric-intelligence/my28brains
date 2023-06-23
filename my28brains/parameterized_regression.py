@@ -158,6 +158,7 @@ def geodesic_regression(
     intercept_hat_guess,
     coef_hat_guess,
     initialization="warm_start",
+    geodesic_residuals=False,
     #device = "cuda:0",
 ):
     """Perform regression on parameterized meshes.
@@ -177,6 +178,8 @@ def geodesic_regression(
     intercept_hat: intercept of regression fit
     coef_hat: slope of regression fit
     """
+    print(f"initialization: {initialization}")
+    print(f"geodesic_residuals: {geodesic_residuals}")
     SURFACE_SPACE = DiscreteSurfaces(faces=gs.array(mesh_faces))
 
     METRIC = ElasticMetric(
@@ -191,6 +194,7 @@ def geodesic_regression(
 
     METRIC.exp_solver = _ExpSolver(n_steps = default_config.n_steps)
 
+    
     # maxiter was 100
     # method was riemannian
     gr = GeodesicRegression(
@@ -203,6 +207,7 @@ def geodesic_regression(
         tol=tol,
         verbose=True,
         initialization=initialization,
+        geodesic_residuals=geodesic_residuals
     )
 
     if intercept_hat_guess is None:
@@ -271,3 +276,68 @@ def linear_regression(mesh_sequence_vertices, times): #, device = "cuda:0"):
     coef_hat = gs.array(coef_hat)
 
     return intercept_hat, coef_hat
+
+def euclidean_subspace_test(mesh_sequence_vertices, mesh_sequence_faces):
+    """Test whether the manifold subspace where the data lie is euclidean.
+    
+    For 10 random pairs of meshes, we calculate 1) the linear distance
+    between them, and 2) the geodesic distance between them.
+    If the manifold is euclidean, these two distances should be the same.
+    If the manifold is not euclidean, they will be different.
+
+    We calculate the median of the ratio of the two distances and use it
+    to determine whether the manifold is approximately euclidean.
+
+    If the manifold is approximately euclidean, linear regression
+    will return a reasonable result.
+
+    Parameters
+    ----------
+    mesh_sequence_vertices: vertices of mesh sequence
+    mesh_sequence_faces: faces of mesh sequence
+
+    Returns
+    -------
+    euclidean_subspace: boolean, whether or not the manifold is euclidean
+    """
+    SURFACE_SPACE = DiscreteSurfaces(faces=gs.array(mesh_sequence_faces))
+    METRIC = ElasticMetric(
+        space=SURFACE_SPACE,
+        a0=default_config.a0,
+        a1=default_config.a1,
+        b1=default_config.b1,
+        c1=default_config.c1,
+        d1=default_config.d1,
+        a2=default_config.a2,
+    )
+
+    METRIC.exp_solver = _ExpSolver(n_steps = default_config.n_steps)
+
+    mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
+
+    # pick random pairs of meshes
+    n_meshes = mesh_sequence_vertices.shape[0]
+    n_pairs = 10
+    random_pairs = np.random.randint(0, n_meshes, size=(n_pairs, 2))
+
+    # calculate linear and geodesic distances between each pair
+    diffs = []
+    for random_pair in random_pairs:
+        start_point = mesh_sequence_vertices[random_pair[0]]
+        end_point = mesh_sequence_vertices[random_pair[1]]
+
+        linear_distance = gs.linalg.norm(end_point - start_point)**2
+        geodesic_distance = METRIC.squared_norm(start_point, end_point)
+        diffs.append(linear_distance / geodesic_distance)
+
+    diffs = gs.array(diffs)
+    median_diff = np.median(diffs)
+
+    euclidean_subspace = True
+    if median_diff > 1.1 or median_diff < 0.9:
+        euclidean_subspace = False
+
+    return euclidean_subspace
+
+
+

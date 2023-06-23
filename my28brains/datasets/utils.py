@@ -154,6 +154,26 @@ def load(config):#, device = "cuda:0"):
         raise ValueError(f"Unknown dataset name {config.dataset_name}")
 
 
+def mesh_diameter(mesh_vertices):
+    """Compute the diameter of a mesh."""
+    max_distance = 0
+    for i_vertex in range(mesh_vertices.shape[0]):
+        for j_vertex in range(i_vertex + 1, mesh_vertices.shape[0]):
+            distance = gs.linalg.norm(mesh_vertices[i_vertex] - mesh_vertices[j_vertex])
+            if distance > max_distance:
+                max_distance = distance
+    return max_distance
+
+def add_noise(mesh_sequence_vertices, noise_factor):
+    """Add noise to mesh_sequence_vertices."""
+    noise_sd = noise_factor * mesh_diameter(mesh_sequence_vertices[0])
+    for i_mesh in range(len(mesh_sequence_vertices)):
+        mesh_sequence_vertices[i_mesh] += gs.random.normal(
+            loc=0.0, scale=noise_sd, size=mesh_sequence_vertices[i_mesh].shape
+        )
+    return mesh_sequence_vertices
+
+
 # in progress...
 # when i do this, i will most likely change main_2_mesh_parameterization
 # to take in a list of meshes
