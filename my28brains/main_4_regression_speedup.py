@@ -78,22 +78,30 @@ def main_run(config):
     tol = default_config.tol_factor * mesh_diameter * len(mesh_sequence_vertices[0]) * len(mesh_sequence_vertices)
     logging.info(f"\n- Tolerance calculated for geodesic regression: {tol:.3f}.")
                  
-
-    logging.info(f"\n- Adding noise to data with factor: {wandb_config.noise_factor}")
-    mesh_sequence_vertices = data_utils.add_noise(mesh_sequence_vertices, wandb_config.noise_factor)
+    if wandb_config.dataset_name == "synthetic":
+        logging.info(f"\n- Adding noise to data with factor: {wandb_config.noise_factor}")
+        mesh_sequence_vertices = data_utils.add_noise(mesh_sequence_vertices, wandb_config.noise_factor)
+        wandb.log({"noise_factor": wandb_config.noise_factor})
 
     logging.info("\n- Testing whether data subspace is euclidean.")
     euclidean_subspace_via_ratio, euclidean_subspace_via_diffs = parameterized_regression.euclidean_subspace_test(mesh_sequence_vertices, mesh_faces)
     logging.info(f"\n- Euclidean subspace via ratio: {euclidean_subspace_via_ratio}"
                 f"\n- Euclidean subspace via diffs: {euclidean_subspace_via_diffs}")
 
+    diffs = 0
+    if euclidean_subspace_via_diffs:
+        diffs = 1
+
+    ratio = 0
+    if euclidean_subspace_via_ratio:
+        ratio = 1
+
 
     wandb.log({
-        "noise_factor": wandb_config.noise_factor,
         "mesh_diameter": mesh_diameter,
         "geodesic_tol": tol,
-        "euclidean_subspace_via_ratio": euclidean_subspace_via_ratio,
-        "euclidean_subspace_via_diffs": euclidean_subspace_via_diffs,
+        "euclidean_subspace_via_ratio": ratio,
+        "euclidean_subspace_via_diffs": diffs,
     })
 
     logging.info("\n- Linear Regression")
@@ -172,6 +180,14 @@ def main_run(config):
     geodesic_intercept_err = gs.linalg.norm(geodesic_intercept_hat - true_intercept)
     geodesic_coef_err = gs.linalg.norm(geodesic_coef_hat - true_coef)
 
+    geodesic_residuals = 0
+    if wandb_config.geodesic_residuals:
+        geodesic_residuals = 1
+
+    geodesic_initialization = 0
+    if wandb_config.geodesic_initialization:
+        geodesic_initialization = 1
+
     wandb.log(
         {
             "geodesic_duration_time": geodesic_duration_time,
@@ -180,8 +196,8 @@ def main_run(config):
             "geodesic_intercept_hat": wandb.Object3D(geodesic_intercept_hat.numpy()),
             "geodesic_coef_hat": wandb.Object3D(geodesic_coef_hat.numpy()),
             "exp_solver_n_steps": default_config.n_steps,
-            "geodesic_residuals": wandb_config.geodesic_residuals,
-            "geodesic_initialization": wandb_config.geodesic_initialization,
+            "geodesic_residuals": geodesic_residuals,
+            "geodesic_initialization": geodesic_initialization,
         }
     )
 
@@ -217,30 +233,28 @@ def main():
         sped_up,
         geodesic_initialization,
         geodesic_residuals,
-        noise_factor,
     ) in itertools.product(
         default_config.dataset_name,
         default_config.sped_up,
         default_config.geodesic_initialization,
         default_config.geodesic_residuals,
-        default_config.noise_factor,
     ):
         main_config = {
             "dataset_name": dataset_name,
             "sped_up": sped_up,
             "geodesic_initialization": geodesic_initialization,
             "geodesic_residuals": geodesic_residuals,
-            "noise_factor": noise_factor,
         }
         if dataset_name == "synthetic":
-            for n_times, (start_shape, end_shape) in itertools.product(
-                default_config.n_times,
+            for n_times, noise_factor, (start_shape, end_shape) in itertools.product(
+                default_config.n_times, default_config.noise_factor,
                 zip(default_config.start_shape, default_config.end_shape),
             ):
                 config = {
                     "n_times": n_times,
                     "start_shape": start_shape,
                     "end_shape": end_shape,
+                    "noise_factor": noise_factor,
                 }
                 config.update(main_config)
                 main_run(config)

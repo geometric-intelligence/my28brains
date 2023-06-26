@@ -234,7 +234,7 @@ def geodesic_regression(
     # times = gs.reshape(times, (len(times), 1))
 
     # gr.fit(gs.array(times).to(device), gs.array(mesh_sequence).to(device), compute_training_score=False)
-    gr.fit(times, mesh_sequence, compute_training_score=False)
+    gr.fit(gs.array(times), gs.array(mesh_sequence), compute_training_score=False)
 
 
     intercept_hat, coef_hat = gr.intercept_, gr.coef_
