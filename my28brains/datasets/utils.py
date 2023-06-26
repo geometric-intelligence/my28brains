@@ -7,6 +7,8 @@ os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
 import numpy as np
 import trimesh
+import pandas as pd
+import numpy as np
 
 import my28brains.datasets.synthetic as synthetic
 import H2_SurfaceMatch.utils.input_output
@@ -120,16 +122,30 @@ def load(config):#, device = "cuda:0"):
 
     elif config.dataset_name == "real":
         print("Using real data")
-        mesh_dir = default_config.parameterized_meshes_dir
+        mesh_dir = default_config.sorted_parameterized_meshes_dir
         mesh_sequence_vertices = []
         mesh_sequence_faces = []
         first_day = int(default_config.day_range[0])
         last_day = int(default_config.day_range[1])
-        times = gs.arange(0, 1, 1/(last_day - first_day + 1))
-        for i_mesh in range(first_day, last_day + 1):
+        # times = gs.arange(0, 1, 1/(last_day - first_day + 1))
+
+        hormone_levels_path = os.path.join(default_config.sorted_parameterized_meshes_dir, "sorted_hormone_levels.npy")
+        hormone_levels = np.loadtxt(hormone_levels_path, delimiter=",")
+        times = gs.array(hormone_levels)
+        print("times: ", times)
+
+        # for i_mesh in range(first_day, last_day + 1):
+        for i_mesh in range(last_day - first_day + 1):
+            # mesh_path = os.path.join(
+            #     default_config.sorted_parameterized_meshes_dir,
+            #     f"{config.hemisphere}_structure_-1_day{i_mesh:02d}_at_0.0_parameterized.ply",
+            # )
+            # file_name = f"parameterized_mesh{i_mesh:02d}_hormone_level****.ply"
+            file_name = f"parameterized_mesh{i_mesh:02d}.ply"
+
             mesh_path = os.path.join(
-                default_config.parameterized_meshes_dir,
-                f"{config.hemisphere}_structure_-1_day{i_mesh:02d}_at_0.0_parameterized.ply",
+                default_config.sorted_parameterized_meshes_dir,
+                file_name
             )
             [
                 vertices,
@@ -172,6 +188,8 @@ def add_noise(mesh_sequence_vertices, noise_factor):
             loc=0.0, scale=noise_sd, size=mesh_sequence_vertices[i_mesh].shape
         )
     return mesh_sequence_vertices
+
+    
 
 
 # in progress...

@@ -47,6 +47,7 @@ import datetime
 import os
 import subprocess
 import torch
+import sys
 
 gitroot_path = subprocess.check_output(
     ["git", "rev-parse", "--show-toplevel"], universal_newlines=True
@@ -151,6 +152,10 @@ parameterized_meshes_dir = os.path.join(results_dir, "meshes_parameterized")
 sorted_parameterized_meshes_dir = os.path.join(results_dir, "meshes_parameterized_sorted_by_hormone")
 regression_dir = os.path.join(results_dir, "regression")
 
+sys_dir = os.path.dirname(work_dir)
+sys.path.append(sys_dir)
+sys.path.append(h2_dir)
+
 for mesh_dir in [
     meshed_data_dir,
     centered_dir,
@@ -163,6 +168,7 @@ for mesh_dir in [
 ]:
     if not os.path.exists(mesh_dir):
         os.makedirs(mesh_dir)
+    sys.path.append(sys_dir)
 
 
 # Elastic Metric Parameters

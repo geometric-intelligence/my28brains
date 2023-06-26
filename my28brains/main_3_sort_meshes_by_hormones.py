@@ -6,11 +6,8 @@ import my28brains.default_config as default_config
 import pandas as pd
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
-
-sys_dir = os.path.dirname(default_config.work_dir)
-sys.path.append(sys_dir)
-sys.path.append(default_config.h2_dir)
 import H2_SurfaceMatch.utils.input_output
+import numpy as np
 
 sorted_parameterized_meshes_dir = default_config.sorted_parameterized_meshes_dir
 parameterized_meshes_dir = default_config.parameterized_meshes_dir
@@ -31,7 +28,6 @@ mesh_sequence_vertices = []
 mesh_sequence_faces = []
 first_day = int(default_config.day_range[0])
 last_day = int(default_config.day_range[1])
-times = gs.arange(0, 1, 1/(last_day - first_day + 1))
 for i_mesh in range(first_day, last_day + 1):
     mesh_path = os.path.join(
         default_config.parameterized_meshes_dir,
@@ -74,7 +70,9 @@ print(sorted_hormone_levels)
 # Save the sorted meshes
 for i_mesh, mesh in enumerate(sorted_meshes):
     sorted_mesh_path = os.path.join(sorted_parameterized_meshes_dir, 
-                                    f"parameterized_mesh{i_mesh:02d}_hormone_level{sorted_hormone_levels[i_mesh]}.ply")
+                                    # f"parameterized_mesh{i_mesh:02d}_hormone_level{sorted_hormone_levels[i_mesh]}")
+                                    f"parameterized_mesh{i_mesh:02d}")
+
                                     
     H2_SurfaceMatch.utils.input_output.save_data(
         sorted_mesh_path,
@@ -83,5 +81,6 @@ for i_mesh, mesh in enumerate(sorted_meshes):
         gs.array(mesh_faces).numpy(),
     )
 
-
-
+# Save the sorted hormone levels with numpy
+sorted_hormone_levels_path = os.path.join(sorted_parameterized_meshes_dir, "sorted_hormone_levels.npy")
+np.savetxt(sorted_hormone_levels_path, sorted_hormone_levels, delimiter=",")
