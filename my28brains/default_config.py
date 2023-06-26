@@ -148,6 +148,7 @@ centered_dir = os.path.join(results_dir, "meshes_centered")
 centered_nondegenerate_dir = os.path.join(results_dir, "meshes_centered_nondegenerate")
 geodesics_dir = os.path.join(results_dir, "meshes_geodesics")
 parameterized_meshes_dir = os.path.join(results_dir, "meshes_parameterized")
+sorted_parameterized_meshes_dir = os.path.join(results_dir, "meshes_parameterized_sorted_by_hormone")
 regression_dir = os.path.join(results_dir, "regression")
 
 for mesh_dir in [
@@ -157,6 +158,8 @@ for mesh_dir in [
     geodesics_dir,
     regression_dir,
     synthetic_data_dir,
+    parameterized_meshes_dir,
+    sorted_parameterized_meshes_dir
 ]:
     if not os.path.exists(mesh_dir):
         os.makedirs(mesh_dir)
