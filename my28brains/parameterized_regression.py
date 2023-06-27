@@ -3,18 +3,21 @@
 import os
 
 import numpy as np
-import torch
 
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
-from geomstats.geometry.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
+from geomstats.geometry.discrete_surfaces import (
+    DiscreteSurfaces,
+    ElasticMetric,
+    _ExpSolver,
+)
 from sklearn.linear_model import LinearRegression
 
 import H2_SurfaceMatch.utils.input_output  # noqa: E402
 import H2_SurfaceMatch.utils.utils  # noqa: E402
+import my28brains.datasets.utils as data_utils
 import my28brains.default_config as default_config
 from my28brains.geodesic_regression import GeodesicRegression
-import my28brains.datasets.utils as data_utils
 
 my28brains_dir = default_config.my28brains_dir
 synthetic_data_dir = default_config.synthetic_data_dir
@@ -32,6 +35,7 @@ def save_regression_results(
     regression_coef,
     duration_time,
     regression_dir,
+    meshes_along_regression=None,
 ):
     """Save regression results to file.
 
@@ -89,6 +93,18 @@ def save_regression_results(
 
     np.savetxt(true_slope_path, true_coef)
     np.savetxt(regression_slope_path, regression_coef)
+
+    if meshes_along_regression is not None:
+        file_name = os.path.join(
+            regression_dir,
+            f"meshes_along_regression_{dataset_name}_sped_up_{str(sped_up)}",
+        )
+        H2_SurfaceMatch.utils.input_output.plotGeodesic(
+            meshes_along_regression,
+            gs.array(true_intercept_faces).numpy(),
+            stepsize=file_name,
+            file_name=file_name,
+        )
 
 
 def create_decimated_mesh_sequence_list(
@@ -160,7 +176,7 @@ def geodesic_regression(
     coef_hat_guess,
     initialization="warm_start",
     geodesic_residuals=False,
-    #device = "cuda:0",
+    # device = "cuda:0",
 ):
     """Perform regression on parameterized meshes.
 
@@ -193,9 +209,8 @@ def geodesic_regression(
         a2=default_config.a2,
     )
 
-    METRIC.exp_solver = _ExpSolver(n_steps = default_config.n_steps)
+    METRIC.exp_solver = _ExpSolver(n_steps=default_config.n_steps)
 
-    
     # maxiter was 100
     # method was riemannian
     gr = GeodesicRegression(
@@ -208,11 +223,11 @@ def geodesic_regression(
         tol=tol,
         verbose=True,
         initialization=initialization,
-        geodesic_residuals=geodesic_residuals
+        geodesic_residuals=geodesic_residuals,
     )
 
     if intercept_hat_guess is None:
-        intercept_hat_guess = gs.array(mesh_sequence[0])#.to(device = device)
+        intercept_hat_guess = gs.array(mesh_sequence[0])  # .to(device = device)
     elif intercept_hat_guess.shape != mesh_sequence[0].shape:
         raise ValueError(
             "intercept_hat_guess must be None or "
@@ -220,7 +235,9 @@ def geodesic_regression(
         )
 
     if coef_hat_guess is None:
-        coef_hat_guess = gs.array(mesh_sequence[1] - mesh_sequence[0])#.to(device = device)
+        coef_hat_guess = gs.array(
+            mesh_sequence[1] - mesh_sequence[0]
+        )  # .to(device = device)
 
     # NOTE: THIS IS BUGGING on second iteration
     # coeff_hat_guess = METRIC.log(mesh_sequence[1], mesh_sequence[0])
@@ -233,16 +250,16 @@ def geodesic_regression(
 
     # times = gs.reshape(times, (len(times), 1))
 
-    # gr.fit(gs.array(times).to(device), gs.array(mesh_sequence).to(device), compute_training_score=False)
+    # gr.fit(gs.array(times).to(device),
+    # gs.array(mesh_sequence).to(device), compute_training_score=False)
     gr.fit(gs.array(times), gs.array(mesh_sequence), compute_training_score=False)
-
 
     intercept_hat, coef_hat = gr.intercept_, gr.coef_
 
-    return intercept_hat, coef_hat
+    return intercept_hat, coef_hat, gr
 
 
-def linear_regression(mesh_sequence_vertices, times): #, device = "cuda:0"):
+def linear_regression(mesh_sequence_vertices, times):  # , device = "cuda:0"):
     """Perform linear regression on parameterized meshes.
 
     Parameters
@@ -260,9 +277,11 @@ def linear_regression(mesh_sequence_vertices, times): #, device = "cuda:0"):
     print("mesh_sequence_vertices.shape: ", mesh_sequence_vertices.shape)
     print("times.shape: ", times.shape)
 
-    mesh_sequence_vertices = gs.array(mesh_sequence_vertices.reshape((len(times), -1)))#.to(device = device)
+    mesh_sequence_vertices = gs.array(
+        mesh_sequence_vertices.reshape((len(times), -1))
+    )  # .to(device = device)
 
-    times = gs.reshape(times, (len(times), 1))#.to(device = device)
+    times = gs.reshape(times, (len(times), 1))  # .to(device = device)
 
     lr = LinearRegression()
 
@@ -276,11 +295,12 @@ def linear_regression(mesh_sequence_vertices, times): #, device = "cuda:0"):
     intercept_hat = gs.array(intercept_hat)
     coef_hat = gs.array(coef_hat)
 
-    return intercept_hat, coef_hat
+    return intercept_hat, coef_hat, lr
+
 
 def euclidean_subspace_test(mesh_sequence_vertices, mesh_sequence_faces):
     """Test whether the manifold subspace where the data lie is euclidean.
-    
+
     For 10 random pairs of meshes, we calculate 1) the linear distance
     between them, and 2) the geodesic distance between them.
     If the manifold is euclidean, these two distances should be the same.
@@ -317,7 +337,7 @@ def euclidean_subspace_test(mesh_sequence_vertices, mesh_sequence_faces):
         a2=default_config.a2,
     )
 
-    METRIC.exp_solver = _ExpSolver(n_steps = default_config.n_steps)
+    METRIC.exp_solver = _ExpSolver(n_steps=default_config.n_steps)
 
     mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
 
@@ -333,7 +353,7 @@ def euclidean_subspace_test(mesh_sequence_vertices, mesh_sequence_faces):
         start_point = mesh_sequence_vertices[random_pair[0]]
         end_point = mesh_sequence_vertices[random_pair[1]]
 
-        linear_distance = gs.linalg.norm(end_point - start_point)**2
+        linear_distance = gs.linalg.norm(end_point - start_point) ** 2
         geodesic_distance = METRIC.squared_norm(start_point, end_point)
         ratios.append(linear_distance / geodesic_distance)
         diffs.append(abs(linear_distance - geodesic_distance))
@@ -348,11 +368,12 @@ def euclidean_subspace_test(mesh_sequence_vertices, mesh_sequence_faces):
         euclidean_subspace_via_ratio = False
 
     euclidean_subspace_via_diffs = True
-    tolerance = default_config.tol_factor * data_utils.mesh_diameter(mesh_sequence_vertices[0]) * len(mesh_sequence_vertices[0])
+    tolerance = (
+        default_config.tol_factor
+        * data_utils.mesh_diameter(mesh_sequence_vertices[0])
+        * len(mesh_sequence_vertices[0])
+    )
     if median_diff > tolerance:
         euclidean_subspace_via_diffs = False
-    
+
     return euclidean_subspace_via_ratio, euclidean_subspace_via_diffs
-
-
-
