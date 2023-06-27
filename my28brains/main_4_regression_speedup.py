@@ -165,7 +165,9 @@ def main_run(config):
     )
 
     logging.info("Computing meshes along linear regression...")
+    times = gs.array(times.reshape(len(times),1))
     meshes_along_linear_regression = lr.predict(times)
+    times = times.reshape(len(times))
 
     logging.info("Saving linear results...")
     parameterized_regression.save_regression_results(
@@ -178,7 +180,8 @@ def main_run(config):
         regression_coef=linear_coef_hat,
         duration_time=linear_duration_time,
         regression_dir=linear_regression_dir,
-        meshes_along_regression=meshes_along_linear_regression,
+        # meshes_along_regression=meshes_along_linear_regression,
+        meshes_along_regression=None
     )
 
     # if (residual magnitude is too big... have max residual as a param):

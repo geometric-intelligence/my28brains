@@ -179,7 +179,7 @@ class GeodesicRegression(BaseEstimator):
 
         if self.geodesic_residuals:
             distances = self.metric.squared_dist(
-                self._model(X, tangent_vec, base_point), y
+                self._model(X, tangent_vec.detach(), base_point.detach()), y
             )
         else:
             distances = (
