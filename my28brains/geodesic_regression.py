@@ -177,15 +177,16 @@ class GeodesicRegression(BaseEstimator):
             penalty = 0
         tangent_vec = self.space.to_tangent(coef, base_point)
 
-        distances = (
-            gs.linalg.norm(
-                self._model(X, tangent_vec.detach(), base_point.detach()) - y
-            )
-            ** 2
-        )
         if self.geodesic_residuals:
             distances = self.metric.squared_dist(
                 self._model(X, tangent_vec, base_point), y
+            )
+        else:
+            distances = (
+                gs.linalg.norm(
+                    self._model(X, tangent_vec.detach(), base_point.detach()) - y
+                )
+                ** 2
             )
         if weights is None:
             weights = 1.0

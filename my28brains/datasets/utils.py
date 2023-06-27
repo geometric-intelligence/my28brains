@@ -3,14 +3,18 @@
 import os
 
 import default_config
+os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
 import numpy as np
 import trimesh
+import pandas as pd
+import numpy as np
 
 import my28brains.datasets.synthetic as synthetic
+import H2_SurfaceMatch.utils.input_output
 
 
-def load(config):
+def load(config):#, device = "cuda:0"):
     """Load data according to values in config file."""
     if config.dataset_name == "synthetic":
         print("Using synthetic data")
@@ -78,8 +82,9 @@ def load(config):
                 true_intercept,
                 true_coef,
             ) = synthetic.generate_synthetic_parameterized_geodesic(
-                start_mesh, end_mesh, n_times
+                start_mesh, end_mesh, n_times, #device=device
             )
+
             print("Original mesh_sequence vertices: ", mesh_sequence_vertices.shape)
             print("Original mesh faces: ", mesh_faces.shape)
             print("Times: ", times.shape)
@@ -117,11 +122,74 @@ def load(config):
 
     elif config.dataset_name == "real":
         print("Using real data")
-        mesh_dir = config.parameterized_meshes_dir
+        mesh_dir = default_config.sorted_parameterized_meshes_dir
+        mesh_sequence_vertices = []
+        mesh_sequence_faces = []
+        first_day = int(default_config.day_range[0])
+        last_day = int(default_config.day_range[1])
+        # times = gs.arange(0, 1, 1/(last_day - first_day + 1))
+
+        hormone_levels_path = os.path.join(default_config.sorted_parameterized_meshes_dir, "sorted_hormone_levels.npy")
+        hormone_levels = np.loadtxt(hormone_levels_path, delimiter=",")
+        times = gs.array(hormone_levels)
+        print("times: ", times)
+
+        # for i_mesh in range(first_day, last_day + 1):
+        for i_mesh in range(last_day - first_day + 1):
+            # mesh_path = os.path.join(
+            #     default_config.sorted_parameterized_meshes_dir,
+            #     f"{config.hemisphere}_structure_-1_day{i_mesh:02d}_at_0.0_parameterized.ply",
+            # )
+            # file_name = f"parameterized_mesh{i_mesh:02d}_hormone_level****.ply"
+            file_name = f"parameterized_mesh{i_mesh:02d}.ply"
+
+            mesh_path = os.path.join(
+                default_config.sorted_parameterized_meshes_dir,
+                file_name
+            )
+            [
+                vertices,
+                faces,
+                Fun,
+            ] = H2_SurfaceMatch.utils.input_output.loadData(mesh_path)
+            mesh_sequence_vertices.append(vertices)
+            mesh_sequence_faces.append(faces)
+        mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
+        
+        # parameterized = all(faces == mesh_sequence_faces[0] for faces in mesh_sequence_faces)
+        for faces in mesh_sequence_faces:
+            if (faces != mesh_sequence_faces[0]).all():
+                raise ValueError("Meshes are not parameterized")                
+            
+        mesh_faces = gs.array(mesh_sequence_faces[0])
+        true_intercept = gs.array(mesh_sequence_vertices[0])
+        true_coef = gs.array(mesh_sequence_vertices[1] - mesh_sequence_vertices[0])
         print(mesh_dir)
-        raise NotImplementedError
+        return mesh_sequence_vertices, mesh_faces, times, true_intercept, true_coef
     else:
         raise ValueError(f"Unknown dataset name {config.dataset_name}")
+
+
+def mesh_diameter(mesh_vertices):
+    """Compute the diameter of a mesh."""
+    max_distance = 0
+    for i_vertex in range(mesh_vertices.shape[0]):
+        for j_vertex in range(i_vertex + 1, mesh_vertices.shape[0]):
+            distance = gs.linalg.norm(mesh_vertices[i_vertex] - mesh_vertices[j_vertex])
+            if distance > max_distance:
+                max_distance = distance
+    return max_distance
+
+def add_noise(mesh_sequence_vertices, noise_factor):
+    """Add noise to mesh_sequence_vertices."""
+    noise_sd = noise_factor * mesh_diameter(mesh_sequence_vertices[0])
+    for i_mesh in range(len(mesh_sequence_vertices)):
+        mesh_sequence_vertices[i_mesh] += gs.random.normal(
+            loc=0.0, scale=noise_sd, size=mesh_sequence_vertices[i_mesh].shape
+        )
+    return mesh_sequence_vertices
+
+    
 
 
 # in progress...

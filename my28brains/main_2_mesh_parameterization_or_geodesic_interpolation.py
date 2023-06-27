@@ -86,15 +86,15 @@ def interpolate_with_geodesic(args_with_queue):
     try:
         ident = multiprocessing.current_process().ident
         print("{}: starting process on GPU {}".format(ident, gpu_id))
-        _interpolate_with_geodesic(i_pair, i_template, paths, n_geodesic_time, gpu_id)
-        # if default_config.interpolate_geodesics:
-        #     _interpolate_with_geodesic(
-        #         i_pair, i_template, paths, n_geodesic_time, gpu_id
-        #     )
-        # elif default_config.generate_parameterized_data:
-        #     _generate_parameterized_data(
-        #         i_pair, i_template, paths, n_geodesic_time, gpu_id
-        #     )
+        # _interpolate_with_geodesic(i_pair, i_template, paths, n_geodesic_time, gpu_id)
+        if default_config.interpolate_geodesics:
+            _interpolate_with_geodesic(
+                i_pair, i_template, paths, n_geodesic_time, gpu_id
+            )
+        elif default_config.generate_parameterized_data:
+            _generate_parameterized_data(
+                i_pair, i_template, paths, n_geodesic_time, gpu_id
+            )
 
         print("{}: finished".format(ident))
     finally:
