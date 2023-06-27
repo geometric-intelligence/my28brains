@@ -279,9 +279,10 @@ def linear_regression(mesh_sequence_vertices, times):  # , device = "cuda:0"):
 
     mesh_sequence_vertices = gs.array(
         mesh_sequence_vertices.reshape((len(times), -1))
-    )  # .to(device = device)
+    )  
+    print("mesh_sequence_vertices.shape: ", mesh_sequence_vertices.shape)
 
-    times = gs.reshape(times, (len(times), 1))  # .to(device = device)
+    times = gs.array(times.reshape(len(times), 1))
 
     lr = LinearRegression()
 
