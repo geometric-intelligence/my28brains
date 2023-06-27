@@ -99,12 +99,13 @@ def save_regression_results(
             regression_dir,
             f"meshes_along_regression_{dataset_name}_sped_up_{str(sped_up)}",
         )
-        H2_SurfaceMatch.utils.input_output.plotGeodesic(
-            meshes_along_regression,
-            gs.array(true_intercept_faces).numpy(),
-            stepsize=file_name,
-            file_name=file_name,
-        )
+        # H2_SurfaceMatch.utils.input_output.plotGeodesic(
+        #     gs.array(meshes_along_regression).detach().numpy(),
+        #     gs.array(true_intercept_faces).detach().numpy(),
+        #     stepsize=file_name,
+        #     file_name=file_name,
+        # )
+        # TODO: save these meshes as .ply files instead
 
 
 def create_decimated_mesh_sequence_list(
@@ -247,8 +248,6 @@ def geodesic_regression(
 
     print("Intercept guess: ", gr.intercept_.shape)
     print("Coef guess: ", gr.coef_.shape)
-
-    # times = gs.reshape(times, (len(times), 1))
 
     # gr.fit(gs.array(times).to(device),
     # gs.array(mesh_sequence).to(device), compute_training_score=False)

@@ -109,20 +109,20 @@ def main_run(config):
         f"\n- Euclidean subspace via diffs: {euclidean_subspace_via_diffs}"
     )
 
-    diffs = 0
-    if euclidean_subspace_via_diffs:
-        diffs = 1
+    # diffs = 0
+    # if euclidean_subspace_via_diffs:
+    #     diffs = 1
 
-    ratio = 0
-    if euclidean_subspace_via_ratio:
-        ratio = 1
+    # ratio = 0
+    # if euclidean_subspace_via_ratio:
+    #     ratio = 1
 
     wandb.log(
         {
             "mesh_diameter": mesh_diameter,
             "geodesic_tol": tol,
-            "euclidean_subspace_via_ratio": ratio,
-            "euclidean_subspace_via_diffs": diffs,
+            "euclidean_subspace_via_ratio": euclidean_subspace_via_ratio,
+            "euclidean_subspace_via_diffs": euclidean_subspace_via_diffs,
         }
     )
 
@@ -165,9 +165,8 @@ def main_run(config):
     )
 
     logging.info("Computing meshes along linear regression...")
-    times = gs.array(times.reshape(len(times),1))
-    meshes_along_linear_regression = lr.predict(times)
-    times = times.reshape(len(times))
+    times_for_lr = gs.array(times.reshape(len(times),1))
+    meshes_along_linear_regression = lr.predict(times_for_lr)
 
     logging.info("Saving linear results...")
     parameterized_regression.save_regression_results(
@@ -181,7 +180,7 @@ def main_run(config):
         duration_time=linear_duration_time,
         regression_dir=linear_regression_dir,
         # meshes_along_regression=meshes_along_linear_regression,
-        meshes_along_regression=None
+        meshes_along_regression=meshes_along_linear_regression
     )
 
     # if (residual magnitude is too big... have max residual as a param):
@@ -212,13 +211,13 @@ def main_run(config):
     geodesic_intercept_err = gs.linalg.norm(geodesic_intercept_hat - true_intercept)
     geodesic_coef_err = gs.linalg.norm(geodesic_coef_hat - true_coef)
 
-    geodesic_residuals = 0
-    if wandb_config.geodesic_residuals:
-        geodesic_residuals = 1
+    # geodesic_residuals = 0
+    # if wandb_config.geodesic_residuals:
+    #     geodesic_residuals = 1
 
-    geodesic_initialization = 0
-    if wandb_config.geodesic_initialization:
-        geodesic_initialization = 1
+    # geodesic_initialization = 0
+    # if wandb_config.geodesic_initialization:
+    #     geodesic_initialization = 1
 
     wandb.log(
         {
@@ -228,8 +227,8 @@ def main_run(config):
             "geodesic_intercept_hat": wandb.Object3D(geodesic_intercept_hat.numpy()),
             "geodesic_coef_hat": wandb.Object3D(geodesic_coef_hat.numpy()),
             "exp_solver_n_steps": default_config.n_steps,
-            "geodesic_residuals": geodesic_residuals,
-            "geodesic_initialization": geodesic_initialization,
+            "geodesic_residuals": wandb_config.geodesic_residuals,
+            "geodesic_initialization": wandb_config.geodesic_initialization,
         }
     )
 

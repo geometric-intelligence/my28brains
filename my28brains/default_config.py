@@ -68,7 +68,7 @@ with open("api_key.txt") as f:
 
 dataset_name = ["synthetic", "real"]  # "synthetic" or "real"
 sped_up = [True]  # 'True' or 'False' (not currently used)
-geodesic_initialization = ["warm_start", "random"]  # "warm_start" or "random"
+geodesic_initialization = ["warm_start"]  # "warm_start" or "random" (random on parka server)
 geodesic_residuals = [True, False]  # 'True' or 'False' (alternative is linear residuals)
 n_steps = 3 # n steps for the exp solver of geomstats.
 tol_factor = 0.001  # tolerance for geodesic regression
