@@ -81,7 +81,7 @@ def main_run(config):
     )
     mesh_diameter = data_utils.mesh_diameter(mesh_sequence_vertices[0])
     tol = (
-        default_config.tol_factor
+        wandb_config.tol_factor
         * mesh_diameter
         * len(mesh_sequence_vertices[0])
         * len(mesh_sequence_vertices)
@@ -95,14 +95,18 @@ def main_run(config):
         mesh_sequence_vertices = data_utils.add_noise(
             mesh_sequence_vertices, wandb_config.noise_factor
         )
-        wandb.log({"noise_factor": wandb_config.noise_factor})
+        wandb.log({
+            "noise_factor": wandb_config.noise_factor,
+            "n_subdivisions": wandb_config.n_subdivisions,
+            "ellipse_dimensions": wandb_config.ellipse_dimensions,
+            })
 
     logging.info("\n- Testing whether data subspace is euclidean.")
     (
         euclidean_subspace_via_ratio,
         euclidean_subspace_via_diffs,
     ) = parameterized_regression.euclidean_subspace_test(
-        mesh_sequence_vertices, mesh_faces
+        mesh_sequence_vertices, mesh_faces, wandb_config.tol_factor
     )
     logging.info(
         f"\n- Euclidean subspace via ratio: {euclidean_subspace_via_ratio}"
@@ -285,10 +289,11 @@ def main():
             "tol_factor": tol_factor,
         }
         if dataset_name == "synthetic":
-            for n_times, noise_factor, (start_shape, end_shape) in itertools.product(
+            for n_times, noise_factor, n_subdivisions, ellipse_dimensions, (start_shape, end_shape) in itertools.product(
                 default_config.n_times,
                 default_config.noise_factor,
                 default_config.n_subdivisions,
+                default_config.ellipse_dimensions,
                 zip(default_config.start_shape, default_config.end_shape),
             ):
                 config = {
@@ -296,7 +301,8 @@ def main():
                     "start_shape": start_shape,
                     "end_shape": end_shape,
                     "noise_factor": noise_factor,
-                    "n_subdivisions": default_config.n_subdivisions,
+                    "n_subdivisions": n_subdivisions,
+                    "ellipse_dimensions": ellipse_dimensions,
                 }
                 config.update(main_config)
                 main_run(config)
