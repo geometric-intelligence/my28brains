@@ -95,11 +95,6 @@ def main_run(config):
         mesh_sequence_vertices = data_utils.add_noise(
             mesh_sequence_vertices, wandb_config.noise_factor
         )
-        wandb.log({
-            "noise_factor": wandb_config.noise_factor,
-            "n_subdivisions": wandb_config.n_subdivisions,
-            "ellipse_dimensions": wandb_config.ellipse_dimensions,
-            })
 
     logging.info("\n- Testing whether data subspace is euclidean.")
     (
@@ -113,17 +108,19 @@ def main_run(config):
         f"\n- Euclidean subspace via diffs: {euclidean_subspace_via_diffs}"
     )
 
-    # diffs = 0
+    # diffs_log = int(0)
     # if euclidean_subspace_via_diffs:
-    #     diffs = 1
+    #     diffs_log = int(1)
 
-    # ratio = 0
+    # ratio_log = int(0)
     # if euclidean_subspace_via_ratio:
-    #     ratio = 1
+    #     diffs_log = int(1)
 
     wandb.log(
         {
             "mesh_diameter": mesh_diameter,
+            "n_faces": len(mesh_faces),
+            "ellipse_ratio_h_v": wandb_config.ellipse_dimensions[0]/wandb_config.ellipse_dimensions[-1],
             "geodesic_tol": tol,
             "euclidean_subspace_via_ratio": euclidean_subspace_via_ratio,
             "euclidean_subspace_via_diffs": euclidean_subspace_via_diffs,
@@ -231,9 +228,6 @@ def main_run(config):
             "geodesic_intercept_hat": wandb.Object3D(geodesic_intercept_hat.numpy()),
             "geodesic_coef_hat": wandb.Object3D(geodesic_coef_hat.numpy()),
             "exp_solver_n_steps": default_config.n_steps,
-            "geodesic_residuals": wandb_config.geodesic_residuals,
-            "geodesic_initialization": wandb_config.geodesic_initialization,
-            "tol_factor": wandb_config.tol_factor,
         }
     )
 
