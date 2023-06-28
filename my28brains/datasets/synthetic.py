@@ -37,21 +37,21 @@ def generate_synthetic_mesh(mesh_type):
         return generate_sphere_mesh()
     elif mesh_type == "ellipsoid":
         return generate_ellipsoid_mesh()
-    elif mesh_type == "pill":
-        return generate_pill_mesh()
+    # elif mesh_type == "pill":
+    #     return generate_pill_mesh()
     else:
         raise ValueError(f"mesh_type {mesh_type} not recognized")
 
 
-def generate_sphere_mesh():
+def generate_sphere_mesh(subdivisions=3):
     """Create a sphere trimesh."""
-    sphere = trimesh.creation.icosphere(subdivisions=3, radius=30.0)
+    sphere = trimesh.creation.icosphere(subdivisions=subdivisions, radius=30.0)
     return sphere
 
 
-def generate_ellipsoid_mesh():
+def generate_ellipsoid_mesh(subdivisions=3):
     """Create an ellipsoid trimesh."""
-    sphere = trimesh.creation.icosphere(subdivisions=3, radius=30.0)
+    sphere = trimesh.creation.icosphere(subdivisions=subdivisions, radius=30.0)
     # Create a scaling matrix for the semi-axes lengths
     scales = np.array([2, 2, 3])
     scale_matrix = np.diag(scales)
@@ -63,14 +63,14 @@ def generate_ellipsoid_mesh():
     return ellipsoid
 
 
-def generate_pill_mesh():
-    """Create a pill trimesh.
+# def generate_pill_mesh(n_subdivisions=3):
+#     """Create a pill trimesh.
 
-    Note that this mesh is not parameterized the same way as the other meshes.
-    (i.e. sphere and ellipsoid are parameterized the same way, but pill is not)
-    """
-    pill = trimesh.creation.capsule(height=30.0, radius=10.0)
-    return pill
+#     Note that this mesh is not parameterized the same way as the other meshes.
+#     (i.e. sphere and ellipsoid are parameterized the same way, but pill is not)
+#     """
+#     pill = trimesh.creation.capsule(height=30.0, radius=10.0)
+#     return pill
 
 
 def generate_synthetic_parameterized_geodesic(start_mesh, end_mesh, n_times=5, device = "cuda:0"):

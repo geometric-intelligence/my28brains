@@ -249,8 +249,6 @@ def geodesic_regression(
     print("Intercept guess: ", gr.intercept_.shape)
     print("Coef guess: ", gr.coef_.shape)
 
-    # gr.fit(gs.array(times).to(device),
-    # gs.array(mesh_sequence).to(device), compute_training_score=False)
     gr.fit(gs.array(times), gs.array(mesh_sequence), compute_training_score=False)
 
     intercept_hat, coef_hat = gr.intercept_, gr.coef_

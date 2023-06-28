@@ -229,6 +229,7 @@ def main_run(config):
             "exp_solver_n_steps": default_config.n_steps,
             "geodesic_residuals": wandb_config.geodesic_residuals,
             "geodesic_initialization": wandb_config.geodesic_initialization,
+            "tol_factor": wandb_config.tol_factor,
         }
     )
 
@@ -268,22 +269,26 @@ def main():
         sped_up,
         geodesic_initialization,
         geodesic_residuals,
+        tol_factor,
     ) in itertools.product(
         default_config.dataset_name,
         default_config.sped_up,
         default_config.geodesic_initialization,
         default_config.geodesic_residuals,
+        default_config.tol_factor,
     ):
         main_config = {
             "dataset_name": dataset_name,
             "sped_up": sped_up,
             "geodesic_initialization": geodesic_initialization,
             "geodesic_residuals": geodesic_residuals,
+            "tol_factor": tol_factor,
         }
         if dataset_name == "synthetic":
             for n_times, noise_factor, (start_shape, end_shape) in itertools.product(
                 default_config.n_times,
                 default_config.noise_factor,
+                default_config.n_subdivisions,
                 zip(default_config.start_shape, default_config.end_shape),
             ):
                 config = {
@@ -291,6 +296,7 @@ def main():
                     "start_shape": start_shape,
                     "end_shape": end_shape,
                     "noise_factor": noise_factor,
+                    "n_subdivisions": default_config.n_subdivisions,
                 }
                 config.update(main_config)
                 main_run(config)
