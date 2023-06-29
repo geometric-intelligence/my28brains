@@ -25,11 +25,11 @@ import torch
 
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
+import wandb
 
 import my28brains.datasets.utils as data_utils
 import my28brains.default_config as default_config
 import my28brains.parameterized_regression as parameterized_regression
-import wandb
 
 my28brains_dir = default_config.my28brains_dir
 synthetic_data_dir = default_config.synthetic_data_dir
@@ -120,7 +120,9 @@ def main_run(config):
         {
             "mesh_diameter": mesh_diameter,
             "n_faces": len(mesh_faces),
-            "ellipse_ratio_h_v": wandb_config.ellipse_dimensions[0]/wandb_config.ellipse_dimensions[-1],
+            "ellipse_ratio_h_v": (
+                wandb_config.ellipse_dimensions[0] / wandb_config.ellipse_dimensions[-1]
+            ),
             "geodesic_tol": tol,
             "euclidean_subspace_via_ratio": euclidean_subspace_via_ratio,
             "euclidean_subspace_via_diffs": euclidean_subspace_via_diffs,
@@ -166,8 +168,9 @@ def main_run(config):
     )
 
     logging.info("Computing meshes along linear regression...")
-    times_for_lr = gs.array(times.reshape(len(times),1))
+    times_for_lr = gs.array(times.reshape(len(times), 1))
     meshes_along_linear_regression = lr.predict(times_for_lr)
+    print(f"meshes_along_linear_regression: {meshes_along_linear_regression.shape}")
 
     logging.info("Saving linear results...")
     parameterized_regression.save_regression_results(
@@ -180,8 +183,6 @@ def main_run(config):
         regression_coef=linear_coef_hat,
         duration_time=linear_duration_time,
         regression_dir=linear_regression_dir,
-        # meshes_along_regression=meshes_along_linear_regression,
-        meshes_along_regression=meshes_along_linear_regression
     )
 
     # if (residual magnitude is too big... have max residual as a param):
@@ -239,6 +240,7 @@ def main_run(config):
 
     logging.info("Computing meshes along geodesic regression...")
     meshes_along_geodesic_regression = gr.predict(times)
+    print(f"meshes_along_geodesic_regression: {meshes_along_geodesic_regression.shape}")
 
     logging.info("Saving geodesic results...")
     parameterized_regression.save_regression_results(
@@ -251,7 +253,6 @@ def main_run(config):
         regression_coef=geodesic_coef_hat,
         duration_time=geodesic_duration_time,
         regression_dir=geodesic_regression_dir,
-        meshes_along_regression=meshes_along_geodesic_regression,
     )
 
     wandb.finish()
@@ -283,7 +284,13 @@ def main():
             "tol_factor": tol_factor,
         }
         if dataset_name == "synthetic":
-            for n_times, noise_factor, n_subdivisions, ellipse_dimensions, (start_shape, end_shape) in itertools.product(
+            for (
+                n_times,
+                noise_factor,
+                n_subdivisions,
+                ellipse_dimensions,
+                (start_shape, end_shape),
+            ) in itertools.product(
                 default_config.n_times,
                 default_config.noise_factor,
                 default_config.n_subdivisions,

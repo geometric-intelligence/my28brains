@@ -46,8 +46,9 @@ a2 = (was 1) high value = 1. a2 penalizes the laplacian of the mesh.
 import datetime
 import os
 import subprocess
-import torch
 import sys
+
+import torch
 
 gitroot_path = subprocess.check_output(
     ["git", "rev-parse", "--show-toplevel"], universal_newlines=True
@@ -68,20 +69,38 @@ with open("api_key.txt") as f:
 
 dataset_name = ["synthetic", "real"]  # "synthetic" or "real"
 sped_up = [True]  # 'True' or 'False' (not currently used)
-geodesic_initialization = ["warm_start"]  # "warm_start" or "random" (random on parka server)
+geodesic_initialization = [
+    "warm_start"
+]  # "warm_start" or "random" (random on parka server)
 geodesic_residuals = [False]  # 'True' or 'False' (alternative is linear residuals)
-n_steps = 3 # n steps for the exp solver of geomstats.
-tol_factor = [0.001, 0.01, 0.1, 0.5]  # tolerance for geodesic regression. If none logged, value 0.001.
-n_times = [5, 10, 15, 20, 30] # Only for dataset_name == synthetic
+n_steps = 3  # n steps for the exp solver of geomstats.
+tol_factor = [
+    0.001,
+    0.01,
+    0.1,
+    0.5,
+]  # tolerance for geodesic regression. If none logged, value 0.001.
+n_times = [5, 10, 15, 20, 30]  # Only for dataset_name == synthetic
 start_shape = ["sphere"]  # "sphere" or "ellipsoid" for synthetic
 end_shape = ["ellipsoid"]  # "sphere" or "ellipsoid" for synthetic
-noise_factor = [0.0, 0.0001, 0.001, 0.01]  # noise added to the data. 
-                    # Will be multiplied by the size of the mesh to calculate the standard 
-                    # deviation of added noise distribution.
-                    # only applied to synthetic data.
-n_subdivisions = [1,2,3,4]  # How many times to subdivide the mesh. Note that the number of faces will grow as function of 4 ** subdivisions, so you probably want to keep this under ~5.
-                            # if nothing recorded, value 3.
-ellipse_dimensions =[[2, 2, 3],[2, 2, 10], [10, 10, 2] ]  # if nothing recorded, [2, 2, 3]
+noise_factor = [0.0, 0.0001, 0.001, 0.01]  # noise added to the data.
+# Will be multiplied by the size of the mesh to calculate the standard
+# deviation of added noise distribution.
+# only applied to synthetic data.
+n_subdivisions = [
+    1,
+    2,
+    3,
+    4,
+]
+# How many times to subdivide the mesh. Note that the number of faces will grow
+# as function of 4 ** subdivisions, so you probably want to keep this under ~5.
+# if nothing recorded, value 3.
+ellipse_dimensions = [
+    [2, 2, 3],
+    [2, 2, 10],
+    [10, 10, 2],
+]  # if nothing recorded, [2, 2, 3]
 
 # GPU Parameters
 
@@ -153,7 +172,9 @@ centered_dir = os.path.join(results_dir, "meshes_centered")
 centered_nondegenerate_dir = os.path.join(results_dir, "meshes_centered_nondegenerate")
 geodesics_dir = os.path.join(results_dir, "meshes_geodesics")
 parameterized_meshes_dir = os.path.join(results_dir, "meshes_parameterized")
-sorted_parameterized_meshes_dir = os.path.join(results_dir, "meshes_parameterized_sorted_by_hormone")
+sorted_parameterized_meshes_dir = os.path.join(
+    results_dir, "meshes_parameterized_sorted_by_hormone"
+)
 regression_dir = os.path.join(results_dir, "regression")
 
 sys_dir = os.path.dirname(work_dir)
@@ -168,7 +189,7 @@ for mesh_dir in [
     regression_dir,
     synthetic_data_dir,
     parameterized_meshes_dir,
-    sorted_parameterized_meshes_dir
+    sorted_parameterized_meshes_dir,
 ]:
     if not os.path.exists(mesh_dir):
         os.makedirs(mesh_dir)

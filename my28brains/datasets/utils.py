@@ -3,18 +3,17 @@
 import os
 
 import default_config
+
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
 import numpy as np
 import trimesh
-import pandas as pd
-import numpy as np
 
-import my28brains.datasets.synthetic as synthetic
 import H2_SurfaceMatch.utils.input_output
+import my28brains.datasets.synthetic as synthetic
 
 
-def load(config):#, device = "cuda:0"):
+def load(config):  # , device = "cuda:0"):
     """Load data according to values in config file."""
     if config.dataset_name == "synthetic":
         print("Using synthetic data")
@@ -23,10 +22,18 @@ def load(config):#, device = "cuda:0"):
         end_shape = config.end_shape
         n_times = config.n_times
 
-        start_shape_dir = os.path.join(data_dir, f"{start_shape}_subs{config.n_subdivisions}_ell{config.ellipse_dimensions}")
-        end_shape_dir = os.path.join(data_dir, f"{end_shape}_subs{config.n_subdivisions}_ell{config.ellipse_dimensions}")
+        start_shape_dir = os.path.join(
+            data_dir,
+            f"{start_shape}_subs{config.n_subdivisions}_ell{config.ellipse_dimensions}",
+        )
+        end_shape_dir = os.path.join(
+            data_dir,
+            f"{end_shape}_subs{config.n_subdivisions}_ell{config.ellipse_dimensions}",
+        )
         mesh_dir = os.path.join(
-            data_dir, f"geodesic_{start_shape}_{end_shape}_{n_times}_subs{config.n_subdivisions}_ell{config.ellipse_dimensions}"
+            data_dir,
+            f"geodesic_{start_shape}_{end_shape}_{n_times}_subs{config.n_subdivisions}"
+            f"_ell{config.ellipse_dimensions}",
         )
 
         start_vertices_path = os.path.join(start_shape_dir, "vertices.npy")
@@ -43,7 +50,9 @@ def load(config):#, device = "cuda:0"):
 
             if not os.path.exists(start_shape_dir):
                 print(f"Creating {start_shape} mesh in {start_shape_dir}")
-                start_mesh = synthetic.generate_synthetic_mesh(start_shape, config.n_subdivisions, config.ellipse_dimensions)
+                start_mesh = synthetic.generate_synthetic_mesh(
+                    start_shape, config.n_subdivisions, config.ellipse_dimensions
+                )
                 start_mesh_vertices = start_mesh.vertices
                 start_mesh_faces = start_mesh.faces
 
@@ -60,7 +69,9 @@ def load(config):#, device = "cuda:0"):
 
             if not os.path.exists(end_shape_dir):
                 print(f"Creating {end_shape} mesh in {end_shape_dir}")
-                end_mesh = synthetic.generate_synthetic_mesh(end_shape, config.n_subdivisions, config.ellipse_dimensions)
+                end_mesh = synthetic.generate_synthetic_mesh(
+                    end_shape, config.n_subdivisions, config.ellipse_dimensions
+                )
                 end_mesh_vertices = end_mesh.vertices
                 end_mesh_faces = end_mesh.faces
 
@@ -82,7 +93,9 @@ def load(config):#, device = "cuda:0"):
                 true_intercept,
                 true_coef,
             ) = synthetic.generate_synthetic_parameterized_geodesic(
-                start_mesh, end_mesh, n_times, #device=device
+                start_mesh,
+                end_mesh,
+                n_times,  # device=device
             )
 
             print("Original mesh_sequence vertices: ", mesh_sequence_vertices.shape)
@@ -129,7 +142,9 @@ def load(config):#, device = "cuda:0"):
         last_day = int(default_config.day_range[1])
         # times = gs.arange(0, 1, 1/(last_day - first_day + 1))
 
-        hormone_levels_path = os.path.join(default_config.sorted_parameterized_meshes_dir, "sorted_hormone_levels.npy")
+        hormone_levels_path = os.path.join(
+            default_config.sorted_parameterized_meshes_dir, "sorted_hormone_levels.npy"
+        )
         hormone_levels = np.loadtxt(hormone_levels_path, delimiter=",")
         times = gs.array(hormone_levels)
         print("times: ", times)
@@ -144,8 +159,7 @@ def load(config):#, device = "cuda:0"):
             file_name = f"parameterized_mesh{i_mesh:02d}.ply"
 
             mesh_path = os.path.join(
-                default_config.sorted_parameterized_meshes_dir,
-                file_name
+                default_config.sorted_parameterized_meshes_dir, file_name
             )
             [
                 vertices,
@@ -155,12 +169,13 @@ def load(config):#, device = "cuda:0"):
             mesh_sequence_vertices.append(vertices)
             mesh_sequence_faces.append(faces)
         mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
-        
-        # parameterized = all(faces == mesh_sequence_faces[0] for faces in mesh_sequence_faces)
+
+        # parameterized = all(
+        # faces == mesh_sequence_faces[0] for faces in mesh_sequence_faces)
         for faces in mesh_sequence_faces:
             if (faces != mesh_sequence_faces[0]).all():
-                raise ValueError("Meshes are not parameterized")                
-            
+                raise ValueError("Meshes are not parameterized")
+
         mesh_faces = gs.array(mesh_sequence_faces[0])
         true_intercept = gs.array(mesh_sequence_vertices[0])
         true_coef = gs.array(mesh_sequence_vertices[1] - mesh_sequence_vertices[0])
@@ -180,6 +195,7 @@ def mesh_diameter(mesh_vertices):
                 max_distance = distance
     return max_distance
 
+
 def add_noise(mesh_sequence_vertices, noise_factor):
     """Add noise to mesh_sequence_vertices."""
     noise_sd = noise_factor * mesh_diameter(mesh_sequence_vertices[0])
@@ -188,8 +204,6 @@ def add_noise(mesh_sequence_vertices, noise_factor):
             loc=0.0, scale=noise_sd, size=mesh_sequence_vertices[i_mesh].shape
         )
     return mesh_sequence_vertices
-
-    
 
 
 # in progress...
