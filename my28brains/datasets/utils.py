@@ -23,10 +23,10 @@ def load(config):#, device = "cuda:0"):
         end_shape = config.end_shape
         n_times = config.n_times
 
-        start_shape_dir = os.path.join(data_dir, start_shape)
-        end_shape_dir = os.path.join(data_dir, end_shape)
+        start_shape_dir = os.path.join(data_dir, f"{start_shape}_subs{config.n_subdivisions}_ell{config.ellipse_dimensions}")
+        end_shape_dir = os.path.join(data_dir, f"{end_shape}_subs{config.n_subdivisions}_ell{config.ellipse_dimensions}")
         mesh_dir = os.path.join(
-            data_dir, f"geodesic_{start_shape}_{end_shape}_{n_times}"
+            data_dir, f"geodesic_{start_shape}_{end_shape}_{n_times}_subs{config.n_subdivisions}_ell{config.ellipse_dimensions}"
         )
 
         start_vertices_path = os.path.join(start_shape_dir, "vertices.npy")
@@ -43,7 +43,7 @@ def load(config):#, device = "cuda:0"):
 
             if not os.path.exists(start_shape_dir):
                 print(f"Creating {start_shape} mesh in {start_shape_dir}")
-                start_mesh = synthetic.generate_synthetic_mesh(start_shape)
+                start_mesh = synthetic.generate_synthetic_mesh(start_shape, config.n_subdivisions, config.ellipse_dimensions)
                 start_mesh_vertices = start_mesh.vertices
                 start_mesh_faces = start_mesh.faces
 
@@ -60,7 +60,7 @@ def load(config):#, device = "cuda:0"):
 
             if not os.path.exists(end_shape_dir):
                 print(f"Creating {end_shape} mesh in {end_shape_dir}")
-                end_mesh = synthetic.generate_synthetic_mesh(end_shape)
+                end_mesh = synthetic.generate_synthetic_mesh(end_shape, config.n_subdivisions, config.ellipse_dimensions)
                 end_mesh_vertices = end_mesh.vertices
                 end_mesh_faces = end_mesh.faces
 

@@ -25,7 +25,7 @@ import H2_SurfaceMatch.utils.utils  # noqa: E402
 import my28brains.default_config as default_config
 
 
-def generate_synthetic_mesh(mesh_type):
+def generate_synthetic_mesh(mesh_type, n_subdivisions, ellipse_dimensions):
     """Generate a synthetic mesh.
 
     appropriate mesh types:
@@ -34,26 +34,27 @@ def generate_synthetic_mesh(mesh_type):
         pill
     """
     if mesh_type == "sphere":
-        return generate_sphere_mesh()
+        return generate_sphere_mesh(subdivisions=n_subdivisions)
     elif mesh_type == "ellipsoid":
-        return generate_ellipsoid_mesh()
-    elif mesh_type == "pill":
-        return generate_pill_mesh()
+        return generate_ellipsoid_mesh(subdivisions=n_subdivisions, ellipse_dimensions = ellipse_dimensions)
     else:
         raise ValueError(f"mesh_type {mesh_type} not recognized")
 
 
-def generate_sphere_mesh():
+def generate_sphere_mesh(subdivisions=3):
     """Create a sphere trimesh."""
-    sphere = trimesh.creation.icosphere(subdivisions=3, radius=30.0)
+    subdivisions = subdivisions
+    sphere = trimesh.creation.icosphere(subdivisions=subdivisions, radius=30.0)
     return sphere
 
 
-def generate_ellipsoid_mesh():
+def generate_ellipsoid_mesh(subdivisions=3, ellipse_dimensions = [2,2,3]):
     """Create an ellipsoid trimesh."""
-    sphere = trimesh.creation.icosphere(subdivisions=3, radius=30.0)
+    subdivisions = subdivisions
+    ellipse_dimensions = ellipse_dimensions
+    sphere = trimesh.creation.icosphere(subdivisions=subdivisions, radius=30.0)
     # Create a scaling matrix for the semi-axes lengths
-    scales = np.array([2, 2, 3])
+    scales = np.array(ellipse_dimensions)
     scale_matrix = np.diag(scales)
     scale_matrix = gs.array(scale_matrix)
     # Apply the scaling transformation to the mesh vertices
@@ -61,16 +62,6 @@ def generate_ellipsoid_mesh():
     # Create a new mesh with the scaled vertices
     ellipsoid = trimesh.Trimesh(vertices=scaled_vertices, faces=sphere.faces)
     return ellipsoid
-
-
-def generate_pill_mesh():
-    """Create a pill trimesh.
-
-    Note that this mesh is not parameterized the same way as the other meshes.
-    (i.e. sphere and ellipsoid are parameterized the same way, but pill is not)
-    """
-    pill = trimesh.creation.capsule(height=30.0, radius=10.0)
-    return pill
 
 
 def generate_synthetic_parameterized_geodesic(start_mesh, end_mesh, n_times=5, device = "cuda:0"):

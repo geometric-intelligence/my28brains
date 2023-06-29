@@ -249,8 +249,6 @@ def geodesic_regression(
     print("Intercept guess: ", gr.intercept_.shape)
     print("Coef guess: ", gr.coef_.shape)
 
-    # gr.fit(gs.array(times).to(device),
-    # gs.array(mesh_sequence).to(device), compute_training_score=False)
     gr.fit(gs.array(times), gs.array(mesh_sequence), compute_training_score=False)
 
     intercept_hat, coef_hat = gr.intercept_, gr.coef_
@@ -298,7 +296,7 @@ def linear_regression(mesh_sequence_vertices, times):  # , device = "cuda:0"):
     return intercept_hat, coef_hat, lr
 
 
-def euclidean_subspace_test(mesh_sequence_vertices, mesh_sequence_faces):
+def euclidean_subspace_test(mesh_sequence_vertices, mesh_sequence_faces, tol_factor= 0.001):
     """Test whether the manifold subspace where the data lie is euclidean.
 
     For 10 random pairs of meshes, we calculate 1) the linear distance
@@ -369,7 +367,7 @@ def euclidean_subspace_test(mesh_sequence_vertices, mesh_sequence_faces):
 
     euclidean_subspace_via_diffs = True
     tolerance = (
-        default_config.tol_factor
+        tol_factor
         * data_utils.mesh_diameter(mesh_sequence_vertices[0])
         * len(mesh_sequence_vertices[0])
     )

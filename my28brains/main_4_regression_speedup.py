@@ -81,7 +81,7 @@ def main_run(config):
     )
     mesh_diameter = data_utils.mesh_diameter(mesh_sequence_vertices[0])
     tol = (
-        default_config.tol_factor
+        wandb_config.tol_factor
         * mesh_diameter
         * len(mesh_sequence_vertices[0])
         * len(mesh_sequence_vertices)
@@ -95,31 +95,32 @@ def main_run(config):
         mesh_sequence_vertices = data_utils.add_noise(
             mesh_sequence_vertices, wandb_config.noise_factor
         )
-        wandb.log({"noise_factor": wandb_config.noise_factor})
 
     logging.info("\n- Testing whether data subspace is euclidean.")
     (
         euclidean_subspace_via_ratio,
         euclidean_subspace_via_diffs,
     ) = parameterized_regression.euclidean_subspace_test(
-        mesh_sequence_vertices, mesh_faces
+        mesh_sequence_vertices, mesh_faces, wandb_config.tol_factor
     )
     logging.info(
         f"\n- Euclidean subspace via ratio: {euclidean_subspace_via_ratio}"
         f"\n- Euclidean subspace via diffs: {euclidean_subspace_via_diffs}"
     )
 
-    # diffs = 0
+    # diffs_log = int(0)
     # if euclidean_subspace_via_diffs:
-    #     diffs = 1
+    #     diffs_log = int(1)
 
-    # ratio = 0
+    # ratio_log = int(0)
     # if euclidean_subspace_via_ratio:
-    #     ratio = 1
+    #     diffs_log = int(1)
 
     wandb.log(
         {
             "mesh_diameter": mesh_diameter,
+            "n_faces": len(mesh_faces),
+            "ellipse_ratio_h_v": wandb_config.ellipse_dimensions[0]/wandb_config.ellipse_dimensions[-1],
             "geodesic_tol": tol,
             "euclidean_subspace_via_ratio": euclidean_subspace_via_ratio,
             "euclidean_subspace_via_diffs": euclidean_subspace_via_diffs,
@@ -227,8 +228,6 @@ def main_run(config):
             "geodesic_intercept_hat": wandb.Object3D(geodesic_intercept_hat.numpy()),
             "geodesic_coef_hat": wandb.Object3D(geodesic_coef_hat.numpy()),
             "exp_solver_n_steps": default_config.n_steps,
-            "geodesic_residuals": wandb_config.geodesic_residuals,
-            "geodesic_initialization": wandb_config.geodesic_initialization,
         }
     )
 
@@ -268,22 +267,27 @@ def main():
         sped_up,
         geodesic_initialization,
         geodesic_residuals,
+        tol_factor,
     ) in itertools.product(
         default_config.dataset_name,
         default_config.sped_up,
         default_config.geodesic_initialization,
         default_config.geodesic_residuals,
+        default_config.tol_factor,
     ):
         main_config = {
             "dataset_name": dataset_name,
             "sped_up": sped_up,
             "geodesic_initialization": geodesic_initialization,
             "geodesic_residuals": geodesic_residuals,
+            "tol_factor": tol_factor,
         }
         if dataset_name == "synthetic":
-            for n_times, noise_factor, (start_shape, end_shape) in itertools.product(
+            for n_times, noise_factor, n_subdivisions, ellipse_dimensions, (start_shape, end_shape) in itertools.product(
                 default_config.n_times,
                 default_config.noise_factor,
+                default_config.n_subdivisions,
+                default_config.ellipse_dimensions,
                 zip(default_config.start_shape, default_config.end_shape),
             ):
                 config = {
@@ -291,6 +295,8 @@ def main():
                     "start_shape": start_shape,
                     "end_shape": end_shape,
                     "noise_factor": noise_factor,
+                    "n_subdivisions": n_subdivisions,
+                    "ellipse_dimensions": ellipse_dimensions,
                 }
                 config.update(main_config)
                 main_run(config)
