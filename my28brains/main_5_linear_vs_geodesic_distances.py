@@ -50,6 +50,8 @@ def main_run(config):
 
     diff_sq_dist = linear_sq_dist - geodesic_sq_dist
     relative_diff_sq_dist = diff_sq_dist / linear_sq_dist
+    diff_duration = linear_duration - geodesic_duration
+    relative_diff_duration = diff_duration / linear_duration
     wandb.log(
         {
             "run_name": wandb.run.name,
@@ -64,6 +66,8 @@ def main_run(config):
             "relative_diff_sq_dist": relative_diff_sq_dist,
             "linear_duration": linear_duration,
             "geodesic_duration": geodesic_duration,
+            "diff_duration": diff_duration,
+            "relative_diff_duration": relative_diff_duration,
         }
     )
     wandb.finish()
