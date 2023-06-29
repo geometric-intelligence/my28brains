@@ -28,7 +28,7 @@ data_dir = default_config.data_dir
 def save_regression_results(
     dataset_name,
     sped_up,
-    true_intercept_vertices,
+    mesh_sequence_vertices,
     true_intercept_faces,
     true_coef,
     regression_intercept,
@@ -81,7 +81,7 @@ def save_regression_results(
     H2_SurfaceMatch.utils.input_output.save_data(
         true_intercept_path,
         ".ply",
-        gs.array(true_intercept_vertices).numpy(),
+        gs.array(mesh_sequence_vertices[0]).numpy(),
         gs.array(true_intercept_faces).numpy(),
     )
     H2_SurfaceMatch.utils.input_output.save_data(
@@ -94,6 +94,17 @@ def save_regression_results(
     np.savetxt(true_slope_path, true_coef)
     np.savetxt(regression_slope_path, regression_coef)
 
+    file_name = os.path.join(
+        regression_dir,
+        f"mesh_sequence_vertices_{dataset_name}_sped_up_{str(sped_up)}",
+    )
+    H2_SurfaceMatch.utils.input_output.plotGeodesic(
+        geod=gs.array(mesh_sequence_vertices).detach().numpy(),
+        F=gs.array(true_intercept_faces).detach().numpy(),
+        stepsize=default_config.stepsize[dataset_name],
+        file_name=file_name,
+    )
+
     if meshes_along_regression is not None:
         file_name = os.path.join(
             regression_dir,
@@ -102,7 +113,7 @@ def save_regression_results(
         H2_SurfaceMatch.utils.input_output.plotGeodesic(
             geod=gs.array(meshes_along_regression).detach().numpy(),
             F=gs.array(true_intercept_faces).detach().numpy(),
-            stepsize=6,
+            stepsize=default_config.stepsize[dataset_name],
             file_name=file_name,
         )
 

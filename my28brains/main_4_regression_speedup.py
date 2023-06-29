@@ -15,6 +15,9 @@ Performs regression on parameterized meshes.
 
 Mesh sequence chosen in default_config.py
 Returns the slope and intercept of the regression fit.
+
+Run:
+>>> python main_4_regression_speedup.py
 """
 import itertools
 import logging
@@ -126,6 +129,9 @@ def main_run(config):
             "geodesic_tol": tol,
             "euclidean_subspace_via_ratio": euclidean_subspace_via_ratio,
             "euclidean_subspace_via_diffs": euclidean_subspace_via_diffs,
+            "mesh_sequence_vertices": wandb.Object3D(
+                mesh_sequence_vertices.numpy().reshape((-1, 3))
+            ),
         }
     )
 
@@ -180,11 +186,11 @@ def main_run(config):
 
     logging.info("Saving linear results...")
     parameterized_regression.save_regression_results(
-        wandb_config.dataset_name,
-        wandb_config.sped_up,
-        gs.array(mesh_sequence_vertices),
-        gs.array(mesh_faces),
-        gs.array(true_coef),
+        dataset_name=wandb_config.dataset_name,
+        sped_up=wandb_config.sped_up,
+        mesh_sequence_vertices=gs.array(mesh_sequence_vertices),
+        true_intercept_faces=gs.array(mesh_faces),
+        true_coef=gs.array(true_coef),
         regression_intercept=linear_intercept_hat,
         regression_coef=linear_coef_hat,
         duration_time=linear_duration_time,
@@ -258,11 +264,11 @@ def main_run(config):
 
     logging.info("Saving geodesic results...")
     parameterized_regression.save_regression_results(
-        wandb_config.dataset_name,
-        wandb_config.sped_up,
-        mesh_sequence_vertices,
-        mesh_faces,
-        gs.array(true_coef),
+        dataset_name=wandb_config.dataset_name,
+        sped_up=wandb_config.sped_up,
+        mesh_sequence_vertices=mesh_sequence_vertices,
+        true_intercept_faces=mesh_faces,
+        true_coef=gs.array(true_coef),
         regression_intercept=geodesic_intercept_hat,
         regression_coef=geodesic_coef_hat,
         duration_time=geodesic_duration_time,
