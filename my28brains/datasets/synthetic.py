@@ -49,7 +49,8 @@ def generate_synthetic_mesh(mesh_type, n_subdivisions, ellipse_dimensions):
 def generate_sphere_mesh(subdivisions=3):
     """Create a sphere trimesh."""
     subdivisions = subdivisions
-    sphere = trimesh.creation.icosphere(subdivisions=subdivisions, radius=30.0)
+    radius = 30 ** subdivisions
+    sphere = trimesh.creation.icosphere(subdivisions=subdivisions, radius=radius)
     return sphere
 
 
@@ -57,7 +58,8 @@ def generate_ellipsoid_mesh(subdivisions=3, ellipse_dimensions=[2, 2, 3]):
     """Create an ellipsoid trimesh."""
     subdivisions = subdivisions
     ellipse_dimensions = ellipse_dimensions
-    sphere = trimesh.creation.icosphere(subdivisions=subdivisions, radius=30.0)
+    radius = 30 ** subdivisions
+    sphere = trimesh.creation.icosphere(subdivisions=subdivisions, radius=radius)
     # Create a scaling matrix for the semi-axes lengths
     scales = np.array(ellipse_dimensions)
     scale_matrix = np.diag(scales)
@@ -70,7 +72,7 @@ def generate_ellipsoid_mesh(subdivisions=3, ellipse_dimensions=[2, 2, 3]):
 
 
 def generate_synthetic_parameterized_geodesic(
-    start_mesh, end_mesh, n_times=5, device="cuda:0"
+    start_mesh, end_mesh, n_times=5, n_steps = 3, device="cuda:0"
 ):
     """Generate a synthetic geodesic between two parameterized meshes.
 
@@ -99,7 +101,7 @@ def generate_synthetic_parameterized_geodesic(
         d1=default_config.d1,
         a2=default_config.a2,
     )
-    METRIC.exp_solver = _ExpSolver(n_steps=default_config.n_steps)
+    METRIC.exp_solver = _ExpSolver(n_steps=n_steps)
 
     print("surface and metric space created")
     dim = 3

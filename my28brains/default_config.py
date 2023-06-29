@@ -79,7 +79,7 @@ geodesic_initialization = [
     "warm_start"
 ]  # "warm_start" or "random" (random on parka server)
 geodesic_residuals = [False]  # 'True' or 'False' (alternative is linear residuals)
-n_steps = 3  # n steps for the exp solver of geomstats.
+n_steps = [3,5]  # n steps for the exp solver of geomstats.
 tol_factor = [
     0.001,
     0.01,

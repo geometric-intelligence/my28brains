@@ -103,8 +103,9 @@ def main_run(config):
     (
         euclidean_subspace_via_ratio,
         euclidean_subspace_via_diffs,
+        diff_tolerance
     ) = parameterized_regression.euclidean_subspace_test(
-        mesh_sequence_vertices, mesh_faces, wandb_config.tol_factor
+        mesh_sequence_vertices, mesh_faces, wandb_config.tol_factor, wandb_config.n_steps
     )
     logging.info(
         f"\n- Euclidean subspace via ratio: {euclidean_subspace_via_ratio}"
@@ -132,6 +133,7 @@ def main_run(config):
             "mesh_sequence_vertices": wandb.Object3D(
                 mesh_sequence_vertices.numpy().reshape((-1, 3))
             ),
+            "test_diff_tolerance": diff_tolerance,
         }
     )
 
@@ -220,6 +222,7 @@ def main_run(config):
         coef_hat_guess=linear_coef_hat,
         initialization=wandb_config.geodesic_initialization,
         geodesic_residuals=wandb_config.geodesic_residuals,
+        n_steps=wandb_config.n_steps,
     )
 
     geodesic_duration_time = time.time() - start_time
@@ -251,6 +254,9 @@ def main_run(config):
             "meshes_along_geodesic_regression": wandb.Object3D(
                 meshes_along_geodesic_regression.detach().numpy().reshape((-1, 3))
             ),
+            "n_subdivisions": wandb_config.n_subdivisions,
+            "n_faces": len(mesh_faces),
+            "ellipse_dimensions": wandb_config.ellipse_dimensions,
         }
     )
 
@@ -290,12 +296,14 @@ def main():
         geodesic_initialization,
         geodesic_residuals,
         tol_factor,
+        n_steps,
     ) in itertools.product(
         default_config.dataset_name,
         default_config.sped_up,
         default_config.geodesic_initialization,
         default_config.geodesic_residuals,
         default_config.tol_factor,
+        default_config.n_steps,
     ):
         main_config = {
             "dataset_name": dataset_name,
@@ -303,6 +311,7 @@ def main():
             "geodesic_initialization": geodesic_initialization,
             "geodesic_residuals": geodesic_residuals,
             "tol_factor": tol_factor,
+            "n_steps": n_steps,
         }
         if dataset_name == "synthetic":
             for (
