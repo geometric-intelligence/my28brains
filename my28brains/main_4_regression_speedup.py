@@ -25,11 +25,11 @@ import torch
 
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
-import wandb
 
 import my28brains.datasets.utils as data_utils
 import my28brains.default_config as default_config
 import my28brains.parameterized_regression as parameterized_regression
+import wandb
 
 my28brains_dir = default_config.my28brains_dir
 synthetic_data_dir = default_config.synthetic_data_dir
@@ -140,6 +140,14 @@ def main_run(config):
     linear_intercept_err = gs.linalg.norm(linear_intercept_hat - true_intercept)
     linear_coef_err = gs.linalg.norm(linear_coef_hat - true_coef)
 
+    logging.info("Computing meshes along linear regression...")
+    times_for_lr = gs.array(times.reshape(len(times), 1))
+    meshes_along_linear_regression = lr.predict(times_for_lr)
+    meshes_along_linear_regression = meshes_along_linear_regression.reshape(
+        mesh_sequence_vertices.shape
+    )
+    print(f"meshes_along_linear_regression: {meshes_along_linear_regression.shape}")
+
     offsets = gs.linspace(0, 200, len(times))
     offset_mesh_sequence_vertices = []
     for i_mesh, mesh in enumerate(mesh_sequence_vertices):
@@ -158,6 +166,9 @@ def main_run(config):
             "offset_mesh_sequence_vertices": wandb.Object3D(
                 offset_mesh_sequence_vertices.numpy()
             ),
+            "meshes_along_linear_regression": wandb.Object3D(
+                meshes_along_linear_regression.reshape((-1, 3))
+            ),
         }
     )
 
@@ -166,11 +177,6 @@ def main_run(config):
     logging.info(
         f"On intercept: {linear_intercept_err:.6f}, on coef: {linear_coef_err:.6f}"
     )
-
-    logging.info("Computing meshes along linear regression...")
-    times_for_lr = gs.array(times.reshape(len(times), 1))
-    meshes_along_linear_regression = lr.predict(times_for_lr)
-    print(f"meshes_along_linear_regression: {meshes_along_linear_regression.shape}")
 
     logging.info("Saving linear results...")
     parameterized_regression.save_regression_results(
@@ -183,6 +189,7 @@ def main_run(config):
         regression_coef=linear_coef_hat,
         duration_time=linear_duration_time,
         regression_dir=linear_regression_dir,
+        meshes_along_regression=meshes_along_linear_regression,
     )
 
     # if (residual magnitude is too big... have max residual as a param):
@@ -213,6 +220,12 @@ def main_run(config):
     geodesic_intercept_err = gs.linalg.norm(geodesic_intercept_hat - true_intercept)
     geodesic_coef_err = gs.linalg.norm(geodesic_coef_hat - true_coef)
 
+    logging.info("Computing meshes along geodesic regression...")
+    meshes_along_geodesic_regression = gr.predict(times)
+    meshes_along_geodesic_regression = meshes_along_geodesic_regression.reshape(
+        mesh_sequence_vertices.shape
+    )
+
     # geodesic_residuals = 0
     # if wandb_config.geodesic_residuals:
     #     geodesic_residuals = 1
@@ -229,6 +242,9 @@ def main_run(config):
             "geodesic_intercept_hat": wandb.Object3D(geodesic_intercept_hat.numpy()),
             "geodesic_coef_hat": wandb.Object3D(geodesic_coef_hat.numpy()),
             "exp_solver_n_steps": default_config.n_steps,
+            "meshes_along_geodesic_regression": wandb.Object3D(
+                meshes_along_geodesic_regression.detach().numpy().reshape((-1, 3))
+            ),
         }
     )
 
@@ -238,8 +254,6 @@ def main_run(config):
         f"On intercept: {geodesic_intercept_err:.6f}, on coef: {geodesic_coef_err:.6f}"
     )
 
-    logging.info("Computing meshes along geodesic regression...")
-    meshes_along_geodesic_regression = gr.predict(times)
     print(f"meshes_along_geodesic_regression: {meshes_along_geodesic_regression.shape}")
 
     logging.info("Saving geodesic results...")
@@ -253,6 +267,7 @@ def main_run(config):
         regression_coef=geodesic_coef_hat,
         duration_time=geodesic_duration_time,
         regression_dir=geodesic_regression_dir,
+        meshes_along_regression=meshes_along_geodesic_regression,
     )
 
     wandb.finish()

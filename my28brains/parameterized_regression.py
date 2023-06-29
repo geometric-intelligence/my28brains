@@ -100,9 +100,9 @@ def save_regression_results(
             f"meshes_along_regression_{dataset_name}_sped_up_{str(sped_up)}",
         )
         H2_SurfaceMatch.utils.input_output.plotGeodesic(
-            gs.array(meshes_along_regression).detach().numpy(),
-            gs.array(true_intercept_faces).detach().numpy(),
-            stepsize=file_name,
+            geod=gs.array(meshes_along_regression).detach().numpy(),
+            F=gs.array(true_intercept_faces).detach().numpy(),
+            stepsize=6,
             file_name=file_name,
         )
 
