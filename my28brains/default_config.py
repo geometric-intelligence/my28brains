@@ -65,6 +65,12 @@ use_wandb = True
 with open("api_key.txt") as f:
     api_key = f.read()
 
+# Fixed parameters
+stepsize = {
+    "synthetic": 55,
+    "real": 6,
+}
+
 # Regression Parameters
 
 dataset_name = ["synthetic", "real"]  # "synthetic" or "real"
