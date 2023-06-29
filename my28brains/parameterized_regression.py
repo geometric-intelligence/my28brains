@@ -361,8 +361,8 @@ def euclidean_subspace_test(
         start_point = mesh_sequence_vertices[random_pair[0]]
         end_point = mesh_sequence_vertices[random_pair[1]]
 
-        linear_distance = gs.linalg.norm(end_point - start_point) ** 2
-        geodesic_distance = METRIC.squared_norm(start_point, end_point)
+        linear_distance = gs.linalg.norm(end_point - start_point)
+        geodesic_distance = METRIC.dist(start_point, end_point)
         ratios.append(linear_distance / geodesic_distance)
         diffs.append(abs(linear_distance - geodesic_distance))
 
@@ -371,17 +371,13 @@ def euclidean_subspace_test(
     median_diff = np.median(diffs)
     median_ratio = np.median(ratios)
 
-    euclidean_subspace_via_ratio = True
-    if median_ratio > 1.1 or median_ratio < 0.9:
-        euclidean_subspace_via_ratio = False
+    euclidean_subspace_via_ratio = median_ratio < 1.1 and median_ratio > 0.9
 
-    euclidean_subspace_via_diffs = True
     tolerance = (
         tol_factor
         * data_utils.mesh_diameter(mesh_sequence_vertices[0])
-        * len(mesh_sequence_vertices[0])
     )
-    if median_diff > tolerance:
-        euclidean_subspace_via_diffs = False
+
+    euclidean_subspace_via_diffs = median_diff < tolerance
 
     return euclidean_subspace_via_ratio, euclidean_subspace_via_diffs
