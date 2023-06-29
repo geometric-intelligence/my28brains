@@ -208,10 +208,10 @@ def geodesic_regression(
     """
     print(f"initialization: {initialization}")
     print(f"geodesic_residuals: {geodesic_residuals}")
-    SURFACE_SPACE = DiscreteSurfaces(faces=gs.array(mesh_faces))
+    discrete_surfaces = DiscreteSurfaces(faces=gs.array(mesh_faces))
 
-    METRIC = ElasticMetric(
-        space=SURFACE_SPACE,
+    elastic_metric = ElasticMetric(
+        space=discrete_surfaces,
         a0=default_config.a0,
         a1=default_config.a1,
         b1=default_config.b1,
@@ -220,13 +220,13 @@ def geodesic_regression(
         a2=default_config.a2,
     )
 
-    METRIC.exp_solver = _ExpSolver(n_steps=default_config.n_steps)
+    elastic_metric.exp_solver = _ExpSolver(n_steps=default_config.n_steps)
 
     # maxiter was 100
     # method was riemannian
     gr = GeodesicRegression(
-        SURFACE_SPACE,
-        metric=METRIC,
+        discrete_surfaces,
+        metric=elastic_metric,
         center_X=False,
         method="extrinsic",
         max_iter=5,

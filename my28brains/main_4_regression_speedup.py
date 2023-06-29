@@ -314,7 +314,7 @@ def main():
             ) in itertools.product(
                 default_config.n_times,
                 default_config.noise_factor,
-                default_config.n_subdivisions,
+                default_config.subdivisions,
                 default_config.ellipse_dimensions,
                 zip(default_config.start_shape, default_config.end_shape),
             ):
