@@ -85,7 +85,7 @@ def main_run(config):
         * mesh_diameter
         * len(mesh_sequence_vertices[0])
         * len(mesh_sequence_vertices)
-    )
+    ) ** 2
     logging.info(f"\n- Tolerance calculated for geodesic regression: {tol:.3f}.")
 
     if wandb_config.dataset_name == "synthetic":
