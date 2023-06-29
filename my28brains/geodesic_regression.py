@@ -259,7 +259,6 @@ class GeodesicRegression(BaseEstimator):
         coef_hat = self.space.to_tangent(coef_init, intercept_hat)
         initial_guess = gs.hstack([gs.flatten(intercept_hat), gs.flatten(coef_hat)])
 
-
         objective_with_grad = gs.autodiff.value_and_grad(
             lambda param: self._loss(X, y, param, shape, weights), to_numpy=True
         )

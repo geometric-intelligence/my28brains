@@ -99,13 +99,12 @@ def save_regression_results(
             regression_dir,
             f"meshes_along_regression_{dataset_name}_sped_up_{str(sped_up)}",
         )
-        # H2_SurfaceMatch.utils.input_output.plotGeodesic(
-        #     gs.array(meshes_along_regression).detach().numpy(),
-        #     gs.array(true_intercept_faces).detach().numpy(),
-        #     stepsize=file_name,
-        #     file_name=file_name,
-        # )
-        # TODO: save these meshes as .ply files instead
+        H2_SurfaceMatch.utils.input_output.plotGeodesic(
+            gs.array(meshes_along_regression).detach().numpy(),
+            gs.array(true_intercept_faces).detach().numpy(),
+            stepsize=file_name,
+            file_name=file_name,
+        )
 
 
 def create_decimated_mesh_sequence_list(
@@ -274,9 +273,7 @@ def linear_regression(mesh_sequence_vertices, times):  # , device = "cuda:0"):
     print("mesh_sequence_vertices.shape: ", mesh_sequence_vertices.shape)
     print("times.shape: ", times.shape)
 
-    mesh_sequence_vertices = gs.array(
-        mesh_sequence_vertices.reshape((len(times), -1))
-    )  
+    mesh_sequence_vertices = gs.array(mesh_sequence_vertices.reshape((len(times), -1)))
     print("mesh_sequence_vertices.shape: ", mesh_sequence_vertices.shape)
 
     times = gs.array(times.reshape(len(times), 1))
@@ -296,7 +293,9 @@ def linear_regression(mesh_sequence_vertices, times):  # , device = "cuda:0"):
     return intercept_hat, coef_hat, lr
 
 
-def euclidean_subspace_test(mesh_sequence_vertices, mesh_sequence_faces, tol_factor= 0.001):
+def euclidean_subspace_test(
+    mesh_sequence_vertices, mesh_sequence_faces, tol_factor=0.001
+):
     """Test whether the manifold subspace where the data lie is euclidean.
 
     For 10 random pairs of meshes, we calculate 1) the linear distance
