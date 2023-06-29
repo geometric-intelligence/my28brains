@@ -25,11 +25,11 @@ import torch
 
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
-import wandb
 
 import my28brains.datasets.utils as data_utils
 import my28brains.default_config as default_config
 import my28brains.parameterized_regression as parameterized_regression
+import wandb
 
 my28brains_dir = default_config.my28brains_dir
 synthetic_data_dir = default_config.synthetic_data_dir
@@ -293,7 +293,7 @@ def main():
             ) in itertools.product(
                 default_config.n_times,
                 default_config.noise_factor,
-                default_config.n_subdivisions,
+                default_config.subdivisions,
                 default_config.ellipse_dimensions,
                 zip(default_config.start_shape, default_config.end_shape),
             ):

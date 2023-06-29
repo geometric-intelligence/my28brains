@@ -87,7 +87,7 @@ noise_factor = [0.0, 0.0001, 0.001, 0.01]  # noise added to the data.
 # Will be multiplied by the size of the mesh to calculate the standard
 # deviation of added noise distribution.
 # only applied to synthetic data.
-n_subdivisions = [
+subdivisions = [
     1,
     2,
     3,

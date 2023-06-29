@@ -95,7 +95,7 @@ def load(config):  # , device = "cuda:0"):
             ) = synthetic.generate_synthetic_parameterized_geodesic(
                 start_mesh,
                 end_mesh,
-                n_times,  # device=device
+                n_times,
             )
 
             print("Original mesh_sequence vertices: ", mesh_sequence_vertices.shape)
