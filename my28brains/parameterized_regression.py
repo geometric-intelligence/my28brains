@@ -187,6 +187,7 @@ def geodesic_regression(
     coef_hat_guess,
     initialization="warm_start",
     geodesic_residuals=False,
+    n_steps = 3,
     # device = "cuda:0",
 ):
     """Perform regression on parameterized meshes.
@@ -220,7 +221,7 @@ def geodesic_regression(
         a2=default_config.a2,
     )
 
-    elastic_metric.exp_solver = _ExpSolver(n_steps=default_config.n_steps)
+    elastic_metric.exp_solver = _ExpSolver(n_steps=n_steps)
 
     # maxiter was 100
     # method was riemannian
@@ -305,7 +306,7 @@ def linear_regression(mesh_sequence_vertices, times):  # , device = "cuda:0"):
 
 
 def euclidean_subspace_test(
-    mesh_sequence_vertices, mesh_sequence_faces, tol_factor=0.001
+    mesh_sequence_vertices, mesh_sequence_faces, tol_factor=0.001, n_steps = 3
 ):
     """Test whether the manifold subspace where the data lie is euclidean.
 
@@ -345,7 +346,7 @@ def euclidean_subspace_test(
         a2=default_config.a2,
     )
 
-    METRIC.exp_solver = _ExpSolver(n_steps=default_config.n_steps)
+    METRIC.exp_solver = _ExpSolver(n_steps=n_steps)
 
     mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
 
@@ -373,11 +374,11 @@ def euclidean_subspace_test(
 
     euclidean_subspace_via_ratio = median_ratio < 1.1 and median_ratio > 0.9
 
-    tolerance = (
+    diff_tolerance = (
         tol_factor
         * data_utils.mesh_diameter(mesh_sequence_vertices[0])
     )
 
-    euclidean_subspace_via_diffs = median_diff < tolerance
+    euclidean_subspace_via_diffs = median_diff < diff_tolerance
 
-    return euclidean_subspace_via_ratio, euclidean_subspace_via_diffs
+    return euclidean_subspace_via_ratio, euclidean_subspace_via_diffs, diff_tolerance

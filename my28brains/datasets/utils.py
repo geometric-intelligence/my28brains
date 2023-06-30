@@ -96,6 +96,7 @@ def load(config):  # , device = "cuda:0"):
                 start_mesh,
                 end_mesh,
                 n_times,
+                config.n_steps,
             )
 
             print("Original mesh_sequence vertices: ", mesh_sequence_vertices.shape)

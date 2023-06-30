@@ -65,7 +65,7 @@ use_wandb = True
 with open("api_key.txt") as f:
     api_key = f.read()
 
-# Fixed parameters
+# Fixed parameters for saving results
 stepsize = {
     "synthetic": 55,
     "real": 6,
@@ -77,9 +77,10 @@ dataset_name = ["synthetic", "real"]  # "synthetic" or "real"
 sped_up = [True]  # 'True' or 'False' (not currently used)
 geodesic_initialization = [
     "warm_start"
+    "random"
 ]  # "warm_start" or "random" (random on parka server)
 geodesic_residuals = [False]  # 'True' or 'False' (alternative is linear residuals)
-n_steps = 3  # n steps for the exp solver of geomstats.
+n_steps = [3,5]  # n steps for the exp solver of geomstats.
 tol_factor = [
     0.001,
     0.01,
