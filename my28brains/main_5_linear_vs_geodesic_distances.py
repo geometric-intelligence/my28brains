@@ -23,6 +23,7 @@ from geomstats.geometry.discrete_surfaces import (
 
 import my28brains.datasets.synthetic as synthetic
 import my28brains.datasets.utils as data_utils
+import my28brains.viz as viz
 import wandb
 
 NOISE_FACTORS = [0.01, 0.1]
@@ -114,6 +115,15 @@ def main_run(config):
     diff_duration = linear_regression_duration - geodesic_regression_duration
     relative_diff_duration = diff_duration / linear_regression_duration
 
+    diff_sequence_per_time_and_vertex = gs.linalg.norm(line - geodesic) / (
+        wandb_config.n_times * n_vertices
+    )
+    diff_sequence_duration = line_duration - geodesic_duration
+    relative_diff_sequence_duration = diff_sequence_duration / line_duration
+
+    offset_line = viz.offset_mesh_sequence(line)
+    offset_geodesic = viz.offset_mesh_sequence(geodesic)
+
     wandb.log(
         {
             "run_name": wandb.run.name,
@@ -137,6 +147,11 @@ def main_run(config):
             "relative_diff_duration": relative_diff_duration,
             "noiseless_vertices": wandb.Object3D(noiseless_vertices.numpy()),
             "noisy_vertices": wandb.Object3D(noisy_vertices.numpy()),
+            "offset_line": wandb.Object3D(offset_line.numpy()),
+            "offset_geodesic": wandb.Object3D(offset_geodesic.numpy()),
+            "diff_sequence_per_time_and_vertex": diff_sequence_per_time_and_vertex,
+            "diff_sequence_duration": diff_sequence_duration,
+            "relative_diff_sequence_duration": relative_diff_sequence_duration,
         }
     )
     wandb.finish()
