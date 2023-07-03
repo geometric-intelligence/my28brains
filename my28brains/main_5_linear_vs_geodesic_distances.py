@@ -4,11 +4,8 @@ This computation aims to show that it is not realistic to perform
 geodesic regression with the geodesic residuals.
 
 Note: the following paths in are my python path:
-/Users/ninamiolane/code/my28brains/H2_surfaceMatch:
-/Users/ninamiolane/code/my28brains:
-/Users/ninamiolane/code/:
-/Users/ninamiolane/opt/anaconda3/envs/my28brains/bin:
-/Users/ninamiolane/opt/anaconda3/envs/my28brains/lib/python3.10/site-packages
+export PYTHONPATH=/home/nmiolane/code/my28brains/H2_SurfaceMatch:
+/home/nmiolane/code/my28brains/
 """
 
 import itertools
@@ -47,14 +44,15 @@ def main_run(config):
     )
     reference_vertices = gs.array(reference_mesh.vertices)
     reference_faces = reference_mesh.faces
-    # FIXME: this does NOT add noise
+
+    noiseless_vertices = reference_vertices.copy()
     noisy_vertices = data_utils.add_noise(
         mesh_sequence_vertices=[reference_vertices],
         noise_factor=wandb_config.noise_factor,
     )
     noisy_vertices = noisy_vertices[0]
-    print(reference_vertices[:10])
-    print(noisy_vertices[:10])
+    print("difference between reference and noisy vertices:")
+    print(noiseless_vertices[:10] - noisy_vertices[:10])
     return
     wandb_config.update(
         {
