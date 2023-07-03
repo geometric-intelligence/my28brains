@@ -44,6 +44,8 @@ def main_run(config):
     )
     reference_vertices = gs.array(reference_mesh.vertices)
     reference_faces = reference_mesh.faces
+    n_vertices = len(reference_vertices)
+    n_faces = len(reference_faces)
 
     noiseless_vertices = gs.copy(reference_vertices)
     noisy_vertices = data_utils.add_noise(
@@ -51,10 +53,11 @@ def main_run(config):
         noise_factor=wandb_config.noise_factor,
     )
     noisy_vertices = noisy_vertices[0]
+
     wandb_config.update(
         {
-            "n_faces": len(reference_faces),
-            "n_vertices": len(reference_vertices),
+            "n_faces": n_faces,
+            "n_vertices": n_vertices,
         }
     )
 
@@ -91,12 +94,18 @@ def main_run(config):
         {
             "run_name": wandb.run.name,
             "linear_dist": linear_dist,
+            "linear_dist_per_vertex": linear_dist / n_vertices,
             "geodesic_dist": geodesic_dist,
+            "geodesic_dist_per_vertex": geodesic_dist / n_vertices,
             "diff_dist": diff_dist,
+            "diff_dist_per_vertex": diff_dist / n_vertices,
             "relative_diff_dist": relative_diff_dist,
             "linear_duration": linear_duration,
+            "linear_duration_per_vertex": linear_duration / n_vertices,
             "geodesic_duration": geodesic_duration,
+            "geodesic_duration_per_vertex": geodesic_duration / n_vertices,
             "diff_duration": diff_duration,
+            "diff_duration_per_vertex": diff_duration / n_vertices,
             "relative_diff_duration": relative_diff_duration,
             "noiseless_vertices": wandb.Object3D(noiseless_vertices.numpy()),
             "noisy_vertices": wandb.Object3D(noisy_vertices.numpy()),
