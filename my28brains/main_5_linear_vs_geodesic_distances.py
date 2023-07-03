@@ -51,7 +51,7 @@ def main_run(config):
 
     noiseless_vertices = gs.copy(reference_vertices)
     noisy_vertices = data_utils.add_noise(
-        mesh_sequence_vertices=[reference_vertices],
+        mesh_seq_vertices=[reference_vertices],
         noise_factor=wandb_config.noise_factor,
     )
     noisy_vertices = noisy_vertices[0]
@@ -115,11 +115,11 @@ def main_run(config):
     diff_duration = linear_regression_duration - geodesic_regression_duration
     relative_diff_duration = diff_duration / linear_regression_duration
 
-    diff_sequence_per_time_and_vertex = gs.linalg.norm(line - geodesic) / (
+    diff_seq_per_time_and_vertex = gs.linalg.norm(line - geodesic) / (
         wandb_config.n_times * n_vertices
     )
-    diff_sequence_duration = line_duration - geodesic_duration
-    relative_diff_sequence_duration = diff_sequence_duration / line_duration
+    diff_seq_duration = line_duration - geodesic_duration
+    relative_diff_seq_duration = diff_seq_duration / line_duration
 
     offset_line = viz.offset_mesh_sequence(line)
     offset_geodesic = viz.offset_mesh_sequence(geodesic)
@@ -149,9 +149,13 @@ def main_run(config):
             "noisy_vertices": wandb.Object3D(noisy_vertices.numpy()),
             "offset_line": wandb.Object3D(offset_line.numpy()),
             "offset_geodesic": wandb.Object3D(offset_geodesic.numpy()),
-            "diff_sequence_per_time_and_vertex": diff_sequence_per_time_and_vertex,
-            "diff_sequence_duration": diff_sequence_duration,
-            "relative_diff_sequence_duration": relative_diff_sequence_duration,
+            "diff_seq_per_time_and_vertex": diff_seq_per_time_and_vertex,
+            "diff_seq_duration": diff_seq_duration,
+            "diff_seq_duration_per_time_and_vertex": diff_seq_duration
+            / (wandb_config.n_times * n_vertices),
+            "relative_diff_seq_duration": relative_diff_seq_duration,
+            "relative_diff_seq_per_time_and_vertex": relative_diff_seq_duration
+            / (wandb_config.n_times * n_vertices),
         }
     )
     wandb.finish()
