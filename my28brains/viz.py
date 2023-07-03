@@ -252,7 +252,7 @@ def offset_mesh_sequence(mesh_sequence_vertices):
     """Offset a mesh sequence to visualize it better."""
     n_times = len(mesh_sequence_vertices)
     diameter = data_utils.mesh_diameter(mesh_sequence_vertices[0])
-    max_offset = n_times * diameter * 1.5
+    max_offset = n_times * diameter * 1.2
     offsets = gs.linspace(0, max_offset, n_times)
 
     offset_mesh_sequence_vertices = []

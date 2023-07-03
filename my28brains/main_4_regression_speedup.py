@@ -32,6 +32,7 @@ import geomstats.backend as gs
 import my28brains.datasets.utils as data_utils
 import my28brains.default_config as default_config
 import my28brains.parameterized_regression as parameterized_regression
+import my28brains.viz as viz
 import wandb
 
 my28brains_dir = default_config.my28brains_dir
@@ -51,7 +52,7 @@ def main_run(config):
 
     Parameters
     ----------
-    full_run: bool. If True, at the end of the function, this means the full 
+    full_run: bool. If True, at the end of the function, this means the full
         regression was run
     """
     full_run = True
@@ -110,9 +111,12 @@ def main_run(config):
         (
             euclidean_subspace_via_ratio,
             euclidean_subspace_via_diffs,
-            diff_tolerance
+            diff_tolerance,
         ) = parameterized_regression.euclidean_subspace_test(
-            mesh_sequence_vertices, mesh_faces, wandb_config.tol_factor, wandb_config.n_steps
+            mesh_sequence_vertices,
+            mesh_faces,
+            wandb_config.tol_factor,
+            wandb_config.n_steps,
         )
         logging.info(
             f"\n- Euclidean subspace via ratio: {euclidean_subspace_via_ratio}"
@@ -132,7 +136,8 @@ def main_run(config):
                 "mesh_diameter": mesh_diameter,
                 "n_faces": len(mesh_faces),
                 "ellipse_ratio_h_v": (
-                    wandb_config.ellipse_dimensions[0] / wandb_config.ellipse_dimensions[-1]
+                    wandb_config.ellipse_dimensions[0]
+                    / wandb_config.ellipse_dimensions[-1]
                 ),
                 "geodesic_tol": tol,
                 "euclidean_subspace_via_ratio": euclidean_subspace_via_ratio,
@@ -163,11 +168,7 @@ def main_run(config):
         )
         print(f"meshes_along_linear_regression: {meshes_along_linear_regression.shape}")
 
-        offsets = gs.linspace(0, 200, len(times))
-        offset_mesh_sequence_vertices = []
-        for i_mesh, mesh in enumerate(mesh_sequence_vertices):
-            offset_mesh_sequence_vertices.append(mesh + offsets[i_mesh])
-        offset_mesh_sequence_vertices = gs.vstack(offset_mesh_sequence_vertices)
+        offset_mesh_sequence_vertices = viz.offset_mesh_sequence(mesh_sequence_vertices)
 
         wandb.log(
             {
@@ -255,7 +256,9 @@ def main_run(config):
                 "geodesic_duration_time": geodesic_duration_time,
                 "geodesic_intercept_err": geodesic_intercept_err,
                 "geodesic_coef_err": geodesic_coef_err,
-                "geodesic_intercept_hat": wandb.Object3D(geodesic_intercept_hat.numpy()),
+                "geodesic_intercept_hat": wandb.Object3D(
+                    geodesic_intercept_hat.numpy()
+                ),
                 "geodesic_coef_hat": wandb.Object3D(geodesic_coef_hat.numpy()),
                 "meshes_along_geodesic_regression": wandb.Object3D(
                     meshes_along_geodesic_regression.detach().numpy().reshape((-1, 3))
@@ -270,10 +273,14 @@ def main_run(config):
         logging.info(f">> Duration (geodesic): {geodesic_duration_time:.3f} secs.")
         logging.info(">> Regression errors (geodesic):")
         logging.info(
-            f"On intercept: {geodesic_intercept_err:.6f}, on coef: {geodesic_coef_err:.6f}"
+            f"On intercept: {geodesic_intercept_err:.6f}, on coef: "
+            f"{geodesic_coef_err:.6f}"
         )
 
-        print(f"meshes_along_geodesic_regression: {meshes_along_geodesic_regression.shape}")
+        print(
+            f"meshes_along_geodesic_regression: "
+            f"{meshes_along_geodesic_regression.shape}"
+        )
 
         logging.info("Saving geodesic results...")
         parameterized_regression.save_regression_results(
@@ -289,7 +296,7 @@ def main_run(config):
             meshes_along_regression=meshes_along_geodesic_regression,
         )
 
-        # 
+        #
         wandb_config.update({"full_run": full_run})
         # wandb.log({"full_run": full_run})
 
