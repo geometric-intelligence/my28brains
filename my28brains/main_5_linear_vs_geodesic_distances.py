@@ -58,40 +58,42 @@ def main_run(config):
         }
     )
 
-    logging.info("Computing linear squared distance.")
+    logging.info("Computing linear distance.")
     start = time.time()
     linear_sq_dist = gs.linalg.norm(noisy_vertices - noiseless_vertices).numpy() ** 2
+    linear_dist = gs.sqrt(linear_sq_dist)
     linear_duration = time.time() - start
-    logging.info(
-        f"--> Done ({linear_duration:.1f} sec): linear_sq_dist = {linear_sq_dist}"
-    )
+    logging.info(f"--> Done ({linear_duration:.1f} sec): linear_dist = {linear_dist}")
 
     discrete_surfaces = DiscreteSurfaces(faces=gs.array(reference_faces))
     elastic_metric = ElasticMetric(space=discrete_surfaces)
     elastic_metric.exp_solver = _ExpSolver(n_steps=wandb_config.n_steps)
 
-    logging.info("Computing geodesic squared distance...")
+    logging.info("Computing geodesic distance...")
     start = time.time()
     geodesic_sq_dist = (
         discrete_surfaces.metric.squared_dist(noisy_vertices, noiseless_vertices)
         .detach()
         .numpy()
     )[0]
+    geodesic_dist = gs.sqrt(geodesic_sq_dist)
     geodesic_duration = time.time() - start
-    logging.info(f"--> Done ({geodesic_duration:.1f} sec): {geodesic_sq_dist}...")
+    logging.info(
+        f"--> Done ({geodesic_duration:.1f} sec): geodesic_dist = {geodesic_dist}..."
+    )
 
-    diff_sq_dist = linear_sq_dist - geodesic_sq_dist
-    relative_diff_sq_dist = diff_sq_dist / linear_sq_dist
+    diff_dist = linear_dist - geodesic_dist
+    relative_diff_dist = diff_dist / linear_dist
     diff_duration = linear_duration - geodesic_duration
     relative_diff_duration = diff_duration / linear_duration
 
     wandb.log(
         {
             "run_name": wandb.run.name,
-            "linear_sq_dist": linear_sq_dist,
-            "geodesic_sq_dist": geodesic_sq_dist,
-            "diff_sq_dist": diff_sq_dist,
-            "relative_diff_sq_dist": relative_diff_sq_dist,
+            "linear_dist": linear_dist,
+            "geodesic_dist": geodesic_dist,
+            "diff_dist": diff_dist,
+            "relative_diff_dist": relative_diff_dist,
             "linear_duration": linear_duration,
             "geodesic_duration": geodesic_duration,
             "diff_duration": diff_duration,
