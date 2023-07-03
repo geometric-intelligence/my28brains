@@ -198,8 +198,20 @@ def mesh_diameter(mesh_vertices):
 
 
 def add_noise(mesh_sequence_vertices, noise_factor):
-    """Add noise to mesh_sequence_vertices."""
-    noise_sd = noise_factor * mesh_diameter(mesh_sequence_vertices[0])
+    """Add noise to mesh_sequence_vertices.
+
+    Note that this function modifies the input mesh_sequence_vertices,
+    which is overwritten by its noisy version.
+
+    For example, after running:
+    noisy_mesh = data_utils.add_noise(
+        mesh_sequence_vertices=[mesh],
+        noise_factor=10
+    )
+    the mesh has become noisy_mesh as well.
+    """
+    diameter = mesh_diameter(mesh_sequence_vertices[0])
+    noise_sd = noise_factor * diameter
     for i_mesh in range(len(mesh_sequence_vertices)):
         mesh_sequence_vertices[i_mesh] += gs.random.normal(
             loc=0.0, scale=noise_sd, size=mesh_sequence_vertices[i_mesh].shape

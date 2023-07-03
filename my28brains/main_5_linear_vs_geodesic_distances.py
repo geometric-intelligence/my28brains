@@ -4,11 +4,8 @@ This computation aims to show that it is not realistic to perform
 geodesic regression with the geodesic residuals.
 
 Note: the following paths in are my python path:
-/Users/ninamiolane/code/my28brains/H2_surfaceMatch:
-/Users/ninamiolane/code/my28brains:
-/Users/ninamiolane/code/:
-/Users/ninamiolane/opt/anaconda3/envs/my28brains/bin:
-/Users/ninamiolane/opt/anaconda3/envs/my28brains/lib/python3.10/site-packages
+export PYTHONPATH=/home/nmiolane/code/my28brains/H2_SurfaceMatch:
+/home/nmiolane/code/my28brains/
 """
 
 import itertools
@@ -29,13 +26,13 @@ import my28brains.datasets.utils as data_utils
 import wandb
 
 NOISE_FACTORS = [0.01, 0.1]
-N_STEPS = [3, 5]
+N_STEPS = [3, 5, 8]
 SUBDIVISIONS = [1, 2, 3]
 
 
 def main_run(config):
     """Compare computation of linear vs geodesic dist."""
-    wandb.init()
+    wandb.init(project="linear_vs_geodesic_distances")
     wandb_config = wandb.config
     wandb_config.update(config)
     wandb.run.name = f"run_{wandb.run.id}"
@@ -47,55 +44,71 @@ def main_run(config):
     )
     reference_vertices = gs.array(reference_mesh.vertices)
     reference_faces = reference_mesh.faces
+    n_vertices = len(reference_vertices)
+    n_faces = len(reference_faces)
+
+    noiseless_vertices = gs.copy(reference_vertices)
     noisy_vertices = data_utils.add_noise(
         mesh_sequence_vertices=[reference_vertices],
         noise_factor=wandb_config.noise_factor,
     )
     noisy_vertices = noisy_vertices[0]
 
-    logging.info("Computing linear squared distance.")
-    start = time.time()
-    linear_sq_dist = (
-        gs.linalg.norm(noisy_vertices - reference_vertices, axis=1).numpy() ** 2
+    wandb_config.update(
+        {
+            "n_faces": n_faces,
+            "n_vertices": n_vertices,
+        }
     )
+
+    logging.info("Computing linear distance.")
+    start = time.time()
+    linear_sq_dist = gs.linalg.norm(noisy_vertices - noiseless_vertices).numpy() ** 2
+    linear_dist = gs.sqrt(linear_sq_dist)
     linear_duration = time.time() - start
-    logging.info(f"--> Done ({linear_duration} sec): {linear_sq_dist}...")
+    logging.info(f"--> Done ({linear_duration:.1f} sec): linear_dist = {linear_dist}")
 
     discrete_surfaces = DiscreteSurfaces(faces=gs.array(reference_faces))
     elastic_metric = ElasticMetric(space=discrete_surfaces)
     elastic_metric.exp_solver = _ExpSolver(n_steps=wandb_config.n_steps)
 
-    logging.info("Computing geodesic squared distance...")
+    logging.info("Computing geodesic distance...")
     start = time.time()
     geodesic_sq_dist = (
-        discrete_surfaces.metric.squared_dist(noisy_vertices, reference_vertices)
+        discrete_surfaces.metric.squared_dist(noisy_vertices, noiseless_vertices)
         .detach()
         .numpy()
-    )
+    )[0]
+    geodesic_dist = gs.sqrt(geodesic_sq_dist)
     geodesic_duration = time.time() - start
-    logging.info(f"--> Done ({geodesic_duration:.1f} sec): {geodesic_sq_dist:.3f}...")
+    logging.info(
+        f"--> Done ({geodesic_duration:.1f} sec): geodesic_dist = {geodesic_dist}..."
+    )
 
-    diff_sq_dist = linear_sq_dist - geodesic_sq_dist
-    relative_diff_sq_dist = diff_sq_dist / linear_sq_dist
+    diff_dist = linear_dist - geodesic_dist
+    relative_diff_dist = diff_dist / linear_dist
     diff_duration = linear_duration - geodesic_duration
     relative_diff_duration = diff_duration / linear_duration
+
     wandb.log(
         {
             "run_name": wandb.run.name,
-            "noise_factor": wandb_config.noise_factor,
-            "n_steps": wandb_config.n_steps,
-            "subdivisions": wandb_config.subdivisions,
-            "n_faces": len(reference_faces),
-            "n_vertices": len(reference_vertices),
-            "linear_sq_dist": linear_sq_dist,
-            "geodesic_sq_dist": geodesic_sq_dist,
-            "diff_sq_dist": diff_sq_dist,
-            "relative_diff_sq_dist": relative_diff_sq_dist,
+            "linear_dist": linear_dist,
+            "linear_dist_per_vertex": linear_dist / n_vertices,
+            "geodesic_dist": geodesic_dist,
+            "geodesic_dist_per_vertex": geodesic_dist / n_vertices,
+            "diff_dist": diff_dist,
+            "diff_dist_per_vertex": diff_dist / n_vertices,
+            "relative_diff_dist": relative_diff_dist,
             "linear_duration": linear_duration,
+            "linear_duration_per_vertex": linear_duration / n_vertices,
             "geodesic_duration": geodesic_duration,
+            "geodesic_duration_per_vertex": geodesic_duration / n_vertices,
             "diff_duration": diff_duration,
+            "diff_duration_per_vertex": diff_duration / n_vertices,
             "relative_diff_duration": relative_diff_duration,
-            "reference_vertices": wandb.Object3D(reference_vertices.numpy()),
+            "noiseless_vertices": wandb.Object3D(noiseless_vertices.numpy()),
+            "noisy_vertices": wandb.Object3D(noisy_vertices.numpy()),
         }
     )
     wandb.finish()
@@ -115,7 +128,7 @@ def main():
             "subdivisions": subdivisions,
         }
 
-    main_run(config)
+        main_run(config)
 
 
 main()
