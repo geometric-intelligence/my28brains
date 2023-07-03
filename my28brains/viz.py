@@ -3,6 +3,7 @@
 import glob
 import os
 
+import geomstats.backend as gs
 import matplotlib
 import matplotlib.pyplot as plt
 import nibabel
@@ -10,6 +11,8 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.io as pio
 from matplotlib import animation
+
+import my28brains.datasets.utils as data_utils
 
 IMG_DIR = "/home/data/28andme/"
 HORMONES = {"Estro": "Estrogen", "Prog": "Progesterone", "LH": "LH", "FSH": "FSH"}
@@ -243,3 +246,17 @@ def plotly_hormones(df, by, day, hormones=HORMONES, ymax=None, savefig=False):
     if savefig:
         pio.write_image(fig, f"{TMP}/hormones_day_{day:02d}.png", format="png")
     return fig
+
+
+def offset_mesh_sequence(mesh_sequence_vertices):
+    """Offset a mesh sequence to visualize it better."""
+    n_times = len(mesh_sequence_vertices)
+    diameter = data_utils.mesh_diameter(mesh_sequence_vertices[0])
+    max_offset = n_times * diameter * 1.2
+    offsets = gs.linspace(0, max_offset, n_times)
+
+    offset_mesh_sequence_vertices = []
+    for i_mesh, mesh in enumerate(mesh_sequence_vertices):
+        offset_mesh_sequence_vertices.append(mesh + offsets[i_mesh])
+    offset_mesh_sequence_vertices = gs.vstack(offset_mesh_sequence_vertices)
+    return offset_mesh_sequence_vertices
