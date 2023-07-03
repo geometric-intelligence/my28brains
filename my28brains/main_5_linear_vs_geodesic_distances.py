@@ -25,9 +25,9 @@ import my28brains.datasets.synthetic as synthetic
 import my28brains.datasets.utils as data_utils
 import wandb
 
-NOISE_FACTORS = [10, 20, 50, 100, 200]
-N_STEPS = [8, 10, 20]
-SUBDIVISIONS = [1, 2, 3, 4]
+NOISE_FACTORS = [0.01, 0.1]
+N_STEPS = [3, 5, 8]
+SUBDIVISIONS = [1, 2, 3]
 
 
 def main_run(config):
@@ -45,15 +45,12 @@ def main_run(config):
     reference_vertices = gs.array(reference_mesh.vertices)
     reference_faces = reference_mesh.faces
 
-    noiseless_vertices = reference_vertices.copy()
+    noiseless_vertices = gs.copy(reference_vertices)
     noisy_vertices = data_utils.add_noise(
         mesh_sequence_vertices=[reference_vertices],
         noise_factor=wandb_config.noise_factor,
     )
     noisy_vertices = noisy_vertices[0]
-    print("difference between reference and noisy vertices:")
-    print(noiseless_vertices[:10] - noisy_vertices[:10])
-    return
     wandb_config.update(
         {
             "n_faces": len(reference_faces),
@@ -63,7 +60,7 @@ def main_run(config):
 
     logging.info("Computing linear squared distance.")
     start = time.time()
-    linear_sq_dist = gs.linalg.norm(noisy_vertices - reference_vertices).numpy() ** 2
+    linear_sq_dist = gs.linalg.norm(noisy_vertices - noiseless_vertices).numpy() ** 2
     linear_duration = time.time() - start
     logging.info(
         f"--> Done ({linear_duration:.1f} sec): linear_sq_dist = {linear_sq_dist}"
@@ -76,7 +73,7 @@ def main_run(config):
     logging.info("Computing geodesic squared distance...")
     start = time.time()
     geodesic_sq_dist = (
-        discrete_surfaces.metric.squared_dist(noisy_vertices, reference_vertices)
+        discrete_surfaces.metric.squared_dist(noisy_vertices, noiseless_vertices)
         .detach()
         .numpy()
     )[0]
@@ -99,7 +96,7 @@ def main_run(config):
             "geodesic_duration": geodesic_duration,
             "diff_duration": diff_duration,
             "relative_diff_duration": relative_diff_duration,
-            "reference_vertices": wandb.Object3D(reference_vertices.numpy()),
+            "noiseless_vertices": wandb.Object3D(noiseless_vertices.numpy()),
             "noisy_vertices": wandb.Object3D(noisy_vertices.numpy()),
         }
     )
