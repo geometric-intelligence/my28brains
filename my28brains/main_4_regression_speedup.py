@@ -109,8 +109,7 @@ def main_run(config):
 
         logging.info("\n- Testing whether data subspace is euclidean.")
         (
-            euclidean_subspace_via_ratio,
-            euclidean_subspace_via_diffs,
+            euclidean_subspace,
             diff_tolerance,
         ) = parameterized_regression.euclidean_subspace_test(
             mesh_sequence_vertices,
@@ -119,8 +118,7 @@ def main_run(config):
             wandb_config.n_steps,
         )
         logging.info(
-            f"\n- Euclidean subspace via ratio: {euclidean_subspace_via_ratio}"
-            f"\n- Euclidean subspace via diffs: {euclidean_subspace_via_diffs}"
+            f"\n- Euclidean subspace: {euclidean_subspace}, "
         )
 
         # diffs_log = int(0)
@@ -140,8 +138,7 @@ def main_run(config):
                     / wandb_config.ellipse_dimensions[-1]
                 ),
                 "geodesic_tol": tol,
-                "euclidean_subspace_via_ratio": euclidean_subspace_via_ratio,
-                "euclidean_subspace_via_diffs": euclidean_subspace_via_diffs,
+                "euclidean_subspace": euclidean_subspace,
                 "mesh_sequence_vertices": wandb.Object3D(
                     mesh_sequence_vertices.numpy().reshape((-1, 3))
                 ),
