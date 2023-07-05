@@ -76,7 +76,7 @@ stepsize = {
 dataset_name = ["synthetic", "real"]  # "synthetic" or "real"
 sped_up = [True]  # 'True' or 'False' (not currently used)
 geodesic_initialization = [
-    "warm_start"
+    "warm_start",
     "random"
 ]  # "warm_start" or "random" (random on parka server)
 geodesic_residuals = [False]  # 'True' or 'False' (alternative is linear residuals)
@@ -107,6 +107,7 @@ ellipse_dimensions = [
     [2, 2, 3],
     [2, 2, 10],
     [10, 10, 2],
+    [2, 2, 6]
 ]  # if nothing recorded, [2, 2, 3]
 
 # GPU Parameters
