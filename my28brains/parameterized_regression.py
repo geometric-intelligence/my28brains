@@ -335,7 +335,30 @@ def euclidean_subspace_test(
         compared to a tolerance that utilizes the size of the mesh and number of
         vertices.
     """
+    # if dataset == "synthetic":
     geodesic = gs.array(mesh_sequence_vertices)
+    # if dataset == "real":
+    #     SURFACE_SPACE = DiscreteSurfaces(faces=gs.array(mesh_sequence_faces))
+    #     METRIC = ElasticMetric(
+    #         space=SURFACE_SPACE,
+    #         a0=default_config.a0,
+    #         a1=default_config.a1,
+    #         b1=default_config.b1,
+    #         c1=default_config.c1,
+    #         d1=default_config.d1,
+    #         a2=default_config.a2,
+    #     )
+
+    #     METRIC.exp_solver = _ExpSolver(n_steps=n_steps)
+
+    #     mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
+    #     start_point = mesh_sequence_vertices[0]
+    #     end_point = mesh_sequence_vertices[-1]
+
+    #     geodesic_fn = METRIC.geodesic(
+    #             initial_point=start_point, end_point=end_point
+    #     )
+    #     geodesic = geodesic_fn(gs.linspace(0, 1, len(times)))
 
     line = gs.array(
             [
@@ -353,53 +376,6 @@ def euclidean_subspace_test(
     n_vertices = mesh_sequence_vertices[0].shape[0]
     normalized_mesh_sequence_diff = summed_mesh_sequence_diffs / (n_vertices * len(times) * 3)
 
-
-
-
-    # SURFACE_SPACE = DiscreteSurfaces(faces=gs.array(mesh_sequence_faces))
-    # METRIC = ElasticMetric(
-    #     space=SURFACE_SPACE,
-    #     a0=default_config.a0,
-    #     a1=default_config.a1,
-    #     b1=default_config.b1,
-    #     c1=default_config.c1,
-    #     d1=default_config.d1,
-    #     a2=default_config.a2,
-    # )
-
-    # METRIC.exp_solver = _ExpSolver(n_steps=n_steps)
-
-    # mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
-
-    # # pick random pairs of meshes
-    # n_meshes = mesh_sequence_vertices.shape[0]
-    # n_pairs = 10
-    # random_pairs = np.random.randint(0, n_meshes, size=(n_pairs, 2))
-
-    # normalized_mesh_sequence_diffs = []
-    # for random_pair in random_pairs:
-    #     start_point = mesh_sequence_vertices[random_pair[0]]
-    #     end_point = mesh_sequence_vertices[random_pair[1]]
-
-    #     geodesic_fn = METRIC.geodesic(
-    #             initial_point=start_point, end_point=end_point
-    #     )
-    #     geodesic = geodesic_fn(gs.linspace(0, 1, n_test_times))
-
-    #     line = gs.array(
-    #         [
-    #             t * start_point + (1 - t) * end_point
-    #             for t in gs.linspace(0, 1, n_test_times)
-    #         ]
-    #     )
-
-    #     mesh_sequence_diff = geodesic - line
-    #     n_vertices = start_point.shape[0]
-    #     normalized_mesh_sequence_diff = mesh_sequence_diff / (n_vertices * n_test_times)
-    #     normalized_mesh_sequence_diffs.append(normalized_mesh_sequence_diff)
-
-    # normalized_mesh_sequence_diffs = gs.array(normalized_mesh_sequence_diffs)
-
     diff_tolerance = (
         tol_factor
         * data_utils.mesh_diameter(mesh_sequence_vertices[0])
@@ -409,34 +385,5 @@ def euclidean_subspace_test(
     if normalized_mesh_sequence_diff < diff_tolerance:
         euclidean_subspace = True
     # euclidean_subspace = normalized_mesh_sequence_diff < diff_tolerance
-
-
-
-
-    # calculate linear and geodesic distances between each pair
-    # diffs = []
-    # ratios = []
-    # for random_pair in random_pairs:
-    #     start_point = mesh_sequence_vertices[random_pair[0]]
-    #     end_point = mesh_sequence_vertices[random_pair[1]]
-
-    #     linear_distance = gs.linalg.norm(end_point - start_point)
-    #     geodesic_distance = METRIC.dist(start_point, end_point)
-    #     ratios.append(linear_distance / geodesic_distance)
-    #     diffs.append(abs(linear_distance - geodesic_distance))
-
-    # diffs = gs.array(diffs)
-    # ratios = gs.array(ratios)
-    # median_diff = np.median(diffs)
-    # median_ratio = np.median(ratios)
-
-    # euclidean_subspace_via_ratio = median_ratio < 1.1 and median_ratio > 0.9
-
-    # diff_tolerance = (
-    #     tol_factor
-    #     * data_utils.mesh_diameter(mesh_sequence_vertices[0])
-    # )
-
-    # euclidean_subspace_via_diffs = median_diff < diff_tolerance
 
     return euclidean_subspace, diff_tolerance
