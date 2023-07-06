@@ -351,7 +351,7 @@ def euclidean_subspace_test(
     print(f"summed_mesh_sequence_diffs.shape" , summed_mesh_sequence_diffs.shape)
 
     n_vertices = mesh_sequence_vertices[0].shape[0]
-    normalized_mesh_sequence_diff = mesh_sequence_diff / (n_vertices * len(times)*3)
+    normalized_mesh_sequence_diff = summed_mesh_sequence_diffs / (n_vertices * len(times) * 3)
 
 
 
@@ -406,7 +406,9 @@ def euclidean_subspace_test(
     )
 
     euclidean_subspace = False
-    euclidean_subspace = normalized_mesh_sequence_diff < diff_tolerance
+    if normalized_mesh_sequence_diff < diff_tolerance:
+        euclidean_subspace = True
+    # euclidean_subspace = normalized_mesh_sequence_diff < diff_tolerance
 
 
 

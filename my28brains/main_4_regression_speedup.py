@@ -114,7 +114,6 @@ def main_run(config):
         ) = parameterized_regression.euclidean_subspace_test(
             mesh_sequence_vertices,
             mesh_faces,
-            times,
             wandb_config.tol_factor,
             wandb_config.n_steps,
         )
@@ -130,14 +129,21 @@ def main_run(config):
         # if euclidean_subspace_via_ratio:
         #     diffs_log = int(1)
 
+        if wandb.dataset_name == "synthetic":
+            wandb.log(
+                {
+                    "n_subdivisions": wandb_config.n_subdivisions,
+                    "ellipse_dimensions": wandb_config.ellipse_dimensions,
+                    "ellipse_ratio_h_v": (
+                        wandb_config.ellipse_dimensions[0]
+                        / wandb_config.ellipse_dimensions[-1]
+                    ),
+            )
+
         wandb.log(
             {
                 "mesh_diameter": mesh_diameter,
                 "n_faces": len(mesh_faces),
-                "ellipse_ratio_h_v": (
-                    wandb_config.ellipse_dimensions[0]
-                    / wandb_config.ellipse_dimensions[-1]
-                ),
                 "geodesic_tol": tol,
                 "euclidean_subspace": euclidean_subspace,
                 "mesh_sequence_vertices": wandb.Object3D(
@@ -261,9 +267,7 @@ def main_run(config):
                 "meshes_along_geodesic_regression": wandb.Object3D(
                     meshes_along_geodesic_regression.detach().numpy().reshape((-1, 3))
                 ),
-                "n_subdivisions": wandb_config.n_subdivisions,
                 "n_faces": len(mesh_faces),
-                "ellipse_dimensions": wandb_config.ellipse_dimensions,
                 "geodesic_initialization": wandb_config.geodesic_initialization,
             }
         )
