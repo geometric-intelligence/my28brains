@@ -114,6 +114,7 @@ def main_run(config):
         ) = parameterized_regression.euclidean_subspace_test(
             mesh_sequence_vertices,
             mesh_faces,
+            times,
             wandb_config.tol_factor,
             wandb_config.n_steps,
         )

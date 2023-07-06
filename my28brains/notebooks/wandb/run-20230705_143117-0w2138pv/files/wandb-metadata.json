@@ -1,0 +1,240 @@
+{
+    "os": "Linux-5.15.0-70-generic-x86_64-with-glibc2.35",
+    "python": "3.10.11",
+    "heartbeatAt": "2023-07-05T21:31:24.479876",
+    "startedAt": "2023-07-05T21:31:17.399726",
+    "docker": null,
+    "cuda": null,
+    "args": null,
+    "state": "running",
+    "program": "notebooks/12_linear_vs_geodesic_regression.ipynb",
+    "root": "/home/adele/code/my28brains",
+    "git": {
+        "remote": "git@github.com:bioshape-lab/my28brains.git",
+        "commit": "110af0b7afdd252b523168a463968c91c2b314ce"
+    },
+    "email": null,
+    "host": "frank",
+    "username": "adele",
+    "executable": "/home/adele/anaconda3/envs/my28brains/bin/python",
+    "cpu_count": 32,
+    "cpu_count_logical": 32,
+    "cpu_freq": {
+        "current": 3219.78478125,
+        "min": 1500.0,
+        "max": 3000.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3289.517,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3288.111,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2290.665,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3292.806,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 1500.0,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3299.827,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3287.045,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3298.822,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3299.93,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3299.825,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3297.248,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3297.363,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3296.43,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3296.432,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3293.027,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3000.0,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3299.929,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3299.833,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3296.611,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2883.775,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3297.446,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3297.399,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3299.062,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3299.003,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3299.936,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3299.934,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3298.122,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3298.03,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3299.112,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3298.96,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 3299.118,
+            "min": 1500.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2839.795,
+            "min": 1500.0,
+            "max": 3000.0
+        }
+    ],
+    "disk": {
+        "total": 862.232364654541,
+        "used": 329.3413543701172
+    },
+    "gpu": "NVIDIA A30",
+    "gpu_count": 10,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA A30",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "NVIDIA A30",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "NVIDIA A30",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "NVIDIA A30",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "NVIDIA A30",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "NVIDIA A30",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "NVIDIA A30",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "NVIDIA A30",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "NVIDIA A30",
+            "memory_total": 25769803776
+        },
+        {
+            "name": "NVIDIA A30",
+            "memory_total": 25769803776
+        }
+    ],
+    "memory": {
+        "total": 377.7618598937988
+    }
+}

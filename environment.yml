@@ -8,6 +8,7 @@ dependencies:
   - pip:
     - git+https://github.com/ninamiolane/geomstats.git@surfaces_w_metric
     - jupyter
+    - jupyterlab
     - jupyterlab-code-formatter
     - kaleido
     - numpy
