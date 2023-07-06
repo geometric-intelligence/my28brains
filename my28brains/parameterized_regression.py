@@ -344,8 +344,11 @@ def euclidean_subspace_test(
             ]
         )
     
-    mesh_sequence_diff = sum(sum(sum(geodesic - line)))
+
+    mesh_sequence_diff = abs(geodesic - line)
+    summed_mesh_sequence_diffs = sum(sum(sum(mesh_sequence_diff)))
     print(f"mesh_sequence_diff.shape" , geodesic.shape)
+    print(f"summed_mesh_sequence_diffs.shape" , summed_mesh_sequence_diffs.shape)
 
     n_vertices = mesh_sequence_vertices[0].shape[0]
     normalized_mesh_sequence_diff = mesh_sequence_diff / (n_vertices * len(times)*3)
