@@ -335,25 +335,27 @@ def euclidean_subspace_test(
         compared to a tolerance that utilizes the size of the mesh and number of
         vertices.
     """
-    SURFACE_SPACE = DiscreteSurfaces(faces=gs.array(mesh_sequence_faces))
-    METRIC = ElasticMetric(
-        space=SURFACE_SPACE,
-        a0=default_config.a0,
-        a1=default_config.a1,
-        b1=default_config.b1,
-        c1=default_config.c1,
-        d1=default_config.d1,
-        a2=default_config.a2,
-    )
+    # SURFACE_SPACE = DiscreteSurfaces(faces=gs.array(mesh_sequence_faces))
+    # METRIC = ElasticMetric(
+    #     space=SURFACE_SPACE,
+    #     a0=default_config.a0,
+    #     a1=default_config.a1,
+    #     b1=default_config.b1,
+    #     c1=default_config.c1,
+    #     d1=default_config.d1,
+    #     a2=default_config.a2,
+    # )
 
-    METRIC.exp_solver = _ExpSolver(n_steps=n_steps)
+    # METRIC.exp_solver = _ExpSolver(n_steps=n_steps)
 
-    mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
+    # mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
 
-    geodesic_fn = METRIC.geodesic(
-            initial_point=mesh_sequence_vertices[0], end_point=mesh_sequence_vertices[-1]
-    )
-    geodesic = geodesic_fn(times)
+    # geodesic_fn = METRIC.geodesic(
+    #         initial_point=mesh_sequence_vertices[0], end_point=mesh_sequence_vertices[-1]
+    # )
+    # geodesic = geodesic_fn(times)
+
+    geodesic = gs.array(mesh_sequence_vertices)
 
 
     line = gs.array(

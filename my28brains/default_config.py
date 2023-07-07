@@ -73,7 +73,7 @@ stepsize = {
 
 # Regression Parameters
 
-dataset_name = ["synthetic", "real"]  # "synthetic" or "real"
+dataset_name = ["real"]  # "synthetic" or "real"
 sped_up = [True]  # 'True' or 'False' (not currently used)
 geodesic_initialization = [
     "warm_start",
