@@ -335,38 +335,33 @@ def euclidean_subspace_test(
         compared to a tolerance that utilizes the size of the mesh and number of
         vertices.
     """
-    # if dataset == "synthetic":
-    geodesic = gs.array(mesh_sequence_vertices)
-    # if dataset == "real":
-    #     SURFACE_SPACE = DiscreteSurfaces(faces=gs.array(mesh_sequence_faces))
-    #     METRIC = ElasticMetric(
-    #         space=SURFACE_SPACE,
-    #         a0=default_config.a0,
-    #         a1=default_config.a1,
-    #         b1=default_config.b1,
-    #         c1=default_config.c1,
-    #         d1=default_config.d1,
-    #         a2=default_config.a2,
-    #     )
+    SURFACE_SPACE = DiscreteSurfaces(faces=gs.array(mesh_sequence_faces))
+    METRIC = ElasticMetric(
+        space=SURFACE_SPACE,
+        a0=default_config.a0,
+        a1=default_config.a1,
+        b1=default_config.b1,
+        c1=default_config.c1,
+        d1=default_config.d1,
+        a2=default_config.a2,
+    )
 
-    #     METRIC.exp_solver = _ExpSolver(n_steps=n_steps)
+    METRIC.exp_solver = _ExpSolver(n_steps=n_steps)
 
-    #     mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
-    #     start_point = mesh_sequence_vertices[0]
-    #     end_point = mesh_sequence_vertices[-1]
+    mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
 
-    #     geodesic_fn = METRIC.geodesic(
-    #             initial_point=start_point, end_point=end_point
-    #     )
-    #     geodesic = geodesic_fn(gs.linspace(0, 1, len(times)))
+    geodesic_fn = METRIC.geodesic(
+            initial_point=mesh_sequence_vertices[0], end_point=mesh_sequence_vertices[-1]
+    )
+    geodesic = geodesic_fn(times)
+
 
     line = gs.array(
             [
                 t * mesh_sequence_vertices[0] + (1 - t) * mesh_sequence_vertices[-1]
-                for t in gs.linspace(0, 1, len(times))
+                for t in times
             ]
         )
-    
 
     mesh_sequence_diff = abs(geodesic - line)
     summed_mesh_sequence_diffs = sum(sum(sum(mesh_sequence_diff)))

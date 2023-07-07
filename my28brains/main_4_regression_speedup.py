@@ -114,6 +114,7 @@ def main_run(config):
         ) = parameterized_regression.euclidean_subspace_test(
             mesh_sequence_vertices,
             mesh_faces,
+            times,
             wandb_config.tol_factor,
             wandb_config.n_steps,
         )
@@ -129,7 +130,7 @@ def main_run(config):
         # if euclidean_subspace_via_ratio:
         #     diffs_log = int(1)
 
-        if wandb.dataset_name == "synthetic":
+        if wandb_config.dataset_name == "synthetic":
             wandb.log(
                 {
                     "n_subdivisions": wandb_config.n_subdivisions,
@@ -138,6 +139,7 @@ def main_run(config):
                         wandb_config.ellipse_dimensions[0]
                         / wandb_config.ellipse_dimensions[-1]
                     ),
+                }
             )
 
         wandb.log(
