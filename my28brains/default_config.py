@@ -77,10 +77,10 @@ dataset_name = ["real"]  # "synthetic" or "real"
 sped_up = [True]  # 'True' or 'False' (not currently used)
 geodesic_initialization = [
     "warm_start",
-    "random"
+    "random",
 ]  # "warm_start" or "random" (random on parka server)
 geodesic_residuals = [False]  # 'True' or 'False' (alternative is linear residuals)
-n_steps = [3,5]  # n steps for the exp solver of geomstats.
+n_steps = [3, 5]  # n steps for the exp solver of geomstats.
 tol_factor = [
     0.001,
     0.01,
@@ -107,7 +107,7 @@ ellipse_dimensions = [
     [2, 2, 3],
     [2, 2, 10],
     [10, 10, 2],
-    [2, 2, 6]
+    [2, 2, 6],
 ]  # if nothing recorded, [2, 2, 3]
 
 # GPU Parameters
