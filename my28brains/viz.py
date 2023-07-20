@@ -6,7 +6,8 @@ import os
 import geomstats.backend as gs
 import matplotlib
 import matplotlib.pyplot as plt
-import nibabel
+
+# import nibabel
 import numpy as np
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -251,12 +252,17 @@ def plotly_hormones(df, by, day, hormones=HORMONES, ymax=None, savefig=False):
 def offset_mesh_sequence(mesh_sequence_vertices):
     """Offset a mesh sequence to visualize it better."""
     n_times = len(mesh_sequence_vertices)
+    print(f"ntimes = {n_times}")
     diameter = data_utils.mesh_diameter(mesh_sequence_vertices[0])
-    max_offset = n_times * diameter * 1.2
+    max_offset = n_times * diameter * 1.1
     offsets = gs.linspace(0, max_offset, n_times)
+    print(offsets)
 
     offset_mesh_sequence_vertices = []
     for i_mesh, mesh in enumerate(mesh_sequence_vertices):
-        offset_mesh_sequence_vertices.append(mesh + offsets[i_mesh])
+        print(mesh.shape)
+        offset_mesh = mesh + offsets[i_mesh]
+        print(offset_mesh.shape)
+        offset_mesh_sequence_vertices.append(offset_mesh)
     offset_mesh_sequence_vertices = gs.vstack(offset_mesh_sequence_vertices)
     return offset_mesh_sequence_vertices
