@@ -27,7 +27,7 @@ import my28brains.viz as viz
 import wandb
 
 NOISE_FACTORS = [0.01, 0.1, 0.5]  # , 1.0]
-N_STEPS = [3, 5, 8]  # 10, 20]
+N_STEPS = [3, 5, 8]  # 10, 20]  #
 SUBDIVISIONS = [1, 2, 3]
 N_TIMES = [10]
 
