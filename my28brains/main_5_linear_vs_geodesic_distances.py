@@ -26,10 +26,10 @@ import my28brains.datasets.utils as data_utils
 import my28brains.viz as viz
 import wandb
 
-NOISE_FACTORS = [0.01, 0.1, 0.5, 1.0]
-N_STEPS = [10, 20]  # [3, 5, 8]
+NOISE_FACTORS = [0.01, 0.1, 0.5]  # , 1.0]
+N_STEPS = [3, 5, 8]  # 10, 20]  #
 SUBDIVISIONS = [1, 2, 3]
-N_TIMES = [5, 10]
+N_TIMES = [10]
 
 
 def main_run(config):
@@ -118,6 +118,7 @@ def main_run(config):
     diff_seq_per_time_and_vertex = gs.linalg.norm(line - geodesic) / (
         wandb_config.n_times * n_vertices
     )
+    abs_seq = gs.abs(line - geodesic)
 
     diff_seq_per_time_vertex_diameter = diff_seq_per_time_and_vertex / diameter
     diff_seq_duration = line_duration - geodesic_duration
@@ -152,6 +153,7 @@ def main_run(config):
             "offset_line": wandb.Object3D(offset_line.numpy()),
             "offset_geodesic": wandb.Object3D(offset_geodesic.numpy()),
             "diff_seq_per_time_and_vertex": diff_seq_per_time_and_vertex,
+            "abs_seq": abs_seq,
             "diff_seq_per_time_vertex_diameter": diff_seq_per_time_vertex_diameter,
             "diff_seq_duration": diff_seq_duration,
             "diff_seq_duration_per_time_and_vertex": diff_seq_duration
@@ -159,6 +161,10 @@ def main_run(config):
             "relative_diff_seq_duration": relative_diff_seq_duration,
             "relative_diff_seq_per_time_and_vertex": relative_diff_seq_duration
             / (wandb_config.n_times * n_vertices),
+            # Log actual lines
+            "line": line.numpy(),
+            "geodesic": geodesic.numpy(),
+            "post_error": True,
         }
     )
     wandb.finish()
