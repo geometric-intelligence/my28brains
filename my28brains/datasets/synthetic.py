@@ -31,19 +31,25 @@ import my28brains.default_config as default_config
 def generate_synthetic_mesh(mesh_type, n_subdivisions, ellipse_dimensions):
     """Generate a synthetic mesh.
 
-    appropriate mesh types:
-        sphere
-        ellipsoid
-        pill
+    Parameters
+    ----------
+    mesh_type : str, {"sphere", "ellipsoid", "pill"}
+        Type of mesh to generate.
+    n_subdivisions : int
+        How many times to subdivide the mesh (from trimesh). 
+        Note that the number of faces will grow as function of 4 ** subdivisions, 
+        so you probably want to keep this under ~5.
+    ellipse_dimensions : list
+        List of integers representing the dimensions of the ellipse.
+        Example: ellipse_dimensions=[2, 2, 3].
     """
     if mesh_type == "sphere":
         return generate_sphere_mesh(subdivisions=n_subdivisions)
-    elif mesh_type == "ellipsoid":
+    if mesh_type == "ellipsoid":
         return generate_ellipsoid_mesh(
             subdivisions=n_subdivisions, ellipse_dimensions=ellipse_dimensions
         )
-    else:
-        raise ValueError(f"mesh_type {mesh_type} not recognized")
+    raise ValueError(f"mesh_type {mesh_type} not recognized")
 
 
 def generate_sphere_mesh(subdivisions=3):
@@ -78,10 +84,10 @@ def generate_synthetic_parameterized_geodesic(
 
     Parameters
     ----------
-    mesh1: a trimesh object
-    mesh2: a trimesh object
-    n_times: the number of points to sample along the geodesic
-    note: mesh1 and mesh2 must have the same number of vertices and faces
+    start_mesh : a trimesh object
+    end_mesh : a trimesh object
+    n_times : the number of points to sample along the geodesic
+    note : start_mesh and end_mesh must have the same number of vertices and faces
 
     Returns
     -------
@@ -103,7 +109,6 @@ def generate_synthetic_parameterized_geodesic(
     )
     METRIC.exp_solver = _ExpSolver(n_steps=n_steps)
 
-    print("surface and metric space created")
     dim = 3
     n_vertices = start_mesh.vertices.shape[0]
     geodesic_points = gs.zeros(

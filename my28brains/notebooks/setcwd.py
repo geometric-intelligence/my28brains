@@ -1,5 +1,11 @@
 """Script that sets up the file directory tree before running a notebook.
 
+It uses root of github directory to make sure everyone's code runs from 
+the same directory, called current working directory cwd.
+
+It adds the python code in the parent directory of the working directory 
+in the list of paths.
+
 Usage:
 
 import setcwd

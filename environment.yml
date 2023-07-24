@@ -1,4 +1,4 @@
-name: my28brains
+name: my28brains_temp
 channels:
   - defaults
 dependencies:
@@ -6,11 +6,13 @@ dependencies:
   - pip
   - matplotlib>=3.5.1
   - pip:
-    - git+https://github.com/ninamiolane/geomstats.git@surfaces_w_metric
+    - git+https://github.com/geomstats/geomstats.git
     - jupyter
     - jupyterlab
     - jupyterlab-code-formatter
     - kaleido
+    - nibabel
+    - nilearn
     - numpy
     - pykeops
     - plotly
