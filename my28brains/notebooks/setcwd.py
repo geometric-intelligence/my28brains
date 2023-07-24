@@ -1,9 +1,9 @@
 """Script that sets up the file directory tree before running a notebook.
 
-It uses root of github directory to make sure everyone's code runs from 
+It uses root of github directory to make sure everyone's code runs from
 the same directory, called current working directory cwd.
 
-It adds the python code in the parent directory of the working directory 
+It adds the python code in the parent directory of the working directory
 in the list of paths.
 
 Usage:
@@ -34,3 +34,6 @@ def main():
     print("Directory added to path: ", sys_dir)
     sys.path.append(os.getcwd())
     print("Directory added to path: ", os.getcwd())
+    h2_dir = os.path.join(sys_dir, "H2_SurfaceMatch")
+    sys.path.append(h2_dir)
+    print("Directory added to path: ", h2_dir)
