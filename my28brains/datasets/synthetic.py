@@ -1,4 +1,11 @@
-"""Generate meshes and synthetic geodesics."""
+"""Generate meshes and synthetic geodesics.
+
+If we need to remove degenerate faces on these meshes, it can be done with:
+>>> area_threshold = 0.0005
+>>> face_areas = SURFACE_SPACE.face_areas(torch.tensor(ellipsoid.vertices))
+>>> face_mask = ~gs.less(face_areas, area_threshold)
+>>> ellipsoid.update_faces(face_mask)
+"""
 
 import os
 import sys
