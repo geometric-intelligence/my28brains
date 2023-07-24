@@ -42,7 +42,7 @@ def generate_synthetic_mesh(
 
     Parameters
     ----------
-    mesh_type : str, {"sphere", "ellipsoid", "pill"}
+    mesh_type : str, {"sphere", "ellipsoid", "pill", "cube"}
         Type of mesh to generate.
     n_subdivisions : int
         How many times to subdivide the mesh (from trimesh).
@@ -60,6 +60,8 @@ def generate_synthetic_mesh(
         )
     if mesh_type == "pill":
         return trimesh.creation.capsule(height=1.0, radius=1.0, count=None)
+    if mesh_type == "cube":
+        return generate_cube_mesh()
     raise ValueError(f"mesh_type {mesh_type} not recognized")
 
 
@@ -86,6 +88,44 @@ def generate_ellipsoid_mesh(subdivisions=3, ellipse_dimensions=[2, 2, 3]):
     # Create a new mesh with the scaled vertices
     ellipsoid = trimesh.Trimesh(vertices=scaled_vertices, faces=sphere.faces)
     return ellipsoid
+
+
+def generate_cube_mesh():
+    """Create the cube mesh used in geomstats unit tests.
+
+    See: geomstats/datasets/data/cube_meshes/cube_mesh_diagram.jpeg.
+    """
+    vertices = np.array(
+        [
+            [1, 1, 1],
+            [1, -1, 1],
+            [1, -1, -1],
+            [1, 1, -1],
+            [-1, 1, 1],
+            [-1, -1, 1],
+            [-1, -1, -1],
+            [-1, 1, -1],
+        ]
+    )
+
+    faces = np.array(
+        [
+            [0, 1, 4],
+            [1, 4, 5],
+            [0, 3, 4],
+            [3, 4, 7],
+            [1, 2, 3],
+            [0, 1, 3],
+            [1, 2, 5],
+            [2, 5, 6],
+            [5, 6, 7],
+            [4, 5, 7],
+            [2, 6, 7],
+            [2, 3, 7],
+        ]
+    )
+
+    return trimesh.Trimesh(vertices=vertices, faces=faces)
 
 
 def generate_synthetic_parameterized_geodesic(
