@@ -140,7 +140,7 @@ def generate_synthetic_parameterized_geodesic(
 
     More precisely, this function generates a geodesic with:
     - initial mesh (intercept): start_mesh,
-    - initial tangent vector (slope): end_mesh - start_mesh.
+    - initial tangent vector (coef): end_mesh - start_mesh.
 
     Parameters
     ----------
@@ -156,11 +156,11 @@ def generate_synthetic_parameterized_geodesic(
     geodesic_points : torch.tensor, shape=[n_times, n_vertices, 3]
     faces : array-like, shape=[n_faces, 3]
     true_intercept : torch.tensor, shape=[n_vertices, 3]
-    true_slope: torch.tensor, shape=[n_vertices, 3]
+    true_coef: torch.tensor, shape=[n_vertices, 3]
 
     Notes
     -----
-    true_intercept and true_slope are useful for evaluating the
+    true_intercept and true_coef are useful for evaluating the
     performance of a regression model on this synthetic data.
     """
     SURFACE_SPACE = DiscreteSurfaces(faces=gs.array(start_mesh.faces))
@@ -179,15 +179,15 @@ def generate_synthetic_parameterized_geodesic(
     initial_point = torch.tensor(start_mesh.vertices)
     end_point = torch.tensor(end_mesh.vertices)
     true_intercept = initial_point
-    true_slope = initial_point - end_point
+    true_coef = initial_point - end_point
 
     geodesic = METRIC.geodesic(
-        initial_point=true_intercept, initial_tangent_vec=true_slope
+        initial_point=true_intercept, initial_tangent_vec=true_coef
     )
     print("Geodesic function created. Computing points along geodesic...")
     geod = geodesic(times)
     print("Done.")
-    return geod, start_mesh.faces, times, true_intercept, true_slope
+    return geod, start_mesh.faces, times, true_intercept, true_coef
 
 
 def generate_unparameterized_synthetic_geodesic(start_mesh, end_mesh, n_times=5):
