@@ -1,4 +1,11 @@
-"""Generate meshes and synthetic geodesics."""
+"""Generate meshes and synthetic geodesics.
+
+If we need to remove degenerate faces on these meshes, it can be done with:
+>>> area_threshold = 0.0005
+>>> face_areas = SURFACE_SPACE.face_areas(torch.tensor(ellipsoid.vertices))
+>>> face_mask = ~gs.less(face_areas, area_threshold)
+>>> ellipsoid.update_faces(face_mask)
+"""
 
 import os
 import sys
@@ -28,28 +35,40 @@ import H2_SurfaceMatch.utils.utils  # noqa: E402
 import my28brains.default_config as default_config
 
 
-def generate_synthetic_mesh(mesh_type, n_subdivisions, ellipse_dimensions):
+def generate_synthetic_mesh(
+    mesh_type, n_subdivisions=None, ellipse_dimensions=[2, 2, 3]
+):
     """Generate a synthetic mesh.
 
-    appropriate mesh types:
-        sphere
-        ellipsoid
-        pill
+    Parameters
+    ----------
+    mesh_type : str, {"sphere", "ellipsoid", "pill", "cube"}
+        Type of mesh to generate.
+    n_subdivisions : int
+        How many times to subdivide the mesh (from trimesh).
+        Note that the number of faces will grow as function of 4 ** subdivisions,
+        so you probably want to keep this under ~5.
+    ellipse_dimensions : list
+        List of integers representing the dimensions of the ellipse.
+        Example: ellipse_dimensions=[2, 2, 3].
     """
     if mesh_type == "sphere":
         return generate_sphere_mesh(subdivisions=n_subdivisions)
-    elif mesh_type == "ellipsoid":
+    if mesh_type == "ellipsoid":
         return generate_ellipsoid_mesh(
             subdivisions=n_subdivisions, ellipse_dimensions=ellipse_dimensions
         )
-    else:
-        raise ValueError(f"mesh_type {mesh_type} not recognized")
+    if mesh_type == "pill":
+        return trimesh.creation.capsule(height=1.0, radius=1.0, count=None)
+    if mesh_type == "cube":
+        return generate_cube_mesh()
+    raise ValueError(f"mesh_type {mesh_type} not recognized")
 
 
 def generate_sphere_mesh(subdivisions=3):
     """Create a sphere trimesh."""
     subdivisions = subdivisions
-    radius = 30 ** subdivisions
+    radius = 30**subdivisions
     sphere = trimesh.creation.icosphere(subdivisions=subdivisions, radius=radius)
     return sphere
 
@@ -58,7 +77,7 @@ def generate_ellipsoid_mesh(subdivisions=3, ellipse_dimensions=[2, 2, 3]):
     """Create an ellipsoid trimesh."""
     subdivisions = subdivisions
     ellipse_dimensions = ellipse_dimensions
-    radius = 30 ** subdivisions
+    radius = 30**subdivisions
     sphere = trimesh.creation.icosphere(subdivisions=subdivisions, radius=radius)
     # Create a scaling matrix for the semi-axes lengths
     scales = np.array(ellipse_dimensions)
@@ -71,24 +90,77 @@ def generate_ellipsoid_mesh(subdivisions=3, ellipse_dimensions=[2, 2, 3]):
     return ellipsoid
 
 
+def generate_cube_mesh():
+    """Create the cube mesh used in geomstats unit tests.
+
+    See: geomstats/datasets/data/cube_meshes/cube_mesh_diagram.jpeg.
+    """
+    vertices = np.array(
+        [
+            [1, 1, 1],
+            [1, -1, 1],
+            [1, -1, -1],
+            [1, 1, -1],
+            [-1, 1, 1],
+            [-1, -1, 1],
+            [-1, -1, -1],
+            [-1, 1, -1],
+        ]
+    )
+
+    faces = np.array(
+        [
+            [0, 1, 4],
+            [1, 4, 5],
+            [0, 3, 4],
+            [3, 4, 7],
+            [1, 2, 3],
+            [0, 1, 3],
+            [1, 2, 5],
+            [2, 5, 6],
+            [5, 6, 7],
+            [4, 5, 7],
+            [2, 6, 7],
+            [2, 3, 7],
+        ]
+    )
+
+    return trimesh.Trimesh(vertices=vertices, faces=faces)
+
+
 def generate_synthetic_parameterized_geodesic(
-    start_mesh, end_mesh, n_times=5, n_steps = 3, device="cuda:0"
+    start_mesh, end_mesh, n_times=5, n_steps=3, device="cuda:0"
 ):
     """Generate a synthetic geodesic between two parameterized meshes.
 
+    Importantly, start_mesh and end_mesh must have the same number
+    of vertices and faces.
+
+    This function generates a geodesic without noise.
+
+    More precisely, this function generates a geodesic with:
+    - initial mesh (intercept): start_mesh,
+    - initial tangent vector (coef): end_mesh - start_mesh.
+
     Parameters
     ----------
-    mesh1: a trimesh object
-    mesh2: a trimesh object
-    n_times: the number of points to sample along the geodesic
-    note: mesh1 and mesh2 must have the same number of vertices and faces
+    start_mesh : trimesh.Trimesh
+        Mesh that represents the start of the geodesic.
+    end_mesh : trimesh.Trimesh
+        Mesh that represents the start of the geodesic.
+    n_times : int
+        Number of points to sample along the geodesic.
 
     Returns
     -------
-    geodesic_points: a torch tensor of shape (n_times, n_vertices, 3).
-    true_intercept: a torch tensor of shape (n_vertices, 3)
-    true_slope: a torch tensor of shape (n_vertices, 3)
-    note: true_intercept and true_slope are useful for evaluating the
+    geodesic_points : torch.tensor, shape=[n_times, n_vertices, 3]
+    faces : array-like, shape=[n_faces, 3]
+    true_intercept : torch.tensor, shape=[n_vertices, 3]
+    true_coef: torch.tensor, shape=[n_vertices, 3]
+
+    Notes
+    -----
+    true_intercept and true_coef are useful for evaluating the
     performance of a regression model on this synthetic data.
     """
     SURFACE_SPACE = DiscreteSurfaces(faces=gs.array(start_mesh.faces))
@@ -102,36 +174,20 @@ def generate_synthetic_parameterized_geodesic(
         a2=default_config.a2,
     )
     METRIC.exp_solver = _ExpSolver(n_steps=n_steps)
+    times = gs.arange(0, 1, 1 / n_times)
 
-    print("surface and metric space created")
-    dim = 3
-    n_vertices = start_mesh.vertices.shape[0]
-    geodesic_points = gs.zeros(
-        n_times, n_vertices, dim
-    )  # .to(dtype=default_config.torch_dtype, device = device)
-    times = gs.arange(
-        0, 1, 1 / n_times
-    )  # .to(dtype=default_config.torch_dtype, device = device)
-    initial_point = torch.tensor(
-        start_mesh.vertices
-    )  # .to(dtype=default_config.torch_dtype, device = device)
-    end_point = torch.tensor(
-        end_mesh.vertices
-    )  # .to(dtype=default_config.torch_dtype, device = device)
-    true_slope = initial_point - end_point
-    geodesic = METRIC.geodesic(
-        initial_point=initial_point, initial_tangent_vec=true_slope
-    )
-    print("geodesic object created")
-    geodesic_points = geodesic(times)
-    # TODO: implement noise code (code noise_var into rest of code)
-    # make geodesic with initial point and initial tangent vector.
-    # noisy_geodesic_points = geodesic_points + gs.random.normal(
-    #     0, noise_var, (n_times, n_vertices, dim)
-    # )
+    initial_point = torch.tensor(start_mesh.vertices)
+    end_point = torch.tensor(end_mesh.vertices)
     true_intercept = initial_point
-    print("geodesic points created")
-    return geodesic_points, start_mesh.faces, times, true_intercept, true_slope
+    true_coef = initial_point - end_point
+
+    geodesic = METRIC.geodesic(
+        initial_point=true_intercept, initial_tangent_vec=true_coef
+    )
+    print("Geodesic function created. Computing points along geodesic...")
+    geod = geodesic(times)
+    print("Done.")
+    return geod, start_mesh.faces, times, true_intercept, true_coef
 
 
 def generate_unparameterized_synthetic_geodesic(start_mesh, end_mesh, n_times=5):
@@ -165,4 +221,4 @@ def generate_unparameterized_synthetic_geodesic(start_mesh, end_mesh, n_times=5)
         paramlist=default_config.paramlist,
         device=device,
     )
-    return geod
+    return geod, F0
