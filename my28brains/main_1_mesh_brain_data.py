@@ -23,11 +23,11 @@ import trimesh
 
 import my28brains.meshing as meshing
 
-my28brains_data_dir = default_config.my28brains_data_dir
+raw_data_dir = default_config.raw_data_dir
 meshed_data_dir = default_config.meshed_data_dir
 centered_dir = default_config.centered_dir
 
-day_dirs = [os.path.join(my28brains_data_dir, f"Day{i:02d}") for i in range(1, 61)]
+day_dirs = [os.path.join(raw_data_dir, f"Day{i:02d}") for i in range(1, 61)]
 
 
 def write_meshes(hemisphere, structure_id):
@@ -45,7 +45,7 @@ def write_meshes(hemisphere, structure_id):
     """
     print(f"Looking into: {day_dirs}")
     nii_paths = []
-    for i_day, day_dir in enumerate(day_dirs):
+    for day_dir in day_dirs:
         for file_name in os.listdir(day_dir):
             if file_name.startswith(hemisphere) and file_name.endswith(".nii.gz"):
                 nii_paths.append(os.path.join(day_dir, file_name))

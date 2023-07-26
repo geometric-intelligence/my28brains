@@ -165,7 +165,7 @@ gitroot_path = subprocess.check_output(
 os.chdir(gitroot_path[:-1])
 work_dir = os.getcwd()
 
-my28brains_data_dir = "/home/data/28andMeOC_correct"
+raw_data_dir = "/home/data/28andMeOC_correct"
 my28brains_dir = os.path.join(os.getcwd(), "my28brains")
 h2_dir = os.path.join(os.getcwd(), "H2_SurfaceMatch")
 
