@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "my28brains"
 dynamic = ["version"]
 authors = [
-    {name = "Adele Myers", email = "adele@ucsb.com"}
+    {name = "Adele Myers", email = "adele@ucsb.edu"}
 ]
 readme = "README.md"
 description = "Brain Shape Analysis through the Menstrual Cycle"
