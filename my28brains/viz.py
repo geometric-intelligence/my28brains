@@ -6,8 +6,7 @@ import os
 import geomstats.backend as gs
 import matplotlib
 import matplotlib.pyplot as plt
-
-# import nibabel
+import nibabel
 import numpy as np
 import plotly.graph_objects as go
 import plotly.io as pio

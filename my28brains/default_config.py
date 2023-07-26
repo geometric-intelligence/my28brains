@@ -171,7 +171,7 @@ h2_dir = os.path.join(os.getcwd(), "H2_SurfaceMatch")
 
 # Data
 data_dir = os.path.join(os.getcwd(), "data")
-synthetic_data_dir = os.path.join(data_dir, "synthetic_data")
+synthetic_data_dir = os.path.join(data_dir, "synthetic")
 
 # Results
 results_dir = os.path.join(os.getcwd(), "my28brains", "results")
