@@ -3,13 +3,11 @@
 import os
 
 import geomstats.backend as gs
-
-# import nibabel
+import nibabel
 import numpy as np
 import skimage
 import trimesh
-
-# from my28brains.discrete_surfaces import DiscreteSurfaces
+from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 
 
 def write_trimesh_to_ply(mesh, ply_path):
