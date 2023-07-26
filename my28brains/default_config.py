@@ -169,12 +169,13 @@ my28brains_data_dir = "/home/data/28andMeOC_correct"
 my28brains_dir = os.path.join(os.getcwd(), "my28brains")
 h2_dir = os.path.join(os.getcwd(), "H2_SurfaceMatch")
 
-# Data
-data_dir = os.path.join(os.getcwd(), "data")
+# Data (inside my28brains_dir : my28brains/my28brains/)
+data_dir = os.path.join(my28brains_dir, "data")
 synthetic_data_dir = os.path.join(data_dir, "synthetic")
 
-# Results
-results_dir = os.path.join(os.getcwd(), "my28brains", "results")
+# Results (inside my28brains_dir : my28brains/my28brains/)
+results_dir = os.path.join(my28brains_dir, "results")
+tmp_dir = os.path.join(results_dir, "tmp")
 meshed_data_dir = os.path.join(results_dir, "meshes")
 centered_dir = os.path.join(results_dir, "meshes_centered")
 centered_nondegenerate_dir = os.path.join(results_dir, "meshes_centered_nondegenerate")

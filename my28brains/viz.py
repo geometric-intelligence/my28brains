@@ -13,6 +13,7 @@ import plotly.io as pio
 from matplotlib import animation
 
 import my28brains.datasets.utils as data_utils
+import my28brains.default_config as default_config
 
 IMG_DIR = "/home/data/28andme/"
 HORMONES = {"Estro": "Estrogen", "Prog": "Progesterone", "LH": "LH", "FSH": "FSH"}
@@ -25,12 +26,7 @@ COLORS = {
     "FSH": "#FADA5E",  # pastel yellow
 }
 
-ANIMS = os.path.join(os.getcwd(), "results", "anims")
-TMP = os.path.join(os.getcwd(), "results", "tmp")
-
-for dir in [ANIMS, TMP]:
-    if not os.path.exists(dir):
-        os.makedirs(dir)
+TMP = default_config.tmp_dir
 
 
 def init_matplotlib():
