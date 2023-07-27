@@ -30,7 +30,7 @@ centered_dir = default_config.centered_dir
 day_dirs = [os.path.join(raw_data_dir, f"Day{i:02d}") for i in range(1, 61)]
 
 
-def write_meshes(hemisphere, structure_id):
+def extract_meshes_from_nii_and_write(hemisphere, structure_id):
     """Write meshes for all substructures and all days.
 
     This function loads the segmentation images for a given structure/hemisphere,
@@ -67,7 +67,7 @@ def write_meshes(hemisphere, structure_id):
         meshing.write_trimesh_to_ply(mesh=mesh, ply_path=ply_path)
 
 
-def write_whole_hippocampus_centered_mesh(hemisphere):
+def center_whole_hippocampus_and_write(hemisphere):
     """Write centered meshes for the whole hippocampus.
 
     This function loads the meshes for the whole hippocampus,
@@ -108,7 +108,7 @@ def write_whole_hippocampus_centered_mesh(hemisphere):
     return hippocampus_centers
 
 
-def write_substructure_centered_mesh(hemisphere, structure_id, hippocampus_centers):
+def center_substructure_and_write(hemisphere, structure_id, hippocampus_centers):
     """Write centered meshes for a substructure.
 
     This function loads the meshes for a substructure,
@@ -150,18 +150,18 @@ if __name__ == "__main__":
     for hemisphere, structure_id in itertools.product(
         default_config.hemisphere, default_config.structure_ids
     ):
-        write_meshes(hemisphere, structure_id)
+        extract_meshes_from_nii_and_write(hemisphere, structure_id)
 
     # Need to add the whole hippocampus meshes to the list of structures
     # in order to be able to compute its center and center the substructures.
     if -1 not in default_config.structure_ids:
         for hemisphere in default_config.hemisphere:
-            write_meshes(hemisphere, -1)
+            extract_meshes_from_nii_and_write(hemisphere, -1)
 
     for hemisphere in default_config.hemisphere:
-        hippocampus_centers = write_whole_hippocampus_centered_mesh(hemisphere)
+        hippocampus_centers = center_whole_hippocampus_and_write(hemisphere)
         for structure_id in default_config.structure_ids:
             if structure_id != -1:
-                write_substructure_centered_mesh(
+                center_substructure_and_write(
                     hemisphere, structure_id, hippocampus_centers
                 )
