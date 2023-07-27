@@ -25,16 +25,16 @@ import time
 
 import geomstats.backend as gs
 import torch
-import wandb
 
 import my28brains.datasets.utils as data_utils
 import my28brains.default_config as default_config
 import my28brains.parameterized_regression as parameterized_regression
 import my28brains.viz as viz
+import wandb
 
 my28brains_dir = default_config.my28brains_dir
 synthetic_data_dir = default_config.synthetic_data_dir
-parameterized_meshes_dir = default_config.parameterized_meshes_dir
+parameterized_dir = default_config.parameterized_dir
 data_dir = default_config.data_dir
 
 device = torch.device(

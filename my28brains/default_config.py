@@ -145,7 +145,6 @@ area_thresholds = [0.00]  # 0.0001, 0.001, 0.01, 0.1, 1.0]
 hemisphere = ["left"]  # , "right"]
 structure_ids = [-1]
 
-
 # range of days to interpolate in between
 # Looking at the first 10 days is interesting because:
 # - we have 10 gpus, so we can run 10 interpolations at once
@@ -167,7 +166,7 @@ gitroot_path = subprocess.check_output(
 os.chdir(gitroot_path[:-1])
 work_dir = os.getcwd()
 
-raw_data_dir = "/home/data/28andMeOC_correct"
+raw_dir = "/home/data/28andMeOC_correct"
 my28brains_dir = os.path.join(os.getcwd(), "my28brains")
 h2_dir = os.path.join(os.getcwd(), "H2_SurfaceMatch")
 
@@ -178,29 +177,30 @@ synthetic_data_dir = os.path.join(data_dir, "synthetic")
 # Results (inside my28brains_dir : my28brains/my28brains/)
 results_dir = os.path.join(my28brains_dir, "results")
 tmp_dir = os.path.join(results_dir, "tmp")
-meshed_data_dir = os.path.join(results_dir, "meshes")
-centered_dir = os.path.join(results_dir, "meshes_centered")
-centered_nondegenerate_dir = os.path.join(results_dir, "meshes_centered_nondegenerate")
-geodesics_dir = os.path.join(results_dir, "meshes_geodesics")
-parameterized_meshes_dir = os.path.join(results_dir, "meshes_parameterized")
-sorted_parameterized_meshes_dir = os.path.join(
-    results_dir, "meshes_parameterized_sorted_by_hormone"
-)
-regression_dir = os.path.join(results_dir, "regression")
+
+preprocess_dir = os.path.join(results_dir, "1_preprocess")
+meshes_dir = os.path.join(preprocess_dir, "meshes")
+centered_dir = os.path.join(preprocess_dir, "centered")
+centered_nondegenerate_dir = os.path.join(preprocess_dir, "centered_nondegenerate")
+geodesics_dir = os.path.join(preprocess_dir, "geodesics")
+parameterized_dir = os.path.join(preprocess_dir, "parameterized")
+sorted_parameterized_dir = os.path.join(preprocess_dir, "sorted_parameterized")
+
+regression_dir = os.path.join(results_dir, "2_regression")
 
 sys_dir = os.path.dirname(work_dir)
 sys.path.append(sys_dir)
 sys.path.append(h2_dir)
 
 for mesh_dir in [
-    meshed_data_dir,
+    meshes_dir,
     centered_dir,
     centered_nondegenerate_dir,
     geodesics_dir,
     regression_dir,
     synthetic_data_dir,
-    parameterized_meshes_dir,
-    sorted_parameterized_meshes_dir,
+    parameterized_dir,
+    sorted_parameterized_dir,
 ]:
     if not os.path.exists(mesh_dir):
         os.makedirs(mesh_dir)
