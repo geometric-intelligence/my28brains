@@ -18,8 +18,11 @@ import subprocess
 import sys
 import warnings
 
+os.environ["GEOMSTATS_BACKEND"] = "pytorch"
+
 
 def main():
+    """Set up the file paths and directory tree."""
     warnings.filterwarnings("ignore")
 
     gitroot_path = subprocess.check_output(
