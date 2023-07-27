@@ -16,24 +16,21 @@ Performs regression on parameterized meshes.
 Mesh sequence chosen in default_config.py
 Returns the slope and intercept of the regression fit.
 
-Run:
->>> python main_4_regression_speedup.py
+Run: python main_4_regression_speedup.py
 """
 import itertools
 import logging
 import os
 import time
 
-import torch
-
-os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
+import torch
+import wandb
 
 import my28brains.datasets.utils as data_utils
 import my28brains.default_config as default_config
 import my28brains.parameterized_regression as parameterized_regression
 import my28brains.viz as viz
-import wandb
 
 my28brains_dir = default_config.my28brains_dir
 synthetic_data_dir = default_config.synthetic_data_dir
@@ -118,9 +115,7 @@ def main_run(config):
             wandb_config.tol_factor,
             wandb_config.n_steps,
         )
-        logging.info(
-            f"\n- Euclidean subspace: {euclidean_subspace}, "
-        )
+        logging.info(f"\n- Euclidean subspace: {euclidean_subspace}, ")
 
         # diffs_log = int(0)
         # if euclidean_subspace_via_diffs:

@@ -9,9 +9,9 @@ Get the .npy files to test this code.
 import os
 
 import numpy as np
+from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 
-import my28brains.my28brains.io as io
-from my28brains.my28brains.discrete_surfaces import DiscreteSurfaces
+import my28brains.my28brains.meshing as meshing
 
 TESTS_DIR = os.path.join(os.getcwd(), "tests")
 test_vertices_path = os.path.join(TESTS_DIR, "test_vertices.npy")
@@ -40,7 +40,7 @@ def test_remove_degenerate_faces():
     print("vertices:", vertices.shape)
     print("faces:", faces.shape)
 
-    new_vertices, new_faces = io.remove_degenerate_faces(vertices, faces)
+    new_vertices, new_faces = meshing.remove_degenerate_faces(vertices, faces)
     print("new vertices:", new_vertices.shape)
     print("new faces:", new_faces.shape)
     new_space = DiscreteSurfaces(faces=new_faces)
