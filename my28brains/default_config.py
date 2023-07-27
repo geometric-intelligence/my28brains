@@ -50,6 +50,8 @@ import sys
 
 import torch
 
+os.environ["GEOMSTATS_BACKEND"] = "pytorch"
+
 gitroot_path = subprocess.check_output(
     ["git", "rev-parse", "--show-toplevel"], universal_newlines=True
 )
