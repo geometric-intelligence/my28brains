@@ -3,8 +3,6 @@
 import os
 
 import default_config
-
-os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 import geomstats.backend as gs
 import numpy as np
 import trimesh
@@ -50,7 +48,7 @@ def load(config):  # , device = "cuda:0"):
 
             if not os.path.exists(start_shape_dir):
                 print(f"Creating {start_shape} mesh in {start_shape_dir}")
-                start_mesh = synthetic.generate_synthetic_mesh(
+                start_mesh = synthetic.generate_mesh(
                     start_shape, config.n_subdivisions, config.ellipse_dimensions
                 )
                 start_mesh_vertices = start_mesh.vertices
@@ -69,7 +67,7 @@ def load(config):  # , device = "cuda:0"):
 
             if not os.path.exists(end_shape_dir):
                 print(f"Creating {end_shape} mesh in {end_shape_dir}")
-                end_mesh = synthetic.generate_synthetic_mesh(
+                end_mesh = synthetic.generate_mesh(
                     end_shape, config.n_subdivisions, config.ellipse_dimensions
                 )
                 end_mesh_vertices = end_mesh.vertices
@@ -92,7 +90,7 @@ def load(config):  # , device = "cuda:0"):
                 times,
                 true_intercept,
                 true_coef,
-            ) = synthetic.generate_synthetic_parameterized_geodesic(
+            ) = synthetic.generate_parameterized_geodesic(
                 start_mesh,
                 end_mesh,
                 n_times,

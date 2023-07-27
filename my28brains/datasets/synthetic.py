@@ -7,22 +7,10 @@ If we need to remove degenerate faces on these meshes, it can be done with:
 >>> ellipsoid.update_faces(face_mask)
 """
 
-import os
-import sys
-
 import geomstats.backend as gs
 import numpy as np
 import torch
 import trimesh
-
-work_dir = os.getcwd()
-my28brains_dir = os.path.join(work_dir, "my28brains")
-h2_dir = os.path.join(work_dir, "H2_SurfaceMatch")
-sys_dir = os.path.dirname(work_dir)
-sys.path.append(sys_dir)
-sys.path.append(h2_dir)
-sys.path.append(my28brains_dir)
-
 from geomstats.geometry.discrete_surfaces import (
     DiscreteSurfaces,
     ElasticMetric,
@@ -35,9 +23,7 @@ import H2_SurfaceMatch.utils.utils  # noqa: E402
 import my28brains.default_config as default_config
 
 
-def generate_synthetic_mesh(
-    mesh_type, n_subdivisions=None, ellipse_dimensions=[2, 2, 3]
-):
+def generate_mesh(mesh_type, n_subdivisions=None, ellipse_dimensions=[2, 2, 3]):
     """Generate a synthetic mesh.
 
     Parameters
@@ -51,6 +37,11 @@ def generate_synthetic_mesh(
     ellipse_dimensions : list
         List of integers representing the dimensions of the ellipse.
         Example: ellipse_dimensions=[2, 2, 3].
+
+    Returns
+    -------
+    mesh : trimesh.Trimesh
+        The generated mesh.
     """
     if mesh_type == "sphere":
         return generate_sphere_mesh(subdivisions=n_subdivisions)
@@ -128,9 +119,7 @@ def generate_cube_mesh():
     return trimesh.Trimesh(vertices=vertices, faces=faces)
 
 
-def generate_synthetic_parameterized_geodesic(
-    start_mesh, end_mesh, n_times=5, n_steps=3, device="cuda:0"
-):
+def generate_parameterized_geodesic(start_mesh, end_mesh, n_times=5, n_steps=3):
     """Generate a synthetic geodesic between two parameterized meshes.
 
     Importantly, start_mesh and end_mesh must have the same number
@@ -150,6 +139,8 @@ def generate_synthetic_parameterized_geodesic(
         Mesh that represents the start of the geodesic.
     n_times : int
         Number of points to sample along the geodesic.
+    n_steps : int
+        Number of steps to use in the exponential map.
 
     Returns
     -------
@@ -190,22 +181,27 @@ def generate_synthetic_parameterized_geodesic(
     return geod, start_mesh.faces, times, true_intercept, true_coef
 
 
-def generate_unparameterized_synthetic_geodesic(start_mesh, end_mesh, n_times=5):
+def generate_unparameterized_geodesic(start_mesh, end_mesh, gpu_id=1):
     """Generate a synthetic geodesic between two unparameterized meshes.
 
     Parameters
     ----------
-    start_mesh: a trimesh object
-    end_mesh: a trimesh object
-    n_times: the number of points to sample along the geodesic
+    start_mesh : trimesh.Trimesh
+        Mesh that represents the start of the geodesic.
+    end_mesh : trimesh.Trimesh
+        Mesh that represents the end of the geodesic.
+    gpu_id : int
+        GPU to use for the computation.
+
+    Returns
+    -------
+    geod : torch.tensor, shape=[n_times, n_vertices, 3]
+        The geodesic. n_times is given through paramlist.
+    F0 : torch.tensor, shape=[n_faces, 3]
+        The faces of each mesh along the geodesic.
     """
-    vertices_source = start_mesh.vertices
-    faces_source = start_mesh.faces
-    vertices_target = end_mesh.vertices
-    faces_target = end_mesh.faces
-    source = [vertices_source, faces_source]
-    target = [vertices_target, faces_target]
-    gpu_id = 1
+    source = [start_mesh.vertices, start_mesh.faces]
+    target = [end_mesh.vertices, end_mesh.faces]
     device = torch.device(f"cuda:{gpu_id}" if torch.cuda.is_available() else "cpu")
     geod, F0 = H2_SurfaceMatch.H2_match.H2MultiRes(
         source=source,
