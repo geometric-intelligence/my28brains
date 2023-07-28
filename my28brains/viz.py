@@ -3,16 +3,15 @@
 import glob
 import os
 
-import geomstats.backend as gs
 import matplotlib
 import matplotlib.pyplot as plt
 import nibabel
 import numpy as np
+import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
 from matplotlib import animation
 
-import my28brains.datasets.utils as data_utils
 import my28brains.default_config as default_config
 
 IMG_DIR = "/home/data/28andme/"
@@ -30,7 +29,7 @@ TMP = default_config.tmp_dir
 
 
 def init_matplotlib():
-    """Configure style for matplotlib tutorial."""
+    """Configure style for matplotlib."""
     fontsize = 18
     matplotlib.rc("font", size=fontsize)
     matplotlib.rc("text")
@@ -245,19 +244,89 @@ def plotly_hormones(df, by, day, hormones=HORMONES, ymax=None, savefig=False):
 
 
 def offset_mesh_sequence(mesh_sequence_vertices):
-    """Offset a mesh sequence to visualize it better."""
+    """Offset a mesh sequence to visualize it better.
+
+    Offset on the x-axis only.
+
+    Parameters
+    ----------
+    mesh_sequence_vertices : np.array, shape=[n_times, n_vertices, 3]
+        Sequence of meshes.
+
+    Returns
+    -------
+    _ : np.array, shape=[n_times, n_vertices, 3]
+        Offset sequence of meshes.
+    """
     n_times = len(mesh_sequence_vertices)
     print(f"ntimes = {n_times}")
-    diameter = data_utils.mesh_diameter(mesh_sequence_vertices[0])
-    max_offset = n_times * diameter * 1.1
-    offsets = gs.linspace(0, max_offset, n_times)
+    points = mesh_sequence_vertices.reshape((-1, 3))
+    x_max = max(points[:, 0])
+    x_min = min(points[:, 0])
+    x_diameter = np.abs(x_max - x_min)
+    max_offset = n_times * x_diameter * 1.5
+    offsets = np.linspace(0, max_offset, n_times)
     print(offsets)
 
     offset_mesh_sequence_vertices = []
     for i_mesh, mesh in enumerate(mesh_sequence_vertices):
         print(mesh.shape)
-        offset_mesh = mesh + offsets[i_mesh]
+        offset_mesh = mesh + np.array([offsets[i_mesh], 0, 0])
         print(offset_mesh.shape)
         offset_mesh_sequence_vertices.append(offset_mesh)
-    offset_mesh_sequence_vertices = gs.vstack(offset_mesh_sequence_vertices)
-    return offset_mesh_sequence_vertices
+    offset_mesh_sequence_vertices = np.vstack(offset_mesh_sequence_vertices)
+    return offset_mesh_sequence_vertices.reshape((n_times, -1, 3))
+
+
+def plot_mesh_sequence(mesh_sequence_vertices):
+    """Plot a sequence of meshes.
+
+    Parameters
+    ----------
+    mesh_sequence_vertices : np.array, shape=[n_times, n_vertices, 3]
+        Sequence of meshes.
+    """
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection="3d")
+    ax.set_box_aspect([1.0, 1.0, 1.0])
+    len_sequence = len(mesh_sequence_vertices)
+    plasma_cmap = plt.cm.get_cmap("plasma")
+
+    for i_mesh, mesh in enumerate(mesh_sequence_vertices):
+        ax.scatter(
+            mesh[:, 0],
+            mesh[:, 1],
+            mesh[:, 2],
+            c=plasma_cmap(i_mesh / len_sequence),
+            marker="o",
+        )
+    plt.show()
+
+
+def plotly_mesh_sequence(mesh_sequence_vertices):
+    """Plot a sequence of meshes with plotly (interactive).
+
+    Parameters
+    ----------
+    mesh_sequence_vertices : np.array, shape=[n_times, n_vertices, 3]
+        Sequence of meshes.
+    """
+    plasma_cmap = px.colors.sequential.Plasma
+    data = []
+
+    for i_mesh, mesh in enumerate(mesh_sequence_vertices):
+        data.append(
+            go.Scatter3d(
+                x=mesh[:, 0],
+                y=mesh[:, 1],
+                z=mesh[:, 2],
+                mode="markers",
+                marker=dict(
+                    color=plasma_cmap[i_mesh], size=5, opacity=0.8, symbol="circle"
+                ),
+            )
+        )
+
+    fig = go.Figure(data=data)
+
+    fig.show()

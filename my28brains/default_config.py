@@ -129,7 +129,6 @@ n_subdivisions = [2]  # , 1, 3, 4, 5]
 # as function of 4 ** subdivisions, so you probably want to keep this under ~5.
 # if nothing recorded, value 3.
 ellipsoid_dims = [[2, 2, 3]]
-# [2, 2, 3],
 # [2, 2, 10],
 # [10, 10, 2],
 # [2, 2, 6],]  # if nothing recorded, [2, 2, 3]
