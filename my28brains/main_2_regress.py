@@ -1,45 +1,25 @@
-"""Speeds up parameterized geodesic regression with an intentional decimation scheme.
-
-What this script does:
-- Fetch a sequence of parameterized meshes, based on data specified in default_config.py
-THEN
-- Decimates the mesh_sequence to a LOW number of points.
-- Performs geodesic regression on the decimated mesh_sequence.
-- Uses decimated mesh slope and intercept as starting point for next regression.
-REPEATS ABOVE STEPS UNTIL THE INTERCEPT IS CLOSE TO THE TRUE INTERCEPT.
-- Compares the regression results to the true slope and intercept of the mesh_sequence.
-"""
-
-"""
-Performs regression on parameterized meshes.
+"""Parameterized geodesic regression.
 
 Mesh sequence chosen in default_config.py
 Returns the slope and intercept of the regression fit.
 
-Run: python main_4_regression_speedup.py
+NOTE: is t = 0 the intercept? let's check this if things aren't working.
 """
 import itertools
 import logging
 import os
 import time
 
+os.environ["GEOMSTATS_BACKEND"] = "pytorch"  # noqa: E402
 import geomstats.backend as gs
-import torch
 
 import my28brains.datasets.utils as data_utils
 import my28brains.default_config as default_config
-import my28brains.parameterized_regression as parameterized_regression
 import my28brains.viz as viz
 import wandb
+from my28brains.regression import check_euclidean, training
 
-my28brains_dir = default_config.my28brains_dir
-synthetic_data_dir = default_config.synthetic_data_dir
-reparameterized_dir = default_config.reparameterized_dir
-data_dir = default_config.data_dir
-
-device = torch.device(
-    f"cuda:{default_config.use_cuda}" if torch.cuda.is_available() else "cpu"
-)
+regress_dir = default_config.regress_dir
 
 
 def main_run(config):
@@ -62,15 +42,11 @@ def main_run(config):
         wandb.run.name = run_name
         logging.info(f"\n\n---> START run: {run_name}.")
 
-        linear_regression_dir = os.path.join(
-            default_config.regression_dir, f"{run_name}_linear"
-        )
-        geodesic_regression_dir = os.path.join(
-            default_config.regression_dir, f"{run_name}_geodesic"
-        )
-        for one_regression_dir in [linear_regression_dir, geodesic_regression_dir]:
-            if not os.path.exists(one_regression_dir):
-                os.makedirs(one_regression_dir)
+        linear_regress_dir = os.path.join(regress_dir, f"{run_name}_linear")
+        geodesic_regress_dir = os.path.join(regress_dir, f"{run_name}_geodesic")
+        for one_regress_dir in [linear_regress_dir, geodesic_regress_dir]:
+            if not os.path.exists(one_regress_dir):
+                os.makedirs(one_regress_dir)
 
         start_time = time.time()
         (
@@ -79,9 +55,7 @@ def main_run(config):
             times,
             true_intercept,
             true_coef,
-        ) = data_utils.load(
-            wandb_config
-        )  # , device=device)
+        ) = data_utils.load(wandb_config)
 
         logging.info(
             "\n- Calculating tolerance for geodesic regression."
@@ -96,46 +70,13 @@ def main_run(config):
         ) ** 2
         logging.info(f"\n- Tolerance calculated for geodesic regression: {tol:.3f}.")
 
-        if wandb_config.dataset_name == "synthetic":
-            logging.info(
-                f"\n- Adding noise to data with factor: {wandb_config.noise_factor}"
-            )
-            mesh_sequence_vertices = data_utils.add_noise(
-                mesh_sequence_vertices, wandb_config.noise_factor
-            )
-
         logging.info("\n- Testing whether data subspace is euclidean.")
-        (
-            euclidean_subspace,
-            diff_tolerance,
-        ) = parameterized_regression.euclidean_subspace_test(
+        euclidean_subspace, diff_tolerance = check_euclidean.subspace_test(
             mesh_sequence_vertices,
-            mesh_faces,
             times,
             wandb_config.tol_factor,
-            wandb_config.n_steps,
         )
         logging.info(f"\n- Euclidean subspace: {euclidean_subspace}, ")
-
-        # diffs_log = int(0)
-        # if euclidean_subspace_via_diffs:
-        #     diffs_log = int(1)
-
-        # ratio_log = int(0)
-        # if euclidean_subspace_via_ratio:
-        #     diffs_log = int(1)
-
-        if wandb_config.dataset_name == "synthetic":
-            wandb.log(
-                {
-                    "n_subdivisions": wandb_config.n_subdivisions,
-                    "ellipse_dimensions": wandb_config.ellipse_dimensions,
-                    "ellipse_ratio_h_v": (
-                        wandb_config.ellipse_dimensions[0]
-                        / wandb_config.ellipse_dimensions[-1]
-                    ),
-                }
-            )
 
         wandb.log(
             {
@@ -155,7 +96,7 @@ def main_run(config):
             linear_intercept_hat,
             linear_coef_hat,
             lr,
-        ) = parameterized_regression.linear_regression(mesh_sequence_vertices, times)
+        ) = training.fit_linear_regression(mesh_sequence_vertices, times)
 
         linear_duration_time = time.time() - start_time
         linear_intercept_err = gs.linalg.norm(linear_intercept_hat - true_intercept)
@@ -196,16 +137,16 @@ def main_run(config):
         )
 
         logging.info("Saving linear results...")
-        parameterized_regression.save_regression_results(
+        training.save_regression_results(
             dataset_name=wandb_config.dataset_name,
             sped_up=wandb_config.sped_up,
             mesh_sequence_vertices=gs.array(mesh_sequence_vertices),
             true_intercept_faces=gs.array(mesh_faces),
             true_coef=gs.array(true_coef),
-            regression_intercept=linear_intercept_hat,
-            regression_coef=linear_coef_hat,
+            regr_intercept=linear_intercept_hat,
+            regr_coef=linear_coef_hat,
             duration_time=linear_duration_time,
-            regression_dir=linear_regression_dir,
+            regress_dir=linear_regress_dir,
             meshes_along_regression=meshes_along_linear_regression,
         )
 
@@ -222,7 +163,7 @@ def main_run(config):
             geodesic_intercept_hat,
             geodesic_coef_hat,
             gr,
-        ) = parameterized_regression.geodesic_regression(
+        ) = training.fit_geodesic_regression(
             mesh_sequence_vertices,
             mesh_faces,
             times,
@@ -243,14 +184,6 @@ def main_run(config):
         meshes_along_geodesic_regression = meshes_along_geodesic_regression.reshape(
             mesh_sequence_vertices.shape
         )
-
-        # geodesic_residuals = 0
-        # if wandb_config.geodesic_residuals:
-        #     geodesic_residuals = 1
-
-        # geodesic_initialization = 0
-        # if wandb_config.geodesic_initialization:
-        #     geodesic_initialization = 1
 
         wandb.log(
             {
@@ -282,30 +215,24 @@ def main_run(config):
         )
 
         logging.info("Saving geodesic results...")
-        parameterized_regression.save_regression_results(
+        training.save_regression_results(
             dataset_name=wandb_config.dataset_name,
             sped_up=wandb_config.sped_up,
             mesh_sequence_vertices=mesh_sequence_vertices,
             true_intercept_faces=mesh_faces,
-            true_coef=gs.array(true_coef),
-            regression_intercept=geodesic_intercept_hat,
-            regression_coef=geodesic_coef_hat,
+            true_coef=true_coef,
+            regr_intercept=geodesic_intercept_hat,
+            regr_coef=geodesic_coef_hat,
             duration_time=geodesic_duration_time,
-            regression_dir=geodesic_regression_dir,
+            regress_dir=geodesic_regress_dir,
             meshes_along_regression=meshes_along_geodesic_regression,
         )
 
-        #
         wandb_config.update({"full_run": full_run})
-        # wandb.log({"full_run": full_run})
-
         wandb.finish()
     except Exception as e:
         full_run = False
-        # wandb.log({"full_run": full_run})
         wandb_config.update({"full_run": full_run})
-        # wandb.log({"full_run": full_run})
-
         logging.exception(e)
         wandb.finish()
 
@@ -343,13 +270,13 @@ def main():
                 n_times,
                 noise_factor,
                 n_subdivisions,
-                ellipse_dimensions,
+                ellipsoid_dims,
                 (start_shape, end_shape),
             ) in itertools.product(
                 default_config.n_times,
                 default_config.noise_factor,
-                default_config.subdivisions,
-                default_config.ellipse_dimensions,
+                default_config.n_subdivisions,
+                default_config.ellipsoid_dims,
                 zip(default_config.start_shape, default_config.end_shape),
             ):
                 config = {
@@ -358,7 +285,8 @@ def main():
                     "end_shape": end_shape,
                     "noise_factor": noise_factor,
                     "n_subdivisions": n_subdivisions,
-                    "ellipse_dimensions": ellipse_dimensions,
+                    "ellipsoid_dims": ellipsoid_dims,
+                    "ellipse_ratio_h_v": ellipsoid_dims[0] / ellipsoid_dims[-1],
                 }
                 config.update(main_config)
                 main_run(config)

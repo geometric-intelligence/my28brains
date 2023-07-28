@@ -42,7 +42,7 @@ def main_run(config):
     logging.info(wandb_config)
 
     reference_mesh = synthetic.generate_ellipsoid_mesh(
-        subdivisions=wandb_config.subdivisions, ellipse_dimensions=[2, 2, 3]
+        subdivisions=wandb_config.n_subdivisions, ellipsoid_dims=[2, 2, 3]
     )
     reference_vertices = gs.array(reference_mesh.vertices)
     reference_faces = reference_mesh.faces

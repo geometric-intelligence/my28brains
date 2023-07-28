@@ -19,6 +19,7 @@ d. Reparameterize meshes: use parameterization of the first mesh
 
 e. Sort meshes by hormone levels
 -> outputs in sorted_dir
+NOTE: Sorting is not necessary for regression.
 
 f. (Optional) Interpolate between t and t+1 with a geodesic
 -> outputs in interpolated_dir

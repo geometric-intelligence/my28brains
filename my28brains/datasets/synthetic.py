@@ -23,7 +23,7 @@ import H2_SurfaceMatch.utils.utils  # noqa: E402
 import my28brains.default_config as default_config
 
 
-def generate_mesh(mesh_type, n_subdivisions=None, ellipse_dimensions=[2, 2, 3]):
+def generate_mesh(mesh_type, n_subdivisions=None, ellipsoid_dims=[2, 2, 3]):
     """Generate a synthetic mesh.
 
     Parameters
@@ -34,9 +34,9 @@ def generate_mesh(mesh_type, n_subdivisions=None, ellipse_dimensions=[2, 2, 3]):
         How many times to subdivide the mesh (from trimesh).
         Note that the number of faces will grow as function of 4 ** subdivisions,
         so you probably want to keep this under ~5.
-    ellipse_dimensions : list
+    ellipsoid_dims : list
         List of integers representing the dimensions of the ellipse.
-        Example: ellipse_dimensions=[2, 2, 3].
+        Example: ellipsoid_dims=[2, 2, 3].
 
     Returns
     -------
@@ -47,7 +47,7 @@ def generate_mesh(mesh_type, n_subdivisions=None, ellipse_dimensions=[2, 2, 3]):
         return generate_sphere_mesh(subdivisions=n_subdivisions)
     if mesh_type == "ellipsoid":
         return generate_ellipsoid_mesh(
-            subdivisions=n_subdivisions, ellipse_dimensions=ellipse_dimensions
+            subdivisions=n_subdivisions, ellipsoid_dims=ellipsoid_dims
         )
     if mesh_type == "pill":
         return trimesh.creation.capsule(height=1.0, radius=1.0, count=None)
@@ -64,14 +64,14 @@ def generate_sphere_mesh(subdivisions=3):
     return sphere
 
 
-def generate_ellipsoid_mesh(subdivisions=3, ellipse_dimensions=[2, 2, 3]):
+def generate_ellipsoid_mesh(subdivisions=3, ellipsoid_dims=[2, 2, 3]):
     """Create an ellipsoid trimesh."""
     subdivisions = subdivisions
-    ellipse_dimensions = ellipse_dimensions
+    ellipsoid_dims = ellipsoid_dims
     radius = 30**subdivisions
     sphere = trimesh.creation.icosphere(subdivisions=subdivisions, radius=radius)
     # Create a scaling matrix for the semi-axes lengths
-    scales = np.array(ellipse_dimensions)
+    scales = np.array(ellipsoid_dims)
     scale_matrix = np.diag(scales)
     scale_matrix = gs.array(scale_matrix)
     # Apply the scaling transformation to the mesh vertices

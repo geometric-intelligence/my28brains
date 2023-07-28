@@ -7,130 +7,72 @@ import geomstats.backend as gs
 import numpy as np
 import trimesh
 
-import H2_SurfaceMatch.utils.input_output
+import H2_SurfaceMatch.utils.input_output as h2_io
 import my28brains.datasets.synthetic as synthetic
 
 
-def load(config):  # , device = "cuda:0"):
+def load(config):
     """Load data according to values in config file."""
     if config.dataset_name == "synthetic":
         print("Using synthetic data")
         data_dir = default_config.synthetic_data_dir
-        start_shape = config.start_shape
-        end_shape = config.end_shape
+        start_shape, end_shape = config.start_shape, config.end_shape
         n_times = config.n_times
+        n_subdivisions = config.n_subdivisions
+        ellipsoid_dims = config.ellipsoid_dims
+        noise_factor = config.noise_factor
 
-        start_shape_dir = os.path.join(
-            data_dir,
-            f"{start_shape}_subs{config.n_subdivisions}_ell{config.ellipse_dimensions}",
-        )
-        end_shape_dir = os.path.join(
-            data_dir,
-            f"{end_shape}_subs{config.n_subdivisions}_ell{config.ellipse_dimensions}",
-        )
         mesh_dir = os.path.join(
             data_dir,
-            f"geodesic_{start_shape}_{end_shape}_{n_times}_subs{config.n_subdivisions}"
-            f"_ell{config.ellipse_dimensions}",
+            f"geodesic_{start_shape}_{end_shape}_{n_times}_subs{n_subdivisions}"
+            f"_ell{ellipsoid_dims}_noise{noise_factor}",
         )
 
-        start_vertices_path = os.path.join(start_shape_dir, "vertices.npy")
-        start_faces_path = os.path.join(start_shape_dir, "faces.npy")
-        end_vertices_path = os.path.join(end_shape_dir, "vertices.npy")
-        end_faces_path = os.path.join(end_shape_dir, "faces.npy")
+        mesh_sequence_vertices_path = os.path.join(
+            mesh_dir, "mesh_sequence_vertices.npy"
+        )
+        mesh_faces_path = os.path.join(mesh_dir, "mesh_faces.npy")
+        times_path = os.path.join(mesh_dir, "times.npy")
+        true_intercept_path = os.path.join(mesh_dir, "true_intercept.npy")
+        true_coef_path = os.path.join(mesh_dir, "true_coef.npy")
 
-        if not os.path.exists(mesh_dir):
-            print(
-                "Creating synthetic geodesic with"
-                f" start_mesh: {start_shape}, end_mesh: {end_shape},"
-                f" and n_times: {n_times}"
-            )
-
-            if not os.path.exists(start_shape_dir):
-                print(f"Creating {start_shape} mesh in {start_shape_dir}")
-                start_mesh = synthetic.generate_mesh(
-                    start_shape, config.n_subdivisions, config.ellipse_dimensions
-                )
-                start_mesh_vertices = start_mesh.vertices
-                start_mesh_faces = start_mesh.faces
-
-                os.makedirs(start_shape_dir)
-                np.save(start_vertices_path, start_mesh_vertices)
-                np.save(start_faces_path, start_mesh_faces)
-            else:
-                print(f"{start_shape} mesh exists in {start_shape_dir}. Loading now.")
-                start_mesh_vertices = np.load(start_vertices_path)
-                start_mesh_faces = np.load(start_faces_path)
-                start_mesh = trimesh.Trimesh(
-                    vertices=start_mesh_vertices, faces=start_mesh_faces
-                )
-
-            if not os.path.exists(end_shape_dir):
-                print(f"Creating {end_shape} mesh in {end_shape_dir}")
-                end_mesh = synthetic.generate_mesh(
-                    end_shape, config.n_subdivisions, config.ellipse_dimensions
-                )
-                end_mesh_vertices = end_mesh.vertices
-                end_mesh_faces = end_mesh.faces
-
-                os.makedirs(end_shape_dir)
-                np.save(end_vertices_path, end_mesh_vertices)
-                np.save(end_faces_path, end_mesh_faces)
-            else:
-                print(f"{end_shape} mesh exists in {end_shape_dir}. Loading now.")
-                end_mesh_vertices = np.load(end_vertices_path)
-                end_mesh_faces = np.load(end_faces_path)
-                end_mesh = trimesh.Trimesh(
-                    vertices=end_mesh_vertices, faces=end_mesh_faces
-                )
-
-            (
-                mesh_sequence_vertices,
-                mesh_faces,
-                times,
-                true_intercept,
-                true_coef,
-            ) = synthetic.generate_parameterized_geodesic(
-                start_mesh,
-                end_mesh,
-                n_times,
-                config.n_steps,
-            )
-
-            print("Original mesh_sequence vertices: ", mesh_sequence_vertices.shape)
-            print("Original mesh faces: ", mesh_faces.shape)
-            print("Times: ", times.shape)
-
-            os.makedirs(mesh_dir)
-            np.save(
-                os.path.join(mesh_dir, "mesh_sequence_vertices.npy"),
-                mesh_sequence_vertices,
-            )
-            np.save(os.path.join(mesh_dir, "mesh_faces.npy"), mesh_faces)
-            np.save(os.path.join(mesh_dir, "times.npy"), times)
-            np.save(
-                os.path.join(mesh_dir, "true_intercept.npy"),
-                true_intercept,
-            )
-            np.save(os.path.join(mesh_dir, "true_coef.npy"), true_coef)
+        if os.path.exists(mesh_dir):
+            print(f"Synthetic geodesic exists in {mesh_dir}. Loading now.")
+            mesh_sequence_vertices = gs.array(np.load(mesh_sequence_vertices_path))
+            mesh_faces = gs.array(np.load(mesh_faces_path))
+            times = gs.array(np.load(times_path))
+            true_intercept = gs.array(np.load(true_intercept_path))
+            true_coef = gs.array(np.load(true_coef_path))
             return mesh_sequence_vertices, mesh_faces, times, true_intercept, true_coef
 
-        else:
-            print(
-                "Synthetic geodesic exists with"
-                f" start mesh {start_shape}, end mesh {end_shape},"
-                f" and n_times {n_times}. Loading now."
-            )
-            mesh_sequence_vertices = gs.array(
-                np.load(os.path.join(mesh_dir, "mesh_sequence_vertices.npy"))
-            )
-            mesh_faces = gs.array(np.load(os.path.join(mesh_dir, "mesh_faces.npy")))
-            times = gs.array(np.load(os.path.join(mesh_dir, "times.npy")))
-            true_intercept = gs.array(
-                np.load(os.path.join(mesh_dir, "true_intercept.npy"))
-            )
-            true_coef = gs.array(np.load(os.path.join(mesh_dir, "true_coef.npy")))
-            return mesh_sequence_vertices, mesh_faces, times, true_intercept, true_coef
+        print(f"No synthetic geodesic found in {mesh_dir}. Creating one.")
+        start_mesh = load_mesh(start_shape, n_subdivisions, ellipsoid_dims)
+        end_mesh = load_mesh(end_shape, n_subdivisions, ellipsoid_dims)
+
+        (
+            mesh_sequence_vertices,
+            mesh_faces,
+            times,
+            true_intercept,
+            true_coef,
+        ) = synthetic.generate_parameterized_geodesic(
+            start_mesh, end_mesh, n_times, config.n_steps
+        )
+
+        print(f"\n- Adding noise  with factor: {noise_factor}")
+        mesh_sequence_vertices = add_noise(mesh_sequence_vertices, noise_factor)
+
+        print("Original mesh_sequence vertices: ", mesh_sequence_vertices.shape)
+        print("Original mesh faces: ", mesh_faces.shape)
+        print("Times: ", times.shape)
+
+        os.makedirs(mesh_dir)
+        np.save(mesh_sequence_vertices_path, mesh_sequence_vertices)
+        np.save(mesh_faces_path, mesh_faces)
+        np.save(times_path, times)
+        np.save(true_intercept_path, true_intercept)
+        np.save(true_coef_path, true_coef)
+        return mesh_sequence_vertices, mesh_faces, times, true_intercept, true_coef
 
     elif config.dataset_name == "real":
         print("Using real data")
@@ -158,11 +100,7 @@ def load(config):  # , device = "cuda:0"):
             file_name = f"parameterized_mesh{i_mesh:02d}.ply"
 
             mesh_path = os.path.join(default_config.sorted_dir, file_name)
-            [
-                vertices,
-                faces,
-                Fun,
-            ] = H2_SurfaceMatch.utils.input_output.loadData(mesh_path)
+            vertices, faces, _ = h2_io.loadData(mesh_path)
             mesh_sequence_vertices.append(vertices)
             mesh_sequence_faces.append(faces)
         mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
@@ -180,6 +118,36 @@ def load(config):  # , device = "cuda:0"):
         return mesh_sequence_vertices, mesh_faces, times, true_intercept, true_coef
     else:
         raise ValueError(f"Unknown dataset name {config.dataset_name}")
+
+
+def load_mesh(mesh_type, n_subdivisions, ellipsoid_dims):
+    """Load a mesh from the synthetic dataset.
+
+    If the mesh does not exist, create it.
+
+    Parameters
+    ----------
+    mesh_type : str, {"sphere", "ellipsoid", "pill", "cube"}
+    """
+    data_dir = default_config.synthetic_data_dir
+    shape_dir = os.path.join(
+        data_dir, f"{mesh_type}_subs{n_subdivisions}_ell{ellipsoid_dims}"
+    )
+    vertices_path = os.path.join(shape_dir, "vertices.npy")
+    faces_path = os.path.join(shape_dir, "faces.npy")
+
+    if os.path.exists(shape_dir):
+        print(f"{mesh_type} mesh exists in {shape_dir}. Loading now.")
+        vertices = np.load(vertices_path)
+        faces = np.load(faces_path)
+        return trimesh.Trimesh(vertices=vertices, faces=faces)
+
+    print(f"Creating {mesh_type} mesh in {shape_dir}")
+    mesh = synthetic.generate_mesh(mesh_type, n_subdivisions, ellipsoid_dims)
+    os.makedirs(shape_dir)
+    np.save(vertices_path, mesh.vertices)
+    np.save(faces_path, mesh.faces)
+    return mesh
 
 
 def mesh_diameter(mesh_vertices):
@@ -213,9 +181,3 @@ def add_noise(mesh_sequence_vertices, noise_factor):
             loc=0.0, scale=noise_sd, size=mesh_sequence_vertices[i_mesh].shape
         )
     return mesh_sequence_vertices
-
-
-# in progress...
-# when i do this, i will most likely change main_2_mesh_parameterization
-# to take in a list of meshes
-# and then call it here.
