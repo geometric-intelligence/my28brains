@@ -102,7 +102,7 @@ run_interpolate = False
 
 # 2. Regression Parameters
 
-dataset_name = ["real"]  # "synthetic" or "real"
+dataset_name = ["synthetic"]  # "synthetic" or "real"
 sped_up = [True]  # 'True' or 'False' (not currently used)
 geodesic_initialization = [
     "warm_start",
@@ -116,28 +116,23 @@ tol_factor = [
     0.1,
     0.5,
 ]  # tolerance for geodesic regression. If none logged, value 0.001.
-n_times = [5, 10, 15, 20, 30]  # Only for dataset_name == synthetic
+n_times = [5]  # , 10, 15, 20, 30]  # Only for dataset_name == synthetic
 start_shape = ["sphere"]  # "sphere" or "ellipsoid" for synthetic
 end_shape = ["ellipsoid"]  # "sphere" or "ellipsoid" for synthetic
-noise_factor = [0.0, 0.0001, 0.001, 0.01]  # noise added to the data.
+noise_factor = [0.0]  # , 0.0001, 0.001, 0.01]  # noise added to the data.
 # Will be multiplied by the size of the mesh to calculate the standard
 # deviation of added noise distribution.
 # only applied to synthetic data.
-subdivisions = [
-    1,
-    2,
-    3,
-    4,
-]
+n_subdivisions = [2]  # , 1, 3, 4, 5]
+
 # How many times to subdivide the mesh. Note that the number of faces will grow
 # as function of 4 ** subdivisions, so you probably want to keep this under ~5.
 # if nothing recorded, value 3.
-ellipse_dimensions = [
-    [2, 2, 3],
-    [2, 2, 10],
-    [10, 10, 2],
-    [2, 2, 6],
-]  # if nothing recorded, [2, 2, 3]
+ellipsoid_dims = [[2, 2, 3]]
+# [2, 2, 3],
+# [2, 2, 10],
+# [10, 10, 2],
+# [2, 2, 6],]  # if nothing recorded, [2, 2, 3]
 
 # Build Paths
 
@@ -157,17 +152,17 @@ reparameterized_dir = os.path.join(preprocess_dir, "d_reparameterized")
 sorted_dir = os.path.join(preprocess_dir, "e_sorted")
 interpolated_dir = os.path.join(preprocess_dir, "f_interpolated")
 
-regression_dir = os.path.join(results_dir, "2_regression")
+regress_dir = os.path.join(results_dir, "2_regress")
 
 for mesh_dir in [
+    synthetic_data_dir,
     meshed_dir,
     centered_dir,
     nondegenerate_dir,
-    interpolated_dir,
-    regression_dir,
-    synthetic_data_dir,
     reparameterized_dir,
     sorted_dir,
+    interpolated_dir,
+    regress_dir,
 ]:
     if not os.path.exists(mesh_dir):
         os.makedirs(mesh_dir)
