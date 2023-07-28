@@ -259,32 +259,32 @@ def offset_mesh_sequence(mesh_sequence_vertices):
         Offset sequence of meshes.
     """
     n_times = len(mesh_sequence_vertices)
-    points = mesh_sequence_vertices.reshape((-1, 3))
-    x_max = max(points[:, 0])
-    x_min = min(points[:, 0])
+    x_max = max([max(mesh[:, 0]) for mesh in mesh_sequence_vertices])
+    x_min = min([min(mesh[:, 0]) for mesh in mesh_sequence_vertices])
     x_diameter = np.abs(x_max - x_min)
-    max_offset = n_times * x_diameter * 1.5
+    max_offset = n_times * x_diameter
     offsets = np.linspace(0, max_offset, n_times)
 
     offset_mesh_sequence_vertices = []
     for i_mesh, mesh in enumerate(mesh_sequence_vertices):
         offset_mesh = mesh + np.array([offsets[i_mesh], 0, 0])
         offset_mesh_sequence_vertices.append(offset_mesh)
-    offset_mesh_sequence_vertices = np.vstack(offset_mesh_sequence_vertices)
-    return offset_mesh_sequence_vertices.reshape((n_times, -1, 3))
+    return offset_mesh_sequence_vertices
 
 
 def plot_mesh_sequence(mesh_sequence_vertices):
     """Plot a sequence of meshes.
+
+    NOTE: the plotGeodesic function from H2_SurfaceMatch also works,
+    and saves a .ply file with the resulting plot.
 
     Parameters
     ----------
     mesh_sequence_vertices : np.array, shape=[n_times, n_vertices, 3]
         Sequence of meshes.
     """
-    fig = plt.figure()
+    fig = plt.figure(figsize=(10, 20))
     ax = fig.add_subplot(111, projection="3d")
-    ax.set_box_aspect([1.0, 1.0, 1.0])
     len_sequence = len(mesh_sequence_vertices)
     plasma_cmap = plt.cm.get_cmap("plasma")
 
@@ -296,11 +296,16 @@ def plot_mesh_sequence(mesh_sequence_vertices):
             c=plasma_cmap(i_mesh / len_sequence),
             marker="o",
         )
+    ax.view_init(elev=10, azim=-80)
+    ax.set_aspect("equal")
     plt.show()
 
 
 def plotly_mesh_sequence(mesh_sequence_vertices):
     """Plot a sequence of meshes with plotly (interactive).
+
+    NOTE: the plotGeodesic function from H2_SurfaceMatch also works,
+    and saves a .ply file with the resulting plot.
 
     Parameters
     ----------
