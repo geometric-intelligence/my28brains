@@ -1,6 +1,9 @@
 """Preprocessing of the my28brains dataset.
 
-The processing is done with our `my28brains.preprocessing` module.
+The processing is done:
+- with the `my28brains.preprocessing` module.
+- on the 60 days for steps a-c.
+- on the days specified in default_config.day_range for steps d-f.
 
 a. Mesh by segmenting surfaces of the hippocampus and its substructures.
 -> outputs in meshed_dir
@@ -12,7 +15,7 @@ c. Remove degenerate faces using area thresholds
 -> outputs in nondegenerate_dir
 
 d. Reparameterize meshes: use parameterization of the first mesh
--> outputs in parameterized_dir
+-> outputs in reparameterized_dir
 
 e. Sort meshes by hormone levels
 -> outputs in sorted_dir
@@ -57,7 +60,7 @@ day_dirs = [os.path.join(raw_dir, f"Day{i:02d}") for i in range(1, 61)]
 meshed_dir = default_config.meshed_dir
 centered_dir = default_config.centered_dir
 nondegenerate_dir = default_config.nondegenerate_dir
-parameterized_dir = default_config.parameterized_dir
+reparameterized_dir = default_config.reparameterized_dir
 sorted_dir = default_config.sorted_dir
 interpolated_dir = default_config.interpolated_dir
 
@@ -143,9 +146,9 @@ if __name__ == "__main__":
         )
         input_paths = sorted(glob.glob(string_base))
         print(
-            f"\nd. (Reparameterize) Found {len(input_paths)} .plys for {hemisphere} hemisphere, id {structure_id}"
+            f"\nd. (Reparameterize) Found {len(input_paths)} .plys for ({hemisphere}, {structure_id}) in {nondegenerate_dir}"
         )
-        output_dir = parameterized_dir
+        output_dir = reparameterized_dir
 
         multiprocessing.set_start_method("spawn", force=True)
         queue = multiprocessing.Manager().Queue()
@@ -155,7 +158,7 @@ if __name__ == "__main__":
         pool = multiprocessing.Pool(processes=default_config.n_gpus)
         i_paths = list(range(default_config.day_range[0], default_config.day_range[1]))
 
-        func = geodesics.generate_parameterized_data
+        func = geodesics.reparameterize_with_geodesic
         func_args_queue = [
             (func, input_paths, output_dir, i_path, queue) for i_path in i_paths
         ]
@@ -172,13 +175,16 @@ if __name__ == "__main__":
         default_config.area_thresholds,
     ):
         sorting.sort_meshes_by_hormones_and_write(
-            input_dir=parameterized_dir,
+            input_dir=reparameterized_dir,
             output_dir=sorted_dir,
             hemisphere=hemisphere,
             structure_id=structure_id,
             area_threshold=area_threshold,
         )
 
+    if not default_config.run_interpolate:
+        print("\nf. Skipping interpolation. Preprocessing done!")
+        exit()
     # f. (Optional) Geodesic interpolation between t and t+1
     for hemisphere, structure_id, area_threshold in itertools.product(
         default_config.hemisphere,

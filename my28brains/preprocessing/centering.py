@@ -18,19 +18,18 @@ def center_whole_hippocampus_and_write(input_dir, output_dir, hemisphere):
     Parameters
     ----------
     input_dir : str
-        Input directory.
-        Here, corresponding to directory of meshes extracted from .nii.
+        Input directory in my28brains/my28brains/results/1_preprocess.
+        Here, directory of meshes extracted from .nii.
     output_dir str
-        Output directory in my28brains/my28brains/results.
-        Here storing centered meshes.
-    hemisphere : str
-        Hemisphere to process. Either 'left' or 'right'.
+        Output directory in my28brains/my28brains/results/1_preprocess.
+        Here directory of centered meshes.
+    hemisphere : str, {'left', 'right'}
+        Hemisphere to process.
 
     Returns
     -------
-    hippocampus_centers : np.ndarray
-        Array of shape (n_days, 3) containing the centers of the hippocampus
-        for each day.
+    hippocampus_centers : np.ndarray, shape=[n_days, 3]
+        Coordinates of the barycenter of the hippocampus for each day.
     """
     structure_id = -1
     string_base = os.path.join(
@@ -38,7 +37,7 @@ def center_whole_hippocampus_and_write(input_dir, output_dir, hemisphere):
     )
     paths = sorted(glob.glob(string_base))
     print(
-        f"\nb. (Center) Found {len(paths)} .plys for {hemisphere} hemisphere, id {structure_id}."
+        f"\nb. (Center) Found {len(paths)} .plys for ({hemisphere}, {structure_id}) in {input_dir}."
     )
 
     hippocampus_centers = []
@@ -68,18 +67,19 @@ def center_substructure_and_write(
     Parameters
     ----------
     input_dir : str
-        Input directory.
-        Here, corresponding to directory of meshes extracted from .nii.
+        Input directory in my28brains/my28brains/results/1_preprocess.
+        Directory of meshes extracted from .nii.
     output_dir : str
-        Output directory in my28brains/my28brains/results.
+        Output directory in my28brains/my28brains/results/1_preprocess.
         Here storing centered meshes.
-    hemisphere : str
-        Hemisphere to process. Either 'left' or 'right'.
+    hemisphere : str, {'left', 'right'}
+        Hemisphere to process.
     structure_id : int
         Structure ID to process.
-    hippocampus_centers : np.ndarray
-        Array of shape (n_days, 3) containing the centers of the hippocampus
-        for each day.
+        Possible indices are either -1 (entire structure) or any of the
+        labels of the segmentation.
+    hippocampus_centers : np.ndarray, shape=[n_days, 3]
+        Coordinates of the barycenter of the hippocampus for each day.
     """
     string_base = os.path.join(
         input_dir, f"{hemisphere}_structure_{structure_id}**.ply"

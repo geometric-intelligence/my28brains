@@ -34,14 +34,16 @@ def extract_meshes_from_nii_and_write(input_dir, output_dir, hemisphere, structu
     ----------
     input_dir : str
         Input directory.
-        Here, corresponding to directory of directories of days with .nii.
+        Here, directory of directories of days with .nii.
     output_dir str
-        Output directory in my28brains/my28brains/results.
-        Here storing meshes extracted from .nii.
-    hemisphere : str
-        Hemisphere to process. Either 'left' or 'right'.
+        Output directory in my28brains/my28brains/results/1_preprocess.
+        Here, directory of meshes extracted from .nii.
+    hemisphere : str, {'left', 'right'}
+        Hemisphere to process.
     structure_id : int
-        Structure ID to process.
+        ID of the hippocampus anatomical structure to process.
+        Possible indices are either -1 (entire structure) or any of the
+        labels of the segmentation.
     """
     print(f"Looking into: {input_dir}")
     nii_paths = []
@@ -51,7 +53,11 @@ def extract_meshes_from_nii_and_write(input_dir, output_dir, hemisphere, structu
                 nii_paths.append(os.path.join(day_dir, file_name))
                 break
 
-    print(f"\na. (Mesh) Found {len(nii_paths)} nii paths for hemisphere {hemisphere}.")
+    print(
+        f"\na. (Mesh) Found {len(nii_paths)} nii paths for hemisphere {hemisphere} in {input_dir}"
+    )
+    for path in nii_paths:
+        print(path)
 
     for i_path, nii_path in enumerate(nii_paths):
         day = i_path + 1
@@ -103,7 +109,7 @@ def extract_mesh(nii_path, structure_id=-1):
     nii_path : str
         Path of the .nii.gz image with the segmented structures.
     structure_id : int or list
-        Index or list of indices of the anatomical structure(s) to
+        ID of the hippocampus anatomical structure to
         mesh from the hippocampal formation.
         Possible indices are either -1 (entire structure) or any of the
         labels of the segmentation.

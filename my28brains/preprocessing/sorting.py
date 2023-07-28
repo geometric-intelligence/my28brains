@@ -23,12 +23,12 @@ def sort_meshes_by_hormones_and_write(
     ----------
     input_dir : str
         Input directory in my28brains/my28brains/results/1_preprocess.
-        Here storing parameterized meshes.
+        Here storing reparameterized meshes.
     output_dir : str
         Input directory in my28brains/my28brains/results/1_preprocess.
-        Here storing parameterized meshes sorted by hormone level.
-    hemisphere : str
-        Hemisphere to process. Either 'left' or 'right'.
+        Here storing reparameterized meshes sorted by hormone level.
+    hemisphere : str, {'left', 'right'}
+        Hemisphere to process.
     structure_id : int
         Structure ID to process.
     area_threshold : float
@@ -44,7 +44,7 @@ def sort_meshes_by_hormones_and_write(
     )
     paths = sorted(glob.glob(string_base))
     print(
-        f"\ne. (Sort) Found {len(paths)} .plys for {hemisphere} hemisphere, id {structure_id}."
+        f"\ne. (Sort) Found {len(paths)} .plys for ({hemisphere}, {structure_id}) in {input_dir}"
     )
 
     hormones_path = os.path.join(config.data_dir, "hormones.csv")
@@ -63,7 +63,7 @@ def sort_meshes_by_hormones_and_write(
         mesh_path = os.path.join(
             input_dir,
             f"{hemisphere}_structure_{structure_id}_day{i_mesh:02d}"
-            f"_at_{area_threshold}_parameterized.ply",
+            f"_at_{area_threshold}.ply",
         )
         vertices, faces, _ = h2_io.loadData(mesh_path)
         mesh_sequence_vertices.append(vertices)
@@ -85,15 +85,19 @@ def sort_meshes_by_hormones_and_write(
     sorted_meshes = [mesh for (_, mesh) in sorted_list]
     sorted_hormone_levels = [level for (level, _) in sorted_list]
 
-    # Print the sorted object list
-    print(sorted_meshes)
-    print(sorted_hormone_levels)
-
     # Save the sorted meshes
     for i_mesh, mesh in enumerate(sorted_meshes):
-        sorted_mesh_path = os.path.join(output_dir, f"parameterized_mesh{i_mesh:02d}")
+        ply_path = os.path.join(
+            output_dir,
+            f"{hemisphere}_structure_{structure_id}_day{i_mesh:02d}"
+            f"_at_{area_threshold}.ply",
+        )
+        if os.path.exists(ply_path):
+            print(f"File exists (no rewrite): {ply_path}")
+            continue
+        print(f"- Write mesh to {ply_path}")
         h2_io.save_data(
-            sorted_mesh_path,
+            os.path.splitext(ply_path)[0],  # remove .ply extension
             ".ply",
             gs.array(mesh).numpy(),
             gs.array(mesh_faces).numpy(),
@@ -101,4 +105,7 @@ def sort_meshes_by_hormones_and_write(
 
     # Save the sorted hormone levels with numpy
     sorted_hormone_levels_path = os.path.join(output_dir, "sorted_hormone_levels.npy")
-    np.savetxt(sorted_hormone_levels_path, sorted_hormone_levels, delimiter=",")
+    if os.path.exists(sorted_hormone_levels_path):
+        print(f"File exists (no rewrite): {sorted_hormone_levels_path}")
+    else:
+        np.savetxt(sorted_hormone_levels_path, sorted_hormone_levels, delimiter=",")

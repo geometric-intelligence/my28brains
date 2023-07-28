@@ -1,5 +1,6 @@
 # Brain data
 data/
+my28brains/results/*
 my28brains/results/tmp/
 my28brains/results/anims/
 my28brains/results/blends/

@@ -21,7 +21,7 @@ from my28brains.geodesic_regression import GeodesicRegression
 
 my28brains_dir = default_config.my28brains_dir
 synthetic_data_dir = default_config.synthetic_data_dir
-parameterized_dir = default_config.parameterized_dir
+reparameterized_dir = default_config.reparameterized_dir
 data_dir = default_config.data_dir
 
 

@@ -17,7 +17,7 @@ import my28brains.default_config as default_config
 import my28brains.preprocessing.writing as write
 
 
-def remove_degenerate_faces(vertices, faces, area_threshold=0.01, atol=gs.atol):
+def remove_degenerate_faces(vertices, faces, area_threshold=0.01):
     """Remove degenerate faces of a surfaces.
 
     This returns a new surface with fewer vertices where the faces with area 0
@@ -62,7 +62,7 @@ def remove_degenerate_faces_and_write(
     )
     paths = sorted(glob.glob(string_base))
     print(
-        f"\nc. (Remove degenerate) Found {len(paths)} .plys for {hemisphere} hemisphere, id {structure_id}:"
+        f"\nc. (Remove degenerate) Found {len(paths)} .plys for ({hemisphere}, {structure_id}) in {input_dir}"
     )
 
     for path in paths:
@@ -216,7 +216,7 @@ def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id):
     print(f"\tGeodesic interpolation {i_pair} saved to: " f"{output_dir}.")
 
 
-def generate_parameterized_data(input_paths, output_dir, i_path, gpu_id):
+def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id):
     """Auxiliary function that will be run in parallel on different GPUs.
 
     The start path is the path whose parameterization is used as reference.
@@ -240,14 +240,12 @@ def generate_parameterized_data(input_paths, output_dir, i_path, gpu_id):
     gpu_id : int
         ID of the GPU to use.
     """
-    start_path, end_path = input_paths[0], input_paths[i_path + 1]
+    start_path = input_paths[default_config.template_day]
+    end_path = input_paths[i_path]
+    ply_path = os.path.join(output_dir, os.path.basename(end_path))
 
-    basename = os.path.splitext(os.path.basename(end_path))[0]
-    ply_prefix = os.path.join(output_dir, basename + "_parameterized")
-
-    # check to see if complete geodesic has been written
-    if os.path.exists(ply_prefix + ".ply"):
-        print(f"\tGeodesic from 0 to {i_path} exists. Skipping.")
+    if os.path.exists(ply_path):
+        print(f"File exists (no rewrite): {ply_path}")
         return
 
     geod, F0 = scale_decimate_and_compute_geodesic(
@@ -259,9 +257,9 @@ def generate_parameterized_data(input_paths, output_dir, i_path, gpu_id):
     h2_io.plotGeodesic(
         [geod[-1]],
         F0,
-        stepsize=default_config.stepsize,  # open3d plotting parameter - unused
-        file_name=ply_prefix,
+        stepsize=default_config.stepsize["real"],  # open3d plotting parameter - unused
+        file_name=os.path.splitext(ply_path)[0],  # remove .ply extension
         axis=[0, 1, 0],
         angle=-1 * np.pi / 2,
     )
-    print(f"End point of geodesic to {i_path} saved to: {output_dir}.")
+    print(f"- Write mesh to {ply_path}.")

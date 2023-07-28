@@ -56,13 +56,51 @@ sys.path.append(h2_dir)
 with open(os.path.join(my28brains_dir, "api_key.txt")) as f:
     api_key = f.read()
 
-# Fixed parameters for saving results
+# GPU Parameters
+use_cuda = 1
+n_gpus = 10
+torch_dtype = torch.float64
+
+# Saving geodesics using plotGeodesic
 stepsize = {
     "synthetic": 55,
     "real": 6,
 }
 
-# Regression Parameters
+# 1. Preprocessing Parameters
+
+# Brain hemispheres and anatomical structures
+hemisphere = ["left"]  # , "right"]
+structure_ids = [-1]
+
+# Face area threshold for non-degenerate meshes:
+# the less we decimate, the more likely it is to have small faces
+# thus the thresholt needs to be higher
+area_thresholds = [0.00]  # 0.0001, 0.001, 0.01, 0.1, 1.0]
+
+# WORKING
+initial_decimation_fact = 10
+scaling_factor = 2 * initial_decimation_fact
+# NOT WORKING
+# initial_decimation_fact = 4
+# scaling_factor = 10
+
+# Define template structure of the mesh that will be used
+# for all mesh in the interpolation
+# Every mesh will have the same number of vertices and faces.
+i_template = 0
+template_day = 2
+
+# range of days to interpolate in between
+# Looking at the first 10 days is interesting because:
+# - we have 10 gpus, so we can run 10 interpolations at once
+# - they contain most of the progesterone peak.
+# first menstrual cycle is day 1-30 (pre-pill)
+day_range = [4, 12]  # we have parameterized meshes for days 2-11
+
+run_interpolate = False
+
+# 2. Regression Parameters
 
 dataset_name = ["real"]  # "synthetic" or "real"
 sped_up = [True]  # 'True' or 'False' (not currently used)
@@ -101,46 +139,6 @@ ellipse_dimensions = [
     [2, 2, 6],
 ]  # if nothing recorded, [2, 2, 3]
 
-# GPU Parameters
-
-use_cuda = 1
-n_gpus = 10
-torch_dtype = torch.float64
-
-# Unparameterized Geodesic Mesh Parameters
-
-# number of time points along each interpolating geodesic
-resolutions = 0  # don't do several resolutions for our case.
-# WORKING
-initial_decimation_fact = 10
-scaling_factor = 2 * initial_decimation_fact
-# NOT WORKING
-# initial_decimation_fact = 4
-# scaling_factor = 10
-
-# Define template structure of the mesh that will be used
-# for all mesh in the interpolation
-# Every mesh will have the same number of vertices and faces.
-i_template = 0
-
-# face area threshold for non-degenerate meshes:
-# the less we decimate, the more likely it is to have small faces
-# thus the thresholt needs to be higher
-area_thresholds = [0.00]  # 0.0001, 0.001, 0.01, 0.1, 1.0]
-
-# Real Data Specific
-
-# specify brain hemispheres to analyze
-hemisphere = ["left"]  # , "right"]
-structure_ids = [-1]
-
-# range of days to interpolate in between
-# Looking at the first 10 days is interesting because:
-# - we have 10 gpus, so we can run 10 interpolations at once
-# - they contain most of the progesterone peak.
-# first menstrual cycle is day 1-30 (pre-pill)
-day_range = [2, 11]  # we have parameterized meshes for days 2-11
-
 # Build Paths
 
 # Data (inside my28brains_dir : my28brains/my28brains/)
@@ -155,7 +153,7 @@ preprocess_dir = os.path.join(results_dir, "1_preprocess")
 meshed_dir = os.path.join(preprocess_dir, "a_meshed")
 centered_dir = os.path.join(preprocess_dir, "b_centered")
 nondegenerate_dir = os.path.join(preprocess_dir, "c_nondegenerate")
-parameterized_dir = os.path.join(preprocess_dir, "d_parameterized")
+reparameterized_dir = os.path.join(preprocess_dir, "d_reparameterized")
 sorted_dir = os.path.join(preprocess_dir, "e_sorted")
 interpolated_dir = os.path.join(preprocess_dir, "f_interpolated")
 
@@ -168,7 +166,7 @@ for mesh_dir in [
     interpolated_dir,
     regression_dir,
     synthetic_data_dir,
-    parameterized_dir,
+    reparameterized_dir,
     sorted_dir,
 ]:
     if not os.path.exists(mesh_dir):
@@ -190,6 +188,7 @@ a2 = 1  # (was 1)
 #  we will have in the interpolated geodesic
 # the "time_steps" value in the last param will set the number
 # of time points in the interpolated geodesic
+resolutions = 0  # don't do several resolutions for our case.
 
 param1 = {
     "weight_coef_dist_T": 10**1,  # target varifold term
@@ -220,7 +219,6 @@ param2 = {
 # could do 10**1 and 10**5 if we're only doing two parameters.
 # e.g. with 3 parameters, emmanuel did: 10**1, 10**5, 10**10
 # e.g. corresponding sig_geom: 0.4, 0.1, 0.025
-
 
 param3 = {
     "weight_coef_dist_T": 10**10,
