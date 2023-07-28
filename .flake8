@@ -1,8 +1,0 @@
-# flake8 configuration for precommit
-[flake8]
-application_import_names = my28brains
-docstring-convention = numpy
-ignore = W503, W504
-import_order_style = smarkets
-max-line-length = 88
-exclude = H2_SurfaceMatch, my28brains/blender/create_animation.py, my28brains/notebooks/.ipynb_checkpoints

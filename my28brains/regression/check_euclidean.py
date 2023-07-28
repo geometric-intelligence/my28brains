@@ -2,7 +2,7 @@
 
 import os
 
-os.environ["GEOMSTATS_BACKEND"] = "pytorch"  # noqa: E402
+os.environ["GEOMSTATS_BACKEND"] = "pytorch"  # noqa
 import geomstats.backend as gs
 
 import my28brains.datasets.utils as data_utils
@@ -11,8 +11,9 @@ import my28brains.datasets.utils as data_utils
 def subspace_test(mesh_sequence_vertices, times, tol_factor=0.001):
     """Test whether the manifold subspace where the data lie is euclidean.
 
-    For 10 random pairs of meshes, we calculate 1) the linear distance
-    between them, and 2) the geodesic distance between them.
+    For 10 random pairs of meshes, we calculate:
+    - 1) the linear distance between them, and
+    - 2) the geodesic distance between them.
     If the manifold is euclidean, these two distances should be the same.
     If the manifold is not euclidean, they will be different.
 
@@ -48,8 +49,8 @@ def subspace_test(mesh_sequence_vertices, times, tol_factor=0.001):
 
     mesh_sequence_diff = abs(geodesic - line)
     summed_mesh_sequence_diffs = sum(sum(sum(mesh_sequence_diff)))
-    print(f"mesh_sequence_diff.shape", geodesic.shape)
-    print(f"summed_mesh_sequence_diffs.shape", summed_mesh_sequence_diffs.shape)
+    print("mesh_sequence_diff.shape", geodesic.shape)
+    print("summed_mesh_sequence_diffs.shape", summed_mesh_sequence_diffs.shape)
 
     n_vertices = mesh_sequence_vertices[0].shape[0]
     normalized_mesh_sequence_diff = summed_mesh_sequence_diffs / (
