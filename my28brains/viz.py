@@ -259,20 +259,16 @@ def offset_mesh_sequence(mesh_sequence_vertices):
         Offset sequence of meshes.
     """
     n_times = len(mesh_sequence_vertices)
-    print(f"ntimes = {n_times}")
     points = mesh_sequence_vertices.reshape((-1, 3))
     x_max = max(points[:, 0])
     x_min = min(points[:, 0])
     x_diameter = np.abs(x_max - x_min)
     max_offset = n_times * x_diameter * 1.5
     offsets = np.linspace(0, max_offset, n_times)
-    print(offsets)
 
     offset_mesh_sequence_vertices = []
     for i_mesh, mesh in enumerate(mesh_sequence_vertices):
-        print(mesh.shape)
         offset_mesh = mesh + np.array([offsets[i_mesh], 0, 0])
-        print(offset_mesh.shape)
         offset_mesh_sequence_vertices.append(offset_mesh)
     offset_mesh_sequence_vertices = np.vstack(offset_mesh_sequence_vertices)
     return offset_mesh_sequence_vertices.reshape((n_times, -1, 3))
