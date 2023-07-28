@@ -22,6 +22,6 @@ def trimesh_to_ply(mesh, ply_path):
     if not os.path.exists(ply_dir):
         os.makedirs(ply_dir)
 
-    print(f"Writing mesh at {ply_path}...")
+    print(f"\tWrite mesh to {ply_path}")
     with open(ply_path, "wb") as f:
         f.write(ply_text)

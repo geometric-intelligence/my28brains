@@ -1,17 +1,24 @@
-"""Preprocessing of the 28brains dataset.
+"""Preprocessing of the my28brains dataset.
 
-1. Mesh: Segment the surfaces of the hippocampus and its substructures.
-2. Center: Center the hippocampus and its substructures.
-3. Remove degenerate faces
-4. Compute geodesic, either for interpolation or for reparameterization.
-5. Sort the meshes by hormone levels.
+The processing is done with our `my28brains.preprocessing` module.
 
+a. Mesh by segmenting surfaces of the hippocampus and its substructures.
+-> outputs in meshed_dir
 
-Interpolation: take e a mesh at time t and a mesh at time t+1, and interpolate
---> outputs in geodesics_dir
-OR
-Reparameterizations of the meshes.
---> outputs in parameterized_dir
+b. Center meshes by putting whole hippocampus barycenter at 0.
+-> outputs in centered_dir
+
+c. Remove degenerate faces using area thresholds
+-> outputs in nondegenerate_dir
+
+d. Reparameterize meshes: use parameterization of the first mesh
+-> outputs in parameterized_dir
+
+e. Sort meshes by hormone levels
+-> outputs in sorted_dir
+
+f. (Optional) Interpolate between t and t+1 with a geodesic
+-> outputs in interpolated_dir
 
 Note on pykeops:
 ----------------
@@ -23,8 +30,6 @@ To fix this, run the following commands:
 - remove: rm -rf ~/.cache/keops*/build
 - rebuild from python console.
     >>> import pykeops
-
-The processing is done with our `my28brains.meshing` module.
 
 Meshed surfaces are stored into .ply files.
 
@@ -47,14 +52,14 @@ import my28brains.preprocessing.sorting as sorting
 
 warnings.filterwarnings("ignore")
 raw_dir = default_config.raw_dir
-meshes_dir = default_config.meshes_data_dir
-centered_dir = default_config.centered_dir
-centered_nondegenerate_dir = default_config.centered_nondegenerate_dir
-geodesics_dir = default_config.geodesics_dir
-parameterized_dir = default_config.parameterized_dir
-sorted_parameterized_dir = default_config.sorted_parameterized_dir
+day_dirs = [os.path.join(raw_dir, f"Day{i:02d}") for i in range(1, 61)]
 
-days_dir = [os.path.join(raw_dir, f"Day{i:02d}") for i in range(1, 61)]
+meshed_dir = default_config.meshed_dir
+centered_dir = default_config.centered_dir
+nondegenerate_dir = default_config.nondegenerate_dir
+parameterized_dir = default_config.parameterized_dir
+sorted_dir = default_config.sorted_dir
+interpolated_dir = default_config.interpolated_dir
 
 
 def run_func_in_parallel_with_queue(func_args_queue):
@@ -84,35 +89,35 @@ def run_func_in_parallel_with_queue(func_args_queue):
 
 
 if __name__ == "__main__":
-    # 1. Extract meshes from the .nii files and write them to .ply files.
+    # a. Mesh by segmenting surfaces of the hippocampus and its substructures.
     for hemisphere, structure_id in itertools.product(
         default_config.hemisphere, set(default_config.structure_ids + [-1])
     ):
         # Add the whole hippocampus id=[-1] to list of structure ids,
         # in order to be able to compute its center and center the substructures.
         extraction.extract_meshes_from_nii_and_write(
-            input_dir=days_dir,
-            output_dir=meshes_dir,
+            input_dir=day_dirs,
+            output_dir=meshed_dir,
             hemisphere=hemisphere,
             structure_id=structure_id,
         )
 
-    # 2. Center the meshes and write them to .ply files.
+    # b. Center meshes by putting whole hippocampus barycenter at 0.
     for hemisphere in default_config.hemisphere:
         hippocampus_centers = centering.center_whole_hippocampus_and_write(
-            input_dir=meshes_dir, output_dir=centered_dir, hemisphere=hemisphere
+            input_dir=meshed_dir, output_dir=centered_dir, hemisphere=hemisphere
         )
         for structure_id in default_config.structure_ids:
             if structure_id != -1:
                 centering.center_substructure_and_write(
-                    input_dir=meshes_dir,
+                    input_dir=meshed_dir,
                     output_dir=centered_dir,
                     hemisphere=hemisphere,
                     structure_id=structure_id,
                     hippocampus_centers=hippocampus_centers,
                 )
 
-    # 3. Remove degenerate faces
+    # c. Remove degenerate faces using area thresholds
     for hemisphere, structure_id, area_threshold in itertools.product(
         default_config.hemisphere,
         default_config.structure_ids,
@@ -120,29 +125,26 @@ if __name__ == "__main__":
     ):
         geodesics.remove_degenerate_faces_and_write(
             input_dir=centered_dir,
-            output_dir=centered_nondegenerate_dir,
+            output_dir=nondegenerate_dir,
             hemisphere=hemisphere,
             structure_id=structure_id,
             area_threshold=area_threshold,
         )
 
-    # 4. Compute geodesic to perform reparameterization to first mesh
+    # d. Reparameterize meshes: use parameterization of the first mesh
     for hemisphere, structure_id, area_threshold in itertools.product(
         default_config.hemisphere,
         default_config.structure_ids,
         default_config.area_thresholds,
     ):
         string_base = os.path.join(
-            centered_nondegenerate_dir,
+            nondegenerate_dir,
             f"{hemisphere}_structure_{structure_id}**_at_{area_threshold}.ply",
         )
         input_paths = sorted(glob.glob(string_base))
         print(
-            f"Found {len(input_paths)} .plys for {hemisphere} hemisphere"
-            f" and anatomical structure {structure_id}:"
+            f"\nd. (Reparameterize) Found {len(input_paths)} .plys for {hemisphere} hemisphere, id {structure_id}"
         )
-        for path in input_paths:
-            print(path)
         output_dir = parameterized_dir
 
         multiprocessing.set_start_method("spawn", force=True)
@@ -163,24 +165,35 @@ if __name__ == "__main__":
         pool.close()
         pool.join()
 
-    # 5. Geodesic interpolation: interpolate between t and t+1
+    # e. Sort meshes by hormone levels
+    for hemisphere, structure_id, area_threshold in itertools.product(
+        default_config.hemisphere,
+        default_config.structure_ids,
+        default_config.area_thresholds,
+    ):
+        sorting.sort_meshes_by_hormones_and_write(
+            input_dir=parameterized_dir,
+            output_dir=sorted_dir,
+            hemisphere=hemisphere,
+            structure_id=structure_id,
+            area_threshold=area_threshold,
+        )
+
+    # f. (Optional) Geodesic interpolation between t and t+1
     for hemisphere, structure_id, area_threshold in itertools.product(
         default_config.hemisphere,
         default_config.structure_ids,
         default_config.area_thresholds,
     ):
         string_base = os.path.join(
-            centered_nondegenerate_dir,
+            nondegenerate_dir,
             f"{hemisphere}_structure_{structure_id}**_at_{area_threshold}.ply",
         )
         input_paths = sorted(glob.glob(string_base))
         print(
-            f"Found {len(input_paths)} .plys for {hemisphere} hemisphere"
-            f" and anatomical structure {structure_id}:"
+            f"\nF. Found {len(input_paths)} .plys for {hemisphere} hemisphere, id {structure_id}"
         )
-        for path in input_paths:
-            print(path)
-        output_dir = geodesics_dir
+        output_dir = interpolated_dir
 
         multiprocessing.set_start_method("spawn", force=True)
         queue = multiprocessing.Manager().Queue()
@@ -199,17 +212,3 @@ if __name__ == "__main__":
             pass
         pool.close()
         pool.join()
-
-    # 6. Sort meshes by hormone levels
-    for hemisphere, structure_id, area_threshold in itertools.product(
-        default_config.hemisphere,
-        default_config.structure_ids,
-        default_config.area_thresholds,
-    ):
-        sorting.sort_meshes_by_hormones_and_write(
-            input_dir=parameterized_dir,
-            output_dir=sorted_parameterized_dir,
-            hemisphere=hemisphere,
-            structure_id=structure_id,
-            area_threshold=area_threshold,
-        )

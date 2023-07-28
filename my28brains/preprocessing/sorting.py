@@ -3,6 +3,7 @@
 It outputs to meshes_parameterized_sorted_by_hormone
 """
 
+import glob
 import os
 
 import geomstats.backend as gs
@@ -37,6 +38,15 @@ def sort_meshes_by_hormones_and_write(
     """
     if config is None:
         config = default_config
+
+    string_base = os.path.join(
+        input_dir, f"{hemisphere}_structure_{structure_id}**.ply"
+    )
+    paths = sorted(glob.glob(string_base))
+    print(
+        f"\ne. (Sort) Found {len(paths)} .plys for {hemisphere} hemisphere, id {structure_id}."
+    )
+
     hormones_path = os.path.join(config.data_dir, "hormones.csv")
     df = pd.read_csv(hormones_path, delimiter=",")
     days_used = df[df["dayID"] < config.day_range[1] + 1]
@@ -82,7 +92,6 @@ def sort_meshes_by_hormones_and_write(
     # Save the sorted meshes
     for i_mesh, mesh in enumerate(sorted_meshes):
         sorted_mesh_path = os.path.join(output_dir, f"parameterized_mesh{i_mesh:02d}")
-
         h2_io.save_data(
             sorted_mesh_path,
             ".ply",

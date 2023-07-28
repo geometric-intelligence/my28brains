@@ -14,7 +14,7 @@ import H2_SurfaceMatch.H2_match  # noqa: E402
 import H2_SurfaceMatch.utils.input_output as h2_io  # noqa: E402
 import H2_SurfaceMatch.utils.utils  # noqa: E402
 import my28brains.default_config as default_config
-import my28brains.meshing.write as write
+import my28brains.preprocessing.writing as write
 
 
 def remove_degenerate_faces(vertices, faces, area_threshold=0.01, atol=gs.atol):
@@ -29,7 +29,7 @@ def remove_degenerate_faces(vertices, faces, area_threshold=0.01, atol=gs.atol):
     mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
 
     discrete_surfaces = DiscreteSurfaces(faces=faces)
-    face_areas = discrete_surfaces.face_areas(vertices)
+    face_areas = discrete_surfaces.face_areas(gs.array(vertices))
     face_mask = ~gs.less(face_areas, area_threshold)
     mesh.update_faces(face_mask)
     return mesh.vertices, mesh.faces
@@ -61,28 +61,25 @@ def remove_degenerate_faces_and_write(
         f"{hemisphere}_structure_{structure_id}**.ply",
     )
     paths = sorted(glob.glob(string_base))
-
     print(
-        f"Found {len(paths)} ply files for {hemisphere}"
-        + f" hemisphere and anatomical structure {structure_id}:"
+        f"\nc. (Remove degenerate) Found {len(paths)} .plys for {hemisphere} hemisphere, id {structure_id}:"
     )
+
     for path in paths:
         ply_path = os.path.join(
             output_dir,
             os.path.basename(path).split(".")[0] + f"_at_{area_threshold}.ply",
         )
-        if not os.path.exists(ply_path):
-            print(f"\tLoad mesh from: {path}")
-            mesh = trimesh.load(path)
-            new_vertices, new_faces = remove_degenerate_faces(
-                mesh.vertices, mesh.faces, area_threshold
-            )
-            new_mesh = trimesh.Trimesh(vertices=new_vertices, faces=new_faces)
-
-            print(f"Write to: {ply_path}")
-            write.trimesh_to_ply(new_mesh, ply_path)
-        else:
-            print(f"File already exists (no rewrite): {ply_path}")
+        if os.path.exists(ply_path):
+            print(f"File exists (no rewrite): {ply_path}")
+            continue
+        print(f"Load mesh from {path}")
+        mesh = trimesh.load(path)
+        new_vertices, new_faces = remove_degenerate_faces(
+            mesh.vertices, mesh.faces, area_threshold
+        )
+        new_mesh = trimesh.Trimesh(vertices=new_vertices, faces=new_faces)
+        write.trimesh_to_ply(new_mesh, ply_path)
 
 
 def scale_decimate(path, config=None):
@@ -198,7 +195,7 @@ def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id):
 
     file_ply = f"{ply_prefix}0.ply"
     if os.path.exists(os.path.join(output_dir, file_ply)):
-        print(f"Geodesic for pair {i_pair} already exists. Skipping to next pair.")
+        print(f"Geodesic for pair {i_pair} exists. Skipping to next pair.")
         return
 
     geod, F0 = scale_decimate_and_compute_geodesic(
@@ -216,7 +213,7 @@ def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id):
             axis=[0, 1, 0],
             angle=-1 * np.pi / 2,
         )
-    print(f"Geodesic interpolation {i_pair} saved to: " f"{output_dir}.")
+    print(f"\tGeodesic interpolation {i_pair} saved to: " f"{output_dir}.")
 
 
 def generate_parameterized_data(input_paths, output_dir, i_path, gpu_id):
@@ -248,9 +245,9 @@ def generate_parameterized_data(input_paths, output_dir, i_path, gpu_id):
     basename = os.path.splitext(os.path.basename(end_path))[0]
     ply_prefix = os.path.join(output_dir, basename + "_parameterized")
 
-    # check to see if complete geodesic already has been written
+    # check to see if complete geodesic has been written
     if os.path.exists(ply_prefix + ".ply"):
-        print(f"Geodesic from 0 to {i_path} already exists. Skipping.")
+        print(f"\tGeodesic from 0 to {i_path} exists. Skipping.")
         return
 
     geod, F0 = scale_decimate_and_compute_geodesic(

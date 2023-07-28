@@ -1,4 +1,19 @@
-"""Input/Output utilities to read and write files."""
+"""Input/Output utilities to extract meshes from nii brain images.
+
+Structure_ID names, numbers, and colors:
+----------------------------------------
+1   255    0    0        1  1  1    "CA1"
+2     0  255    0        1  1  1    "CA2+3"
+3     0    0  255        1  1  1    "DG"
+4   255  255    0        1  1  1    "ERC"
+5     0  255  255        1  1  1    "PHC"
+6   255    0  255        1  1  1    "PRC"
+7    80  179  221        1  1  1    "SUB"
+8   255  215    0        1  1  1    "AntHipp"
+9   184  115   51        1  1  1    "PostHipp"
+2, 6 are expected to grow in volume with progesterone
+4, 5 are expected to shrink in volume with progesterone
+"""
 
 import os
 
@@ -6,7 +21,7 @@ import nibabel
 import skimage
 import trimesh
 
-import my28brains.meshing.write as write
+from my28brains.preprocessing import writing
 
 
 def extract_meshes_from_nii_and_write(input_dir, output_dir, hemisphere, structure_id):
@@ -36,7 +51,7 @@ def extract_meshes_from_nii_and_write(input_dir, output_dir, hemisphere, structu
                 nii_paths.append(os.path.join(day_dir, file_name))
                 break
 
-    print(f"Found {len(nii_paths)} nii paths for hemisphere {hemisphere}.")
+    print(f"\na. (Mesh) Found {len(nii_paths)} nii paths for hemisphere {hemisphere}.")
 
     for i_path, nii_path in enumerate(nii_paths):
         day = i_path + 1
@@ -48,8 +63,7 @@ def extract_meshes_from_nii_and_write(input_dir, output_dir, hemisphere, structu
             print(f"File exists (no rewrite): {ply_path}")
             continue
         mesh = extract_mesh(nii_path=nii_path, structure_id=structure_id)
-
-        write.trimesh_to_ply(mesh=mesh, ply_path=ply_path)
+        writing.trimesh_to_ply(mesh=mesh, ply_path=ply_path)
 
 
 def _extract_mesh(img_fdata, structure_id):
@@ -99,7 +113,7 @@ def extract_mesh(nii_path, structure_id=-1):
     mesh : trimesh.Trimesh or list of trimesh.Trimesh's
         Surface mesh (or list of meshes) of the anatomical structure.
     """
-    print(f"Loading image from {nii_path}...")
+    print(f"Load image from {nii_path}")
     img = nibabel.load(nii_path)
     img_fdata = img.get_fdata()
 

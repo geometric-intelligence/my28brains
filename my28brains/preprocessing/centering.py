@@ -6,7 +6,7 @@ import os
 import numpy as np
 import trimesh
 
-from my28brains.meshing import extraction
+from my28brains.preprocessing import writing
 
 
 def center_whole_hippocampus_and_write(input_dir, output_dir, hemisphere):
@@ -37,21 +37,22 @@ def center_whole_hippocampus_and_write(input_dir, output_dir, hemisphere):
         input_dir, f"{hemisphere}_structure_{structure_id}**.ply"
     )
     paths = sorted(glob.glob(string_base))
-
     print(
-        f"Found {len(paths)} ply files for"
-        f" {hemisphere} hemisphere and anatomical structure {structure_id}:\n {paths}\n"
+        f"\nb. (Center) Found {len(paths)} .plys for {hemisphere} hemisphere, id {structure_id}."
     )
 
     hippocampus_centers = []
     for path in paths:
         ply_path = os.path.join(output_dir, os.path.basename(path))
-        print(f"\tLoad mesh from path: {path}")
+        if os.path.exists(ply_path):
+            print(f"File exists (no rewrite): {ply_path}")
+            continue
+        print(f"Load mesh from {path}")
         mesh = trimesh.load(path)
         centered_mesh, hippocampus_center = center_whole_hippocampus(mesh)
         hippocampus_centers.append(hippocampus_center)
 
-        extraction.write_trimesh_to_ply(mesh=centered_mesh, ply_path=ply_path)
+        writing.trimesh_to_ply(mesh=centered_mesh, ply_path=ply_path)
     hippocampus_centers = np.array(hippocampus_centers)
     return hippocampus_centers
 
@@ -84,21 +85,17 @@ def center_substructure_and_write(
         input_dir, f"{hemisphere}_structure_{structure_id}**.ply"
     )
     paths = sorted(glob.glob(string_base))
-
-    print(
-        f"Found {len(paths)} ply files for"
-        f" {hemisphere} hemisphere and anatomical structure {structure_id}:\n {paths}\n"
-    )
+    print(f"Found {len(paths)} .plys for {hemisphere} hemisphere, id {structure_id}.")
 
     for i_day, path in enumerate(paths):
         ply_path = os.path.join(output_dir, os.path.basename(path))
         if os.path.exists(ply_path):
-            print(f"File already exists (no rewrite): {ply_path}")
+            print(f"File exists (no rewrite): {ply_path}")
             continue
-        print(f"\tLoad mesh from path: {path}")
+        print(f"\tLoad mesh from {path}")
         mesh = trimesh.load(path)
         centered_mesh = center_substructure(mesh, hippocampus_centers[i_day])
-        extraction.write_trimesh_to_ply(mesh=centered_mesh, ply_path=ply_path)
+        writing.trimesh_to_ply(mesh=centered_mesh, ply_path=ply_path)
 
 
 def center_whole_hippocampus(mesh):
@@ -160,10 +157,9 @@ def register_mesh(mesh, base_mesh):
     registered_mesh : trimesh.Trimesh
         Registered Mesh.
     """
-    transform_mesh_to_base_mesh, cost = trimesh.registration.mesh_other(
+    transform_mesh_to_base_mesh, _ = trimesh.registration.mesh_other(
         mesh=mesh, other=base_mesh, scale=False
     )
-    print(f"Cost: {cost}")
     # Note: This modifies the original mesh in place
     registered_mesh = mesh.apply_transform(transform_mesh_to_base_mesh)
     return registered_mesh
