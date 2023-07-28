@@ -21,7 +21,7 @@ from my28brains.geodesic_regression import GeodesicRegression
 
 my28brains_dir = default_config.my28brains_dir
 synthetic_data_dir = default_config.synthetic_data_dir
-parameterized_meshes_dir = default_config.parameterized_meshes_dir
+reparameterized_dir = default_config.reparameterized_dir
 data_dir = default_config.data_dir
 
 
@@ -187,7 +187,7 @@ def geodesic_regression(
     coef_hat_guess,
     initialization="warm_start",
     geodesic_residuals=False,
-    n_steps = 3,
+    n_steps=3,
     # device = "cuda:0",
 ):
     """Perform regression on parameterized meshes.
@@ -306,7 +306,7 @@ def linear_regression(mesh_sequence_vertices, times):  # , device = "cuda:0"):
 
 
 def euclidean_subspace_test(
-    mesh_sequence_vertices, mesh_sequence_faces, times, tol_factor=0.001, n_steps = 3
+    mesh_sequence_vertices, mesh_sequence_faces, times, tol_factor=0.001, n_steps=3
 ):
     """Test whether the manifold subspace where the data lie is euclidean.
 
@@ -357,26 +357,24 @@ def euclidean_subspace_test(
 
     geodesic = gs.array(mesh_sequence_vertices)
 
-
     line = gs.array(
-            [
-                t * mesh_sequence_vertices[0] + (1 - t) * mesh_sequence_vertices[-1]
-                for t in times
-            ]
-        )
+        [
+            t * mesh_sequence_vertices[0] + (1 - t) * mesh_sequence_vertices[-1]
+            for t in times
+        ]
+    )
 
     mesh_sequence_diff = abs(geodesic - line)
     summed_mesh_sequence_diffs = sum(sum(sum(mesh_sequence_diff)))
-    print(f"mesh_sequence_diff.shape" , geodesic.shape)
-    print(f"summed_mesh_sequence_diffs.shape" , summed_mesh_sequence_diffs.shape)
+    print(f"mesh_sequence_diff.shape", geodesic.shape)
+    print(f"summed_mesh_sequence_diffs.shape", summed_mesh_sequence_diffs.shape)
 
     n_vertices = mesh_sequence_vertices[0].shape[0]
-    normalized_mesh_sequence_diff = summed_mesh_sequence_diffs / (n_vertices * len(times) * 3)
-
-    diff_tolerance = (
-        tol_factor
-        * data_utils.mesh_diameter(mesh_sequence_vertices[0])
+    normalized_mesh_sequence_diff = summed_mesh_sequence_diffs / (
+        n_vertices * len(times) * 3
     )
+
+    diff_tolerance = tol_factor * data_utils.mesh_diameter(mesh_sequence_vertices[0])
 
     euclidean_subspace = False
     if normalized_mesh_sequence_diff < diff_tolerance:

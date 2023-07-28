@@ -1,4 +1,4 @@
-"""This file calculates the "path energy" of the geodesic between two shapes."""
+"""Calculate the "path energy" of the geodesic between two shapes."""
 import os
 import sys
 import time
@@ -25,7 +25,7 @@ import H2_SurfaceMatch.utils.utils  # noqa: E402
 warnings.filterwarnings("ignore")
 
 centered_dir = default_config.centered_dir
-centered_nondegenerate_dir = default_config.centered_nondegenerate_dir
+nondegenerate_dir = default_config.nondegenerate_dir
 energies_dir = os.path.join(os.getcwd(), "my28brains", "results", "meshes_energies")
 
 # Choose the pair of geodesics for which you would like to calculate
@@ -36,16 +36,16 @@ structure_id = -1
 area_threshold = "0.0"
 days = np.array([1, 10])
 
-centered_nondegenerate_dir = os.path.join(
+nondegenerate_dir = os.path.join(
     os.getcwd(), "my28brains", "results", "meshes_centered_nondegenerate"
 )
-print(f"centered_nondegenerate_dir: {centered_nondegenerate_dir}")
+print(f"nondegenerate_dir: {nondegenerate_dir}")
 
 # write paths to each day
 paths = []
 for day in days:
     string_base = os.path.join(
-        centered_nondegenerate_dir,
+        nondegenerate_dir,
         f"{hemisphere}_structure_{structure_id}_day{day:02d}_at_{area_threshold}.ply",
     )
     # paths = sorted(glob.glob(string_base))

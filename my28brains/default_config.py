@@ -1,19 +1,5 @@
 """Default configuration.
 
-Structure_ID names, numbers, and colors:
-----------------------------------------
-1   255    0    0        1  1  1    "CA1"
-2     0  255    0        1  1  1    "CA2+3"
-3     0    0  255        1  1  1    "DG"
-4   255  255    0        1  1  1    "ERC"
-5     0  255  255        1  1  1    "PHC"
-6   255    0  255        1  1  1    "PRC"
-7    80  179  221        1  1  1    "SUB"
-8   255  215    0        1  1  1    "AntHipp"
-9   184  115   51        1  1  1    "PostHipp"
-2, 6 are expected to grow in volume with progesterone
-4, 5 are expected to shrink in volume with progesterone
-
 Information to help elastic metric parameter choosing:
 ----------------------------------------
 The elastic metric is a weighted sum of 3 terms:
@@ -43,7 +29,6 @@ a2 = (was 1) high value = 1. a2 penalizes the laplacian of the mesh.
     mesh up to get a super smooth mesh.
 """
 
-import datetime
 import os
 import subprocess
 import sys
@@ -52,28 +37,70 @@ import torch
 
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 
+# build work path from git root path
 gitroot_path = subprocess.check_output(
     ["git", "rev-parse", "--show-toplevel"], universal_newlines=True
 )
-
-os.chdir(os.path.join(gitroot_path[:-1], "my28brains"))
-
-now = datetime.datetime.now()
-use_wandb = True
+os.chdir(gitroot_path[:-1])
+work_dir = os.getcwd()  # code/my28brains/
+code_dir = os.path.dirname(work_dir)  # code/
+raw_dir = "/home/data/28andMeOC_correct"
+my28brains_dir = os.path.join(os.getcwd(), "my28brains")  # code/my28brains/my28brains/
+h2_dir = os.path.join(os.getcwd(), "H2_SurfaceMatch")
+sys.path.append(code_dir)
+sys.path.append(h2_dir)
 
 # WANDB API KEY
 # Find it here: https://wandb.ai/authorize
 # Story it in file: api_key.txt (without extra line break)
-with open("api_key.txt") as f:
+with open(os.path.join(my28brains_dir, "api_key.txt")) as f:
     api_key = f.read()
 
-# Fixed parameters for saving results
+# GPU Parameters
+use_cuda = 1
+n_gpus = 10
+torch_dtype = torch.float64
+
+# Saving geodesics using plotGeodesic
 stepsize = {
     "synthetic": 55,
     "real": 6,
 }
 
-# Regression Parameters
+# 1. Preprocessing Parameters
+
+# Brain hemispheres and anatomical structures
+hemisphere = ["left"]  # , "right"]
+structure_ids = [-1]
+
+# Face area threshold for non-degenerate meshes:
+# the less we decimate, the more likely it is to have small faces
+# thus the thresholt needs to be higher
+area_thresholds = [0.00]  # 0.0001, 0.001, 0.01, 0.1, 1.0]
+
+# WORKING
+initial_decimation_fact = 10
+scaling_factor = 2 * initial_decimation_fact
+# NOT WORKING
+# initial_decimation_fact = 4
+# scaling_factor = 10
+
+# Define template structure of the mesh that will be used
+# for all mesh in the interpolation
+# Every mesh will have the same number of vertices and faces.
+i_template = 0
+template_day = 2
+
+# range of days to interpolate in between
+# Looking at the first 10 days is interesting because:
+# - we have 10 gpus, so we can run 10 interpolations at once
+# - they contain most of the progesterone peak.
+# first menstrual cycle is day 1-30 (pre-pill)
+day_range = [4, 12]  # we have parameterized meshes for days 2-11
+
+run_interpolate = False
+
+# 2. Regression Parameters
 
 dataset_name = ["real"]  # "synthetic" or "real"
 sped_up = [True]  # 'True' or 'False' (not currently used)
@@ -112,64 +139,7 @@ ellipse_dimensions = [
     [2, 2, 6],
 ]  # if nothing recorded, [2, 2, 3]
 
-# GPU Parameters
-
-use_cuda = 1
-n_gpus = 10
-torch_dtype = torch.float64
-
-# Unparameterized Geodesic Mesh Parameters
-
-# number of time points along each interpolating geodesic
-resolutions = 0  # don't do several resolutions for our case.
-# WORKING
-# initial_decimation_fact = 10
-# scaling_factor = 2*initial_decimation_fact
-# NOT WORKING
-initial_decimation_fact = 4
-scaling_factor = 10
-
-# Define template structure of the mesh that will be used
-# for all mesh in the interpolation
-# Every mesh will have the same number of vertices and faces.
-i_template = 0
-
-# face area threshold for non-degenerate meshes:
-# the less we decimate, the more likely it is to have small faces
-# thus the thresholt needs to be higher
-area_thresholds = [0.00]  # 0.0001, 0.001, 0.01, 0.1, 1.0]
-
-# Real Data Specific
-
-# specify brain hemispheres to analyze
-hemisphere = ["left"]  # , "right"]
-structure_ids = [-1]
-
-
-# range of days to interpolate in between
-# Looking at the first 10 days is interesting because:
-# - we have 10 gpus, so we can run 10 interpolations at once
-# - they contain most of the progesterone peak.
-# first menstrual cycle is day 1-30 (pre-pill)
-day_range = [2, 11]  # we have parameterized meshes for days 2-11
-
-# determine whether to generate parameterized data or to interpolate between
-# meshes with a geodesic.
-generate_parameterized_data = True
-interpolate_geodesics = not generate_parameterized_data
-
 # Build Paths
-
-# build work path from git root path
-gitroot_path = subprocess.check_output(
-    ["git", "rev-parse", "--show-toplevel"], universal_newlines=True
-)
-os.chdir(gitroot_path[:-1])
-work_dir = os.getcwd()
-
-raw_data_dir = "/home/data/28andMeOC_correct"
-my28brains_dir = os.path.join(os.getcwd(), "my28brains")
-h2_dir = os.path.join(os.getcwd(), "H2_SurfaceMatch")
 
 # Data (inside my28brains_dir : my28brains/my28brains/)
 data_dir = os.path.join(my28brains_dir, "data")
@@ -178,33 +148,29 @@ synthetic_data_dir = os.path.join(data_dir, "synthetic")
 # Results (inside my28brains_dir : my28brains/my28brains/)
 results_dir = os.path.join(my28brains_dir, "results")
 tmp_dir = os.path.join(results_dir, "tmp")
-meshed_data_dir = os.path.join(results_dir, "meshes")
-centered_dir = os.path.join(results_dir, "meshes_centered")
-centered_nondegenerate_dir = os.path.join(results_dir, "meshes_centered_nondegenerate")
-geodesics_dir = os.path.join(results_dir, "meshes_geodesics")
-parameterized_meshes_dir = os.path.join(results_dir, "meshes_parameterized")
-sorted_parameterized_meshes_dir = os.path.join(
-    results_dir, "meshes_parameterized_sorted_by_hormone"
-)
-regression_dir = os.path.join(results_dir, "regression")
 
-sys_dir = os.path.dirname(work_dir)
-sys.path.append(sys_dir)
-sys.path.append(h2_dir)
+preprocess_dir = os.path.join(results_dir, "1_preprocess")
+meshed_dir = os.path.join(preprocess_dir, "a_meshed")
+centered_dir = os.path.join(preprocess_dir, "b_centered")
+nondegenerate_dir = os.path.join(preprocess_dir, "c_nondegenerate")
+reparameterized_dir = os.path.join(preprocess_dir, "d_reparameterized")
+sorted_dir = os.path.join(preprocess_dir, "e_sorted")
+interpolated_dir = os.path.join(preprocess_dir, "f_interpolated")
+
+regression_dir = os.path.join(results_dir, "2_regression")
 
 for mesh_dir in [
-    meshed_data_dir,
+    meshed_dir,
     centered_dir,
-    centered_nondegenerate_dir,
-    geodesics_dir,
+    nondegenerate_dir,
+    interpolated_dir,
     regression_dir,
     synthetic_data_dir,
-    parameterized_meshes_dir,
-    sorted_parameterized_meshes_dir,
+    reparameterized_dir,
+    sorted_dir,
 ]:
     if not os.path.exists(mesh_dir):
         os.makedirs(mesh_dir)
-    sys.path.append(sys_dir)
 
 
 # Elastic Metric Parameters
@@ -222,6 +188,7 @@ a2 = 1  # (was 1)
 #  we will have in the interpolated geodesic
 # the "time_steps" value in the last param will set the number
 # of time points in the interpolated geodesic
+resolutions = 0  # don't do several resolutions for our case.
 
 param1 = {
     "weight_coef_dist_T": 10**1,  # target varifold term
@@ -252,7 +219,6 @@ param2 = {
 # could do 10**1 and 10**5 if we're only doing two parameters.
 # e.g. with 3 parameters, emmanuel did: 10**1, 10**5, 10**10
 # e.g. corresponding sig_geom: 0.4, 0.1, 0.025
-
 
 param3 = {
     "weight_coef_dist_T": 10**10,
