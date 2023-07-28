@@ -27,8 +27,8 @@ def main_run(config):
 
     This corresponds to one wandb run (no wandb sweep).
 
-    Parameters
-    ----------
+    Notes
+    -----
     full_run: bool. If True, at the end of the function, this means the full
         regression was run
     """
