@@ -156,8 +156,7 @@ def fit_geodesic_regression(
         intercept_hat_guess = gs.array(mesh_sequence[0])  # .to(device = device)
     elif intercept_hat_guess.shape != mesh_sequence[0].shape:
         raise ValueError(
-            "intercept_hat_guess must be None or "
-            "have the same shape as mesh_sequence[0]"
+            "intercept_hat_guess must be None or have mesh_sequence[0].shape"
         )
 
     if coef_hat_guess is None:
