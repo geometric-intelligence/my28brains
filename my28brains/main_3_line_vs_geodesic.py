@@ -6,6 +6,9 @@ geodesic regression with the geodesic residuals.
 Note: the following paths in are my python path:
 export PYTHONPATH=/home/nmiolane/code/my28brains/H2_SurfaceMatch:
 /home/nmiolane/code/my28brains/
+
+export PYTHONPATH=/home/adelemyers/code/my28brains/H2_SurfaceMatch:
+/home/nmiolane/code/my28brains/
 """
 
 import itertools
@@ -42,7 +45,7 @@ def main_run(config):
     logging.info(wandb_config)
 
     reference_mesh = synthetic.generate_ellipsoid_mesh(
-        subdivisions=wandb_config.n_subdivisions, ellipsoid_dims=[2, 2, 3]
+        subdivisions=wandb_config.subdivisions, ellipsoid_dims=[2, 2, 3]
     )
     reference_vertices = gs.array(reference_mesh.vertices)
     reference_faces = reference_mesh.faces
