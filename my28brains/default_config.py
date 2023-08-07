@@ -76,29 +76,36 @@ stepsize = {
 dataset_name = ["synthetic"]  # "synthetic" or "real"
 sped_up = [True]  # 'True' or 'False' (not currently used)
 geodesic_initialization = [
-    "random"
+    "random",
+    "warm_start",
 ]  # "warm_start" or "random" (random on parka server)
 geodesic_residuals = [False]  # 'True' or 'False' (alternative is linear residuals)
-n_steps = [3]  # n steps for the exp solver of geomstats.
+n_steps = [3, 5, 7]  # n steps for the exp solver of geomstats.
 tol_factor = [
-    0.001,
-    0.01,
-    0.1,
-    0.5,
+    0.0001,
+    # 0.001,
+    # 0.01,
+    # 0.1,
+    # 0.5,
 ]  # tolerance for geodesic regression. If none logged, value 0.001.
-n_times = [5, 10, 15, 20, 30]  # Only for dataset_name == synthetic
+subspace_test_tol_factor = [
+    # 0.2,
+    # 0.4,
+    0.5,
+]
+n_times = [10]  # Only for dataset_name == synthetic
 start_shape = ["sphere"]  # "sphere" or "ellipsoid" for synthetic
 end_shape = ["ellipsoid"]  # "sphere" or "ellipsoid" for synthetic
-noise_factor = [0.0, 0.0001, 0.001, 0.01]  # noise added to the data.
+noise_factor = [0.01]  # noise added to the data. 0.0, 0.0001, 0.001,
 # Will be multiplied by the size of the mesh to calculate the standard
 # deviation of added noise distribution.
 # only applied to synthetic data.
 subdivisions = [
-    1,
-    2,
-    3,
-    4,
+    3
 ]
+
+updated_tol_factor = True
+
 # How many times to subdivide the mesh. Note that the number of faces will grow
 # as function of 4 ** subdivisions, so you probably want to keep this under ~5.
 # if nothing recorded, value 3.
@@ -106,7 +113,6 @@ ellipse_dimensions = [
     [2, 2, 3],
     [2, 2, 10],
     [10, 10, 2],
-    [2, 2, 6]
 ]  # if nothing recorded, [2, 2, 3]
 
 # GPU Parameters

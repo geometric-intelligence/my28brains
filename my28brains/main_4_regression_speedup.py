@@ -92,11 +92,11 @@ def main_run(config):
         )
         mesh_diameter = data_utils.mesh_diameter(mesh_sequence_vertices[0])
         tol = (
-            wandb_config.tol_factor
-            * mesh_diameter
+            (wandb_config.tol_factor
+            * mesh_diameter) ** 2
             * len(mesh_sequence_vertices[0])
             * len(mesh_sequence_vertices)
-        ) ** 2
+        ) 
         logging.info(f"\n- Tolerance calculated for geodesic regression: {tol:.3f}.")
 
         if wandb_config.dataset_name == "synthetic":
@@ -115,7 +115,7 @@ def main_run(config):
             mesh_sequence_vertices,
             mesh_faces,
             times,
-            wandb_config.tol_factor,
+            wandb_config.subspace_test_tol_factor,
             wandb_config.n_steps,
         )
         logging.info(
@@ -152,6 +152,8 @@ def main_run(config):
                     mesh_sequence_vertices.numpy().reshape((-1, 3))
                 ),
                 "test_diff_tolerance": diff_tolerance,
+                "updated_tol_factor": default_config.updated_tol_factor,
+                "n_vertices": len(mesh_sequence_vertices[0]),
             }
         )
 
@@ -326,6 +328,7 @@ def main():
         geodesic_initialization,
         geodesic_residuals,
         tol_factor,
+        subspace_test_tol_factor,
         n_steps,
     ) in itertools.product(
         default_config.dataset_name,
@@ -333,6 +336,7 @@ def main():
         default_config.geodesic_initialization,
         default_config.geodesic_residuals,
         default_config.tol_factor,
+        default_config.subspace_test_tol_factor,
         default_config.n_steps,
     ):
         main_config = {
@@ -341,6 +345,7 @@ def main():
             "geodesic_initialization": geodesic_initialization,
             "geodesic_residuals": geodesic_residuals,
             "tol_factor": tol_factor,
+            "subspace_test_tol_factor": subspace_test_tol_factor,
             "n_steps": n_steps,
         }
         if dataset_name == "synthetic":
