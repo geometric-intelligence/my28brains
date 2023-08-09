@@ -4,11 +4,11 @@ This computation aims to show that it is not realistic to perform
 geodesic regression with the geodesic residuals.
 
 Note: the following paths in are my python path:
-export PYTHONPATH=/home/nmiolane/code/my28brains/H2_SurfaceMatch:
+For Nina: export PYTHONPATH=/home/nmiolane/code/my28brains/H2_SurfaceMatch:
 /home/nmiolane/code/my28brains/
 
-export PYTHONPATH=/home/adelemyers/code/my28brains/H2_SurfaceMatch:
-/home/nmiolane/code/my28brains/
+For Adele: export PYTHONPATH=/home/adele/code/my28brains/H2_SurfaceMatch:
+/home/adele/code/my28brains/
 """
 
 import itertools
@@ -68,25 +68,6 @@ def main_run(config):
         }
     )
 
-    logging.info("Computing linear distance.")
-    start = time.time()
-    linear_sq_dist = gs.linalg.norm(noisy_vertices - noiseless_vertices).numpy() ** 2
-    linear_dist = gs.sqrt(linear_sq_dist)
-    linear_regression_duration = time.time() - start
-
-    logging.info("Computing line.")
-    start = time.time()
-    line = gs.array(
-        [
-            t * noiseless_vertices + (1 - t) * noisy_vertices
-            for t in gs.linspace(0, 1, wandb_config.n_times)
-        ]
-    )
-    line_duration = time.time() - start
-    logging.info(
-        f"--> Done ({linear_regression_duration:.1f} sec): linear_dist = {linear_dist}"
-    )
-
     discrete_surfaces = DiscreteSurfaces(faces=gs.array(reference_faces))
     elastic_metric = ElasticMetric(space=discrete_surfaces)
     elastic_metric.exp_solver = _ExpSolver(n_steps=wandb_config.n_steps)
@@ -94,7 +75,8 @@ def main_run(config):
     logging.info("Computing geodesic distance.")
     start = time.time()
     geodesic_sq_dist = (
-        discrete_surfaces.metric.squared_dist(noisy_vertices, noiseless_vertices)
+        # discrete_surfaces.metric.squared_dist(noisy_vertices, noiseless_vertices)
+        discrete_surfaces.metric.squared_dist(noiseless_vertices, noisy_vertices)
         .detach()
         .numpy()
     )[0]
@@ -103,14 +85,43 @@ def main_run(config):
 
     logging.info("Computing geodesic.")
     start = time.time()
+    true_coef = noiseless_vertices - noisy_vertices
     geodesic_fn = elastic_metric.geodesic(
-        initial_point=noiseless_vertices, end_point=noisy_vertices
+        initial_point=noiseless_vertices, initial_tangent_vec=true_coef
     )
+    # geodesic_fn = elastic_metric.geodesic(
+    #     initial_point=noiseless_vertices, end_point=noisy_vertices
+    # )
     geodesic = geodesic_fn(gs.linspace(0, 1, wandb_config.n_times))
     geodesic_duration = time.time() - start
     logging.info(
         f"--> Done ({geodesic_regression_duration:.1f} sec): "
         f"geodesic_dist = {geodesic_dist}..."
+    )
+
+    q_start = geodesic[0]
+    q_end = geodesic[-1]
+
+    logging.info("Computing linear distance.")
+    start = time.time()
+    linear_sq_dist = gs.linalg.norm(q_start - q_end).numpy() ** 2
+    linear_dist = gs.sqrt(linear_sq_dist)
+    linear_regression_duration = time.time() - start
+
+    logging.info("Computing line.")
+    start = time.time()
+    line = gs.array(
+        [t * q_end + (1 - t) * q_start for t in gs.linspace(0, 1, wandb_config.n_times)]
+    )
+    # line = gs.array(
+    #     [
+    #         t * noiseless_vertices + (1 - t) * noisy_vertices
+    #         for t in gs.linspace(0, 1, wandb_config.n_times)
+    #     ]
+    # )
+    line_duration = time.time() - start
+    logging.info(
+        f"--> Done ({linear_regression_duration:.1f} sec): linear_dist = {linear_dist}"
     )
 
     diff_dist = linear_dist - geodesic_dist
@@ -121,14 +132,17 @@ def main_run(config):
     diff_seq_per_time_and_vertex = gs.linalg.norm(line - geodesic) / (
         wandb_config.n_times * n_vertices
     )
+    rmsd = gs.linalg.norm(line - geodesic) / gs.sqrt(wandb_config.n_times * n_vertices)
     abs_seq = gs.abs(line - geodesic)
 
     diff_seq_per_time_vertex_diameter = diff_seq_per_time_and_vertex / diameter
+    rmsd_diameter = rmsd / diameter
     diff_seq_duration = line_duration - geodesic_duration
     relative_diff_seq_duration = diff_seq_duration / line_duration
 
-    offset_line = viz.offset_mesh_sequence(line)
-    offset_geodesic = viz.offset_mesh_sequence(geodesic)
+    offset_line = gs.array(viz.offset_mesh_sequence(line))
+    offset_geodesic = gs.array(viz.offset_mesh_sequence(geodesic))
+    print(f"offset_line.shape = {offset_line.shape}")
 
     wandb.log(
         {
@@ -153,11 +167,17 @@ def main_run(config):
             "relative_diff_duration": relative_diff_duration,
             "noiseless_vertices": wandb.Object3D(noiseless_vertices.numpy()),
             "noisy_vertices": wandb.Object3D(noisy_vertices.numpy()),
-            "offset_line": wandb.Object3D(offset_line.numpy()),
-            "offset_geodesic": wandb.Object3D(offset_geodesic.numpy()),
+            "offset_line": wandb.Object3D(
+                offset_line.detach().numpy().reshape((-1, 3))
+            ),
+            "offset_geodesic": wandb.Object3D(
+                offset_geodesic.detach().numpy().reshape((-1, 3))
+            ),
             "diff_seq_per_time_and_vertex": diff_seq_per_time_and_vertex,
+            "rmsd": rmsd,
             "abs_seq": abs_seq,
             "diff_seq_per_time_vertex_diameter": diff_seq_per_time_vertex_diameter,
+            "rmsd_diameter": rmsd_diameter,
             "diff_seq_duration": diff_seq_duration,
             "diff_seq_duration_per_time_and_vertex": diff_seq_duration
             / (wandb_config.n_times * n_vertices),
