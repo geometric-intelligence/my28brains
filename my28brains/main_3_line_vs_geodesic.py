@@ -29,10 +29,12 @@ import my28brains.datasets.utils as data_utils
 import my28brains.viz as viz
 import wandb
 
-NOISE_FACTORS = [0.01, 0.1, 0.5]  # , 1.0]
-N_STEPS = [3, 5, 8]  # 10, 20]  #
+NOISE_FACTORS = [0.01, 0.1, 0.5, 1.0]  #
+N_STEPS = [20]  # 3, 5, 8, 10, 20]  #
 SUBDIVISIONS = [1, 2, 3]
-N_TIMES = [10]
+N_TIMES = [10]  # 5
+
+# NOTE: need to do noise_factor 1.0 n_times 10, n_steps 5
 
 
 def main_run(config):
