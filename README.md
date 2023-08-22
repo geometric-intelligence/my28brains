@@ -6,7 +6,7 @@ Official implementation of the paper “Geodesic Regression Characterizes 3D Sha
 
 ## 🎤 We are developing AI to transform the field of NeuroImaging and Womens' Brain Health: See our Beginner-Friendly Public Talk at Brass Bear Brewing ##
 
-[![BBB Talk](/images/bbb_thumbnail.jpg)](https://youtu.be/BsdNQUcwb1M)
+[![BBB Talk](/images/bbb_thumbnail.webp)](https://youtu.be/BsdNQUcwb1M)
 
 ## 💥 Poster Coming Soon ##
 
