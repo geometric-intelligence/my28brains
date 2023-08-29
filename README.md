@@ -10,7 +10,7 @@ cd my28brains
 ```
 2. Create an environment with python >= 3.10
 ```bash
-conda env create -n my28brains python=3.10
+conda create -n my28brains python=3.10
 ```
 3. Install `my28brains` in editable mode (requires pip ≥ 21.3 for [PEP 660](https://peps.python.org/pep-0610/) support):
 ```bash
