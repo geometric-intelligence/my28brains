@@ -272,7 +272,7 @@ def offset_mesh_sequence(mesh_sequence_vertices):
     return offset_mesh_sequence_vertices
 
 
-def plot_mesh_sequence(mesh_sequence_vertices):
+def plot_mesh_sequence(mesh_sequence_vertices, savefig=False, label=None):
     """Plot a sequence of meshes.
 
     NOTE: the plotGeodesic function from H2_SurfaceMatch also works,
@@ -298,6 +298,13 @@ def plot_mesh_sequence(mesh_sequence_vertices):
         )
     ax.view_init(elev=10, azim=-80)
     ax.set_aspect("equal")
+
+    # Save the figure
+    if savefig:
+        png_filename = f"mesh_sequence_{label}.svg"
+        png_path = os.path.join("my28brains", "notebooks", png_filename)
+        plt.savefig(png_path)  # Adjust DPI as needed
+
     plt.show()
 
 

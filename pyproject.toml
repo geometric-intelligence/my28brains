@@ -34,6 +34,7 @@ dependencies=[
     "numpy",
     "open3d",
     "pykeops",
+    "jupyterlab",
     "plotly",
     "psutil",
     "requests",
