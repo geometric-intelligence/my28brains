@@ -16,6 +16,9 @@ from geomstats.geometry.discrete_surfaces import (
     ElasticMetric,
     _ExpSolver,
 )
+from geomstats.geometry.hyperbolic import Hyperbolic
+from geomstats.geometry.hypersphere import Hypersphere
+from geomstats.learning.frechet_mean import FrechetMean, variance
 
 import H2_SurfaceMatch.H2_match  # noqa: E402
 import H2_SurfaceMatch.utils.input_output  # noqa: E402
@@ -218,3 +221,57 @@ def generate_unparameterized_geodesic(start_mesh, end_mesh, gpu_id=1):
         device=device,
     )
     return geod, F0
+
+
+def generate_hypersphere_data(n_samples=50, noise_std=2):
+    """Generate synthetic data on the hypersphere."""
+    space = Hypersphere(dim=2)
+
+    gs.random.seed(0)
+
+    X = gs.random.rand(n_samples)
+    X -= gs.mean(X)
+
+    intercept = space.random_uniform()
+    vector = 5.0 * gs.random.rand(space.embedding_space.dim)
+    coef = space.to_tangent(vector, base_point=intercept)
+    y = space.metric.exp(X[:, None] * coef, base_point=intercept)
+
+    # Generate normal noise
+    normal_noise = gs.random.normal(
+        size=(n_samples, space.embedding_space.dim), scale=noise_std
+    )
+    noise = space.to_tangent(normal_noise, base_point=y) / gs.pi / 2
+
+    rss = gs.sum(space.metric.squared_norm(noise, base_point=y)) / n_samples
+
+    # Add noise
+    y = space.metric.exp(noise, y)
+
+    return X, y, intercept, coef, rss
+
+
+def generate_hyperboloid_data(n_samples=50, noise_std=2):
+    """Generate synthetic data on the hyperboloid.
+
+    Note: adding random noise not implemented yet.
+    """
+    space = Hyperbolic(dim=2, default_coords_type="extrinsic")
+
+    gs.random.seed(0)
+
+    X = gs.random.rand(n_samples)
+    X -= gs.mean(X)
+
+    random_3d_point = gs.array([gs.random.rand(space.dim + 1)])
+    another_random_3d_point = gs.array([gs.random.rand(space.dim + 1)])
+
+    intercept = space.projection(random_3d_point)
+    coef = space.metric.log(point=another_random_3d_point, base_point=intercept)
+    y = space.metric.exp(X[:, None] * coef, base_point=intercept)
+
+    # Generate normal noise: TODO, since hyperboloid does not have to_tangent.
+
+    rss = 1  # temporary
+
+    return X, y, intercept, coef, rss
