@@ -102,7 +102,7 @@ run_interpolate = False
 
 # 2. Regression Parameters
 
-dataset_name = ["synthetic"]  # "synthetic" or "real"
+dataset_name = ["synthetic"]  # "synthetic" "real" "hypersphere", or "hyperboloid"
 sped_up = [True]  # 'True' or 'False' (not currently used)
 geodesic_initialization = [
     "warm_start",

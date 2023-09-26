@@ -72,9 +72,11 @@ def load(config):
         np.save(times_path, times)
         np.save(true_intercept_path, true_intercept)
         np.save(true_coef_path, true_coef)
+        # Nina modifies:
+        # data_points = (mesh_sequence_vertices, mesh_face)
         return mesh_sequence_vertices, mesh_faces, times, true_intercept, true_coef
 
-    elif config.dataset_name == "real":
+    elif config.dataset_name == "real":  # real_meshes
         print("Using real data")
         mesh_dir = default_config.sorted_dir
         mesh_sequence_vertices = []
@@ -118,6 +120,27 @@ def load(config):
         return mesh_sequence_vertices, mesh_faces, times, true_intercept, true_coef
     else:
         raise ValueError(f"Unknown dataset name {config.dataset_name}")
+
+
+def load_benchmark_data(config):
+    """Load synthetic data that is not mesh data.
+
+    i.e. data on hypersphere, data on hyperboloid.
+    Purpose: benchmarking regression on synthetic data.
+    """
+    if config.dataset_name == "hyperboloid":
+        print("Creating synthetic dataset on hyperboloid")
+        X, y, intercept, coef, rss = synthetic.generate_hyperboloid_data(
+            n_samples=50, noise_std=2
+        )
+    elif config.dataset_name == "hypersphere":
+        print("Creating synthetic dataset on hypersphere")
+        X, y, intercept, coef, rss = synthetic.generate_hypersphere_data(
+            n_samples=50, noise_std=2
+        )
+    else:
+        raise ValueError(f"Unknown dataset name {config.dataset_name}")
+    return X, y, intercept, coef, rss
 
 
 def load_mesh(mesh_type, n_subdivisions, ellipsoid_dims):
