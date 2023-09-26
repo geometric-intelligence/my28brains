@@ -34,7 +34,7 @@ def save_regression_results(
 
     Parameters
     ----------
-    dataset_name: string, either "synthetic" or "real"
+    dataset_name: string, either "synthetic_mesh" or "real_mesh"
     sped_up: boolean, whether or not the data was sped up
     true_intercept: numpy array, the true intercept
     true_coef: numpy array, the true slope
@@ -95,7 +95,7 @@ def save_regression_results(
 def fit_geodesic_regression(
     mesh_sequence,
     mesh_faces,
-    times,
+    X,
     tol,
     intercept_hat_guess,
     coef_hat_guess,
@@ -112,7 +112,7 @@ def fit_geodesic_regression(
     EACH MESH is a numpy array of shape (n, 3)
     mesh_faces: numpy array of shape (m, 3)
     where m is the number of faces
-    times: list of times corresponding to mesh_sequence
+    X: list of X corresponding to mesh_sequence
     intercept_hat_guess: initial guess for intercept of regression fit
     coef_hat_guess: initial guess for slope of regression fit
 
@@ -173,20 +173,20 @@ def fit_geodesic_regression(
     print("Intercept guess: ", gr.intercept_.shape)
     print("Coef guess: ", gr.coef_.shape)
 
-    gr.fit(gs.array(times), gs.array(mesh_sequence), compute_training_score=False)
+    gr.fit(gs.array(X), gs.array(mesh_sequence), compute_training_score=False)
 
     intercept_hat, coef_hat = gr.intercept_, gr.coef_
 
     return intercept_hat, coef_hat, gr
 
 
-def fit_linear_regression(mesh_sequence_vertices, times):  # , device = "cuda:0"):
+def fit_linear_regression(mesh_sequence_vertices, X):  # , device = "cuda:0"):
     """Perform linear regression on parameterized meshes.
 
     Parameters
     ----------
     mesh_sequence_vertices: vertices of mesh sequence to be fit
-    times: list of times corresponding to mesh_sequence_vertices
+    X: list of X corresponding to mesh_sequence_vertices
 
     Returns
     -------
@@ -196,16 +196,16 @@ def fit_linear_regression(mesh_sequence_vertices, times):  # , device = "cuda:0"
     original_mesh_shape = mesh_sequence_vertices[0].shape
 
     print("mesh_sequence_vertices.shape: ", mesh_sequence_vertices.shape)
-    print("times.shape: ", times.shape)
+    print("X.shape: ", X.shape)
 
-    mesh_sequence_vertices = gs.array(mesh_sequence_vertices.reshape((len(times), -1)))
+    mesh_sequence_vertices = gs.array(mesh_sequence_vertices.reshape((len(X), -1)))
     print("mesh_sequence_vertices.shape: ", mesh_sequence_vertices.shape)
 
-    times = gs.array(times.reshape(len(times), 1))
+    X = gs.array(X.reshape(len(X), 1))
 
     lr = LinearRegression()
 
-    lr.fit(times, mesh_sequence_vertices)
+    lr.fit(X, mesh_sequence_vertices)
 
     intercept_hat, coef_hat = lr.intercept_, lr.coef_
 

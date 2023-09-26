@@ -50,65 +50,68 @@ def main_run(config):
 
         start_time = time.time()
         (
-            mesh_sequence_vertices,
-            mesh_faces,
-            times,
+            space,
+            y,
+            X,
             true_intercept,
             true_coef,
         ) = data_utils.load(wandb_config)
 
-        logging.info(
-            "\n- Calculating tolerance for geodesic regression."
-            "Based on: size of shape, number of time points, number of vertices."
-        )
-        mesh_diameter = data_utils.mesh_diameter(mesh_sequence_vertices[0])
-        tol = (
-            wandb_config.tol_factor
-            * mesh_diameter
-            * len(mesh_sequence_vertices[0])
-            * len(mesh_sequence_vertices)
-        ) ** 2
-        logging.info(f"\n- Tolerance calculated for geodesic regression: {tol:.3f}.")
+        if config.dataset_name in ["synthetic_mesh", "real_mesh"]:
+            mesh_sequence_vertices = y
+            mesh_faces = space.faces
+            logging.info(
+                "\n- Calculating tolerance for geodesic regression."
+                "Based on: size of shape, number of time points, number of vertices."
+            )
+            mesh_diameter = data_utils.mesh_diameter(mesh_sequence_vertices[0])
+            tol = (
+                wandb_config.tol_factor
+                * mesh_diameter
+                * len(mesh_sequence_vertices[0])
+                * len(mesh_sequence_vertices)
+            ) ** 2
+            logging.info(
+                f"\n- Tolerance calculated for geodesic regression: {tol:.3f}."
+            )
 
-        logging.info("\n- Testing whether data subspace is euclidean.")
-        euclidean_subspace, diff_tolerance = check_euclidean.subspace_test(
-            mesh_sequence_vertices,
-            times,
-            wandb_config.tol_factor,
-        )
-        logging.info(f"\n- Euclidean subspace: {euclidean_subspace}, ")
+            logging.info("\n- Testing whether data subspace is euclidean.")
+            euclidean_subspace, diff_tolerance = check_euclidean.subspace_test(
+                mesh_sequence_vertices,
+                X,
+                wandb_config.tol_factor,
+            )
+            logging.info(f"\n- Euclidean subspace: {euclidean_subspace}, ")
 
-        wandb.log(
-            {
-                "mesh_diameter": mesh_diameter,
-                "n_faces": len(mesh_faces),
-                "geodesic_tol": tol,
-                "euclidean_subspace": euclidean_subspace,
-                "mesh_sequence_vertices": wandb.Object3D(
-                    mesh_sequence_vertices.numpy().reshape((-1, 3))
-                ),
-                "test_diff_tolerance": diff_tolerance,
-            }
-        )
+            wandb.log(
+                {
+                    "mesh_diameter": mesh_diameter,
+                    "n_faces": len(mesh_faces),
+                    "geodesic_tol": tol,
+                    "euclidean_subspace": euclidean_subspace,
+                    "mesh_sequence_vertices": wandb.Object3D(
+                        mesh_sequence_vertices.numpy().reshape((-1, 3))
+                    ),
+                    "test_diff_tolerance": diff_tolerance,
+                }
+            )
 
         logging.info("\n- Linear Regression")
         (
             linear_intercept_hat,
             linear_coef_hat,
             lr,
-        ) = training.fit_linear_regression(mesh_sequence_vertices, times)
+        ) = training.fit_linear_regression(y, X)
 
         linear_duration_time = time.time() - start_time
         linear_intercept_err = gs.linalg.norm(linear_intercept_hat - true_intercept)
         linear_coef_err = gs.linalg.norm(linear_coef_hat - true_coef)
 
         logging.info("Computing meshes along linear regression...")
-        times_for_lr = gs.array(times.reshape(len(times), 1))
-        meshes_along_linear_regression = lr.predict(times_for_lr)
-        meshes_along_linear_regression = meshes_along_linear_regression.reshape(
-            mesh_sequence_vertices.shape
-        )
-        print(f"meshes_along_linear_regression: {meshes_along_linear_regression.shape}")
+        X_for_lr = gs.array(X.reshape(len(X), 1))
+        y_pred_for_lr = lr.predict(X_for_lr)
+        y_pred_for_lr = y_pred_for_lr.reshape(mesh_sequence_vertices.shape)
+        print(f"y_pred_for_lr: {y_pred_for_lr.shape}")
 
         offset_mesh_sequence_vertices = viz.offset_mesh_sequence(mesh_sequence_vertices)
 
@@ -124,9 +127,7 @@ def main_run(config):
                 "offset_mesh_sequence_vertices": wandb.Object3D(
                     offset_mesh_sequence_vertices.numpy()
                 ),
-                "meshes_along_linear_regression": wandb.Object3D(
-                    meshes_along_linear_regression.reshape((-1, 3))
-                ),
+                "y_pred_for_lr": wandb.Object3D(y_pred_for_lr.reshape((-1, 3))),
             }
         )
 
@@ -147,7 +148,7 @@ def main_run(config):
             regr_coef=linear_coef_hat,
             duration_time=linear_duration_time,
             regress_dir=linear_regress_dir,
-            meshes_along_regression=meshes_along_linear_regression,
+            meshes_along_regression=y_pred_for_lr,
         )
 
         # if (residual magnitude is too big... have max residual as a param):
@@ -166,7 +167,7 @@ def main_run(config):
         ) = training.fit_geodesic_regression(
             mesh_sequence_vertices,
             mesh_faces,
-            times,
+            X,
             tol=tol,
             intercept_hat_guess=linear_intercept_hat,
             coef_hat_guess=linear_coef_hat,
@@ -180,10 +181,8 @@ def main_run(config):
         geodesic_coef_err = gs.linalg.norm(geodesic_coef_hat - true_coef)
 
         logging.info("Computing meshes along geodesic regression...")
-        meshes_along_geodesic_regression = gr.predict(times)
-        meshes_along_geodesic_regression = meshes_along_geodesic_regression.reshape(
-            mesh_sequence_vertices.shape
-        )
+        y_pred_for_gr = gr.predict(X)
+        y_pred_for_gr = y_pred_for_gr.reshape(mesh_sequence_vertices.shape)
 
         wandb.log(
             {
@@ -194,8 +193,8 @@ def main_run(config):
                     geodesic_intercept_hat.numpy()
                 ),
                 "geodesic_coef_hat": wandb.Object3D(geodesic_coef_hat.numpy()),
-                "meshes_along_geodesic_regression": wandb.Object3D(
-                    meshes_along_geodesic_regression.detach().numpy().reshape((-1, 3))
+                "y_pred_for_gr": wandb.Object3D(
+                    y_pred_for_gr.detach().numpy().reshape((-1, 3))
                 ),
                 "n_faces": len(mesh_faces),
                 "geodesic_initialization": wandb_config.geodesic_initialization,
@@ -209,10 +208,7 @@ def main_run(config):
             f"{geodesic_coef_err:.6f}"
         )
 
-        print(
-            f"meshes_along_geodesic_regression: "
-            f"{meshes_along_geodesic_regression.shape}"
-        )
+        print(f"y_pred_for_gr: " f"{y_pred_for_gr.shape}")
 
         logging.info("Saving geodesic results...")
         training.save_regression_results(
@@ -225,7 +221,7 @@ def main_run(config):
             regr_coef=geodesic_coef_hat,
             duration_time=geodesic_duration_time,
             regress_dir=geodesic_regress_dir,
-            meshes_along_regression=meshes_along_geodesic_regression,
+            meshes_along_regression=y_pred_for_gr,
         )
 
         wandb_config.update({"full_run": full_run})
@@ -264,7 +260,7 @@ def main_run(config):
 #         # logging.info("\n- Testing whether data subspace is euclidean.")
 #         # euclidean_subspace, diff_tolerance = check_euclidean.subspace_test(
 #         #     mesh_sequence_vertices,
-#         #     times,
+#         #     X,
 #         #     wandb_config.tol_factor,
 #         # )
 #         # logging.info(f"\n- Euclidean subspace: {euclidean_subspace}, ")
@@ -284,12 +280,12 @@ def main_run(config):
 #     linear_coef_err = gs.linalg.norm(linear_coef_hat - true_coef)
 
 #     logging.info("Computing meshes along linear regression...")
-#     times_for_lr = gs.array(times.reshape(len(times), 1))
-#     meshes_along_linear_regression = lr.predict(times_for_lr)
-#     meshes_along_linear_regression = meshes_along_linear_regression.reshape(
+#     X_for_lr = gs.array(X.reshape(len(X), 1))
+#     y_pred_for_lr = lr.predict(X_for_lr)
+#     y_pred_for_lr = y_pred_for_lr.reshape(
 #         mesh_sequence_vertices.shape
 #     )
-#     print(f"meshes_along_linear_regression: {meshes_along_linear_regression.shape}")
+#     print(f"y_pred_for_lr: {y_pred_for_lr.shape}")
 
 #     offset_mesh_sequence_vertices = viz.offset_mesh_sequence(mesh_sequence_vertices)
 
@@ -305,8 +301,8 @@ def main_run(config):
 #             "offset_mesh_sequence_vertices": wandb.Object3D(
 #                 offset_mesh_sequence_vertices.numpy()
 #             ),
-#             "meshes_along_linear_regression": wandb.Object3D(
-#                 meshes_along_linear_regression.reshape((-1, 3))
+#             "y_pred_for_lr": wandb.Object3D(
+#                 y_pred_for_lr.reshape((-1, 3))
 #             ),
 #         }
 #     )
@@ -328,7 +324,7 @@ def main_run(config):
 #         regr_coef=linear_coef_hat,
 #         duration_time=linear_duration_time,
 #         regress_dir=linear_regress_dir,
-#         meshes_along_regression=meshes_along_linear_regression,
+#         meshes_along_regression=y_pred_for_lr,
 #     )
 
 #     # if (residual magnitude is too big... have max residual as a param):
@@ -347,7 +343,7 @@ def main_run(config):
 #     ) = training.fit_geodesic_regression(
 #         mesh_sequence_vertices,
 #         mesh_faces,
-#         times,
+#         X,
 #         tol=tol,
 #         intercept_hat_guess=linear_intercept_hat,
 #         coef_hat_guess=linear_coef_hat,
@@ -361,8 +357,8 @@ def main_run(config):
 #     geodesic_coef_err = gs.linalg.norm(geodesic_coef_hat - true_coef)
 
 #     logging.info("Computing meshes along geodesic regression...")
-#     meshes_along_geodesic_regression = gr.predict(times)
-#     meshes_along_geodesic_regression = meshes_along_geodesic_regression.reshape(
+#     y_pred_for_gr = gr.predict(X)
+#     y_pred_for_gr = y_pred_for_gr.reshape(
 #         mesh_sequence_vertices.shape
 #     )
 
@@ -375,8 +371,8 @@ def main_run(config):
 #                 geodesic_intercept_hat.numpy()
 #             ),
 #             "geodesic_coef_hat": wandb.Object3D(geodesic_coef_hat.numpy()),
-#             "meshes_along_geodesic_regression": wandb.Object3D(
-#                 meshes_along_geodesic_regression.detach().numpy().reshape((-1, 3))
+#             "y_pred_for_gr": wandb.Object3D(
+#                 y_pred_for_gr.detach().numpy().reshape((-1, 3))
 #             ),
 #             "n_faces": len(mesh_faces),
 #             "geodesic_initialization": wandb_config.geodesic_initialization,
@@ -391,8 +387,8 @@ def main_run(config):
 #     )
 
 #     print(
-#         f"meshes_along_geodesic_regression: "
-#         f"{meshes_along_geodesic_regression.shape}"
+#         f"y_pred_for_gr: "
+#         f"{y_pred_for_gr.shape}"
 #     )
 
 #     logging.info("Saving geodesic results...")
@@ -406,7 +402,7 @@ def main_run(config):
 #         regr_coef=geodesic_coef_hat,
 #         duration_time=geodesic_duration_time,
 #         regress_dir=geodesic_regress_dir,
-#         meshes_along_regression=meshes_along_geodesic_regression,
+#         meshes_along_regression=y_pred_for_gr,
 #     )
 
 #     wandb_config.update({"full_run": full_run})
@@ -446,22 +442,22 @@ def main():
             "tol_factor": tol_factor,
             "n_steps": n_steps,
         }
-        if dataset_name == "synthetic":
+        if dataset_name == "synthetic_mesh":
             for (
-                n_times,
+                n_X,
                 noise_factor,
                 n_subdivisions,
                 ellipsoid_dims,
                 (start_shape, end_shape),
             ) in itertools.product(
-                default_config.n_times,
+                default_config.n_X,
                 default_config.noise_factor,
                 default_config.n_subdivisions,
                 default_config.ellipsoid_dims,
                 zip(default_config.start_shape, default_config.end_shape),
             ):
                 config = {
-                    "n_times": n_times,
+                    "n_X": n_X,
                     "start_shape": start_shape,
                     "end_shape": end_shape,
                     "noise_factor": noise_factor,
@@ -472,19 +468,19 @@ def main():
                 config.update(main_config)
                 main_run(config)
 
-        elif dataset_name == "real":
+        elif dataset_name == "real_mesh":
             for hemisphere in default_config.hemisphere:
                 config = {"hemisphere": hemisphere}
                 config.update(main_config)
                 main_run(config)
 
         elif dataset_name == "hypersphere" or dataset_name == "hyperboloid":
-            for (n_times, noise_factor,) in itertools.product(
-                default_config.n_times,
+            for (n_X, noise_factor,) in itertools.product(
+                default_config.n_X,
                 default_config.noise_factor,
             ):
                 config = {
-                    "n_times": n_times,
+                    "n_X": n_X,
                     "noise_factor": noise_factor,
                 }
                 config.update(main_config)

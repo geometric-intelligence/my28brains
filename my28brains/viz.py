@@ -139,17 +139,17 @@ def plot_hormones(df, dayID, plot_type="dot", hormones=HORMONES, savefig=False):
     """
     if plot_type == "dot":
         df = df[df["dayID"] < dayID]
-    times = df["dayID"]
+    X = df["dayID"]
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
     for h in hormones:
-        ax.plot(times, df[h], label=HORMONES[h])
+        ax.plot(X, df[h], label=HORMONES[h])
 
     if dayID > 2:
         if plot_type == "dot":
             for h in hormones:
-                ax.scatter(times.values[-1], df[h].values[-1], s=100)
+                ax.scatter(X.values[-1], df[h].values[-1], s=100)
 
     ax.set_xlim((0, 30))
     ax.set_ylim(0, df["Estro"].max() + 5)
@@ -190,7 +190,7 @@ def plotly_hormones(df, by, day, hormones=HORMONES, ymax=None, savefig=False):
 
     df = df[df[by] <= day]
     df = df.sort_values(by=by)
-    times = df[by]
+    X = df[by]
 
     fig = go.Figure()
 
@@ -198,7 +198,7 @@ def plotly_hormones(df, by, day, hormones=HORMONES, ymax=None, savefig=False):
     for h in hormones:
         fig.add_trace(
             go.Scatter(
-                x=times,
+                x=X,
                 y=df[h],
                 mode="lines",
                 name=HORMONES[h],
@@ -250,20 +250,20 @@ def offset_mesh_sequence(mesh_sequence_vertices):
 
     Parameters
     ----------
-    mesh_sequence_vertices : np.array, shape=[n_times, n_vertices, 3]
+    mesh_sequence_vertices : np.array, shape=[n_X, n_vertices, 3]
         Sequence of meshes.
 
     Returns
     -------
-    _ : np.array, shape=[n_times, n_vertices, 3]
+    _ : np.array, shape=[n_X, n_vertices, 3]
         Offset sequence of meshes.
     """
-    n_times = len(mesh_sequence_vertices)
+    n_X = len(mesh_sequence_vertices)
     x_max = max([max(mesh[:, 0]) for mesh in mesh_sequence_vertices])
     x_min = min([min(mesh[:, 0]) for mesh in mesh_sequence_vertices])
     x_diameter = np.abs(x_max - x_min)
-    max_offset = n_times * x_diameter
-    offsets = np.linspace(0, max_offset, n_times)
+    max_offset = n_X * x_diameter
+    offsets = np.linspace(0, max_offset, n_X)
 
     offset_mesh_sequence_vertices = []
     for i_mesh, mesh in enumerate(mesh_sequence_vertices):
@@ -280,7 +280,7 @@ def plot_mesh_sequence(mesh_sequence_vertices, savefig=False, label=None):
 
     Parameters
     ----------
-    mesh_sequence_vertices : np.array, shape=[n_times, n_vertices, 3]
+    mesh_sequence_vertices : np.array, shape=[n_X, n_vertices, 3]
         Sequence of meshes.
     """
     fig = plt.figure(figsize=(10, 20))
@@ -316,7 +316,7 @@ def plotly_mesh_sequence(mesh_sequence_vertices):
 
     Parameters
     ----------
-    mesh_sequence_vertices : np.array, shape=[n_times, n_vertices, 3]
+    mesh_sequence_vertices : np.array, shape=[n_X, n_vertices, 3]
         Sequence of meshes.
     """
     plasma_cmap = px.colors.sequential.Plasma

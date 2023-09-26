@@ -216,15 +216,15 @@ class GeodesicRegression(BaseEstimator):
         self : object
             Returns self.
         """
-        times = gs.copy(X)
+        X = gs.copy(X)
         if self.center_X:
             self.mean_ = gs.mean(X)
-            times -= self.mean_
+            X -= self.mean_
 
         if self.method == "extrinsic":
-            return self._fit_extrinsic(times, y, weights, compute_training_score)
+            return self._fit_extrinsic(X, y, weights, compute_training_score)
         if self.method == "riemannian":
-            return self._fit_riemannian(times, y, weights, compute_training_score)
+            return self._fit_riemannian(X, y, weights, compute_training_score)
 
     def _fit_extrinsic(self, X, y, weights=None, compute_training_score=False):
         """Estimate the parameters using the extrinsic gradient descent.
@@ -460,15 +460,15 @@ class GeodesicRegression(BaseEstimator):
         self : array-like, shape=[...,]
             Array of predicted cluster indices for each sample.
         """
-        times = gs.copy(X)
+        X = gs.copy(X)
 
         if self.center_X:
-            times = times - self.mean_
+            X = X - self.mean_
 
         if self.coef_ is None:
             raise RuntimeError("Fit method must be called before predict.")
 
-        return self._model(times, self.coef_, self.intercept_)
+        return self._model(X, self.coef_, self.intercept_)
 
     def score(self, X, y, weights=None):
         """Compute training score.

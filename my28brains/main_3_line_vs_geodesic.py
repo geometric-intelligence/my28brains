@@ -34,7 +34,7 @@ N_STEPS = [20]  # 3, 5, 8, 10, 20]  #
 SUBDIVISIONS = [1, 2, 3]
 N_TIMES = [10]  # 5
 
-# NOTE: need to do noise_factor 1.0 n_times 10, n_steps 5
+# NOTE: need to do noise_factor 1.0 n_X 10, n_steps 5
 
 
 def main_run(config):
@@ -94,7 +94,7 @@ def main_run(config):
     # geodesic_fn = elastic_metric.geodesic(
     #     initial_point=noiseless_vertices, end_point=noisy_vertices
     # )
-    geodesic = geodesic_fn(gs.linspace(0, 1, wandb_config.n_times))
+    geodesic = geodesic_fn(gs.linspace(0, 1, wandb_config.n_X))
     geodesic_duration = time.time() - start
     logging.info(
         f"--> Done ({geodesic_regression_duration:.1f} sec): "
@@ -113,12 +113,12 @@ def main_run(config):
     logging.info("Computing line.")
     start = time.time()
     line = gs.array(
-        [t * q_end + (1 - t) * q_start for t in gs.linspace(0, 1, wandb_config.n_times)]
+        [t * q_end + (1 - t) * q_start for t in gs.linspace(0, 1, wandb_config.n_X)]
     )
     # line = gs.array(
     #     [
     #         t * noiseless_vertices + (1 - t) * noisy_vertices
-    #         for t in gs.linspace(0, 1, wandb_config.n_times)
+    #         for t in gs.linspace(0, 1, wandb_config.n_X)
     #     ]
     # )
     line_duration = time.time() - start
@@ -132,9 +132,9 @@ def main_run(config):
     relative_diff_duration = diff_duration / linear_regression_duration
 
     diff_seq_per_time_and_vertex = gs.linalg.norm(line - geodesic) / (
-        wandb_config.n_times * n_vertices
+        wandb_config.n_X * n_vertices
     )
-    rmsd = gs.linalg.norm(line - geodesic) / gs.sqrt(wandb_config.n_times * n_vertices)
+    rmsd = gs.linalg.norm(line - geodesic) / gs.sqrt(wandb_config.n_X * n_vertices)
     abs_seq = gs.abs(line - geodesic)
 
     diff_seq_per_time_vertex_diameter = diff_seq_per_time_and_vertex / diameter
@@ -182,10 +182,10 @@ def main_run(config):
             "rmsd_diameter": rmsd_diameter,
             "diff_seq_duration": diff_seq_duration,
             "diff_seq_duration_per_time_and_vertex": diff_seq_duration
-            / (wandb_config.n_times * n_vertices),
+            / (wandb_config.n_X * n_vertices),
             "relative_diff_seq_duration": relative_diff_seq_duration,
             "relative_diff_seq_per_time_and_vertex": relative_diff_seq_duration
-            / (wandb_config.n_times * n_vertices),
+            / (wandb_config.n_X * n_vertices),
             # Log actual lines
             "line": line.numpy(),
             "geodesic": geodesic.numpy(),
@@ -201,14 +201,14 @@ def main():
         noise_factor,
         n_steps,
         subdivisions,
-        n_times,
+        n_X,
     ) in itertools.product(NOISE_FACTORS, N_STEPS, SUBDIVISIONS, N_TIMES):
         config = {
-            "dataset_name": "synthetic",
+            "dataset_name": "synthetic_mesh",
             "n_steps": n_steps,
             "noise_factor": noise_factor,
             "subdivisions": subdivisions,
-            "n_times": n_times,
+            "n_X": n_X,
         }
 
         main_run(config)

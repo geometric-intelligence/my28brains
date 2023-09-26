@@ -34,7 +34,7 @@ def generate_mesh(mesh_type, n_subdivisions=None, ellipsoid_dims=[2, 2, 3]):
     mesh_type : str, {"sphere", "ellipsoid", "pill", "cube"}
         Type of mesh to generate.
     n_subdivisions : int
-        How many times to subdivide the mesh (from trimesh).
+        How many X to subdivide the mesh (from trimesh).
         Note that the number of faces will grow as function of 4 ** subdivisions,
         so you probably want to keep this under ~5.
     ellipsoid_dims : list
@@ -122,7 +122,7 @@ def generate_cube_mesh():
     return trimesh.Trimesh(vertices=vertices, faces=faces)
 
 
-def generate_parameterized_geodesic(start_mesh, end_mesh, n_times=5, n_steps=3):
+def generate_parameterized_geodesic(start_mesh, end_mesh, n_X=5, n_steps=3):
     """Generate a synthetic geodesic between two parameterized meshes.
 
     Importantly, start_mesh and end_mesh must have the same number
@@ -140,14 +140,14 @@ def generate_parameterized_geodesic(start_mesh, end_mesh, n_times=5, n_steps=3):
         Mesh that represents the start of the geodesic.
     end_mesh : trimesh.Trimesh
         Mesh that represents the start of the geodesic.
-    n_times : int
+    n_X : int
         Number of points to sample along the geodesic.
     n_steps : int
         Number of steps to use in the exponential map.
 
     Returns
     -------
-    geodesic_points : torch.tensor, shape=[n_times, n_vertices, 3]
+    geodesic_points : torch.tensor, shape=[n_X, n_vertices, 3]
     faces : array-like, shape=[n_faces, 3]
     true_intercept : torch.tensor, shape=[n_vertices, 3]
     true_coef: torch.tensor, shape=[n_vertices, 3]
@@ -168,7 +168,7 @@ def generate_parameterized_geodesic(start_mesh, end_mesh, n_times=5, n_steps=3):
         a2=default_config.a2,
     )
     METRIC.exp_solver = _ExpSolver(n_steps=n_steps)
-    times = gs.arange(0, 1, 1 / n_times)
+    X = gs.arange(0, 1, 1 / n_X)
 
     initial_point = torch.tensor(start_mesh.vertices)
     end_point = torch.tensor(end_mesh.vertices)
@@ -179,9 +179,9 @@ def generate_parameterized_geodesic(start_mesh, end_mesh, n_times=5, n_steps=3):
         initial_point=true_intercept, initial_tangent_vec=true_coef
     )
     print("Geodesic function created. Computing points along geodesic...")
-    geod = geodesic(times)
+    geod = geodesic(X)
     print("Done.")
-    return geod, start_mesh.faces, times, true_intercept, true_coef
+    return geod, start_mesh.faces, X, true_intercept, true_coef
 
 
 def generate_unparameterized_geodesic(start_mesh, end_mesh, gpu_id=1):
@@ -198,8 +198,8 @@ def generate_unparameterized_geodesic(start_mesh, end_mesh, gpu_id=1):
 
     Returns
     -------
-    geod : torch.tensor, shape=[n_times, n_vertices, 3]
-        The geodesic. n_times is given through paramlist.
+    geod : torch.tensor, shape=[n_X, n_vertices, 3]
+        The geodesic. n_X is given through paramlist.
     F0 : torch.tensor, shape=[n_faces, 3]
         The faces of each mesh along the geodesic.
     """
@@ -223,10 +223,8 @@ def generate_unparameterized_geodesic(start_mesh, end_mesh, gpu_id=1):
     return geod, F0
 
 
-def generate_hypersphere_data(n_samples=50, noise_std=2):
+def generate_benchmark_data(space, n_samples=50, noise_std=2):
     """Generate synthetic data on the hypersphere."""
-    space = Hypersphere(dim=2)
-
     gs.random.seed(0)
 
     X = gs.random.rand(n_samples)
@@ -247,31 +245,5 @@ def generate_hypersphere_data(n_samples=50, noise_std=2):
 
     # Add noise
     y = space.metric.exp(noise, y)
-
-    return X, y, intercept, coef, rss
-
-
-def generate_hyperboloid_data(n_samples=50, noise_std=2):
-    """Generate synthetic data on the hyperboloid.
-
-    Note: adding random noise not implemented yet.
-    """
-    space = Hyperbolic(dim=2, default_coords_type="extrinsic")
-
-    gs.random.seed(0)
-
-    X = gs.random.rand(n_samples)
-    X -= gs.mean(X)
-
-    random_3d_point = gs.array([gs.random.rand(space.dim + 1)])
-    another_random_3d_point = gs.array([gs.random.rand(space.dim + 1)])
-
-    intercept = space.projection(random_3d_point)
-    coef = space.metric.log(point=another_random_3d_point, base_point=intercept)
-    y = space.metric.exp(X[:, None] * coef, base_point=intercept)
-
-    # Generate normal noise: TODO, since hyperboloid does not have to_tangent.
-
-    rss = 1  # temporary
 
     return X, y, intercept, coef, rss

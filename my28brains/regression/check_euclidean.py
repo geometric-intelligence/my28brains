@@ -8,7 +8,7 @@ import geomstats.backend as gs
 import my28brains.datasets.utils as data_utils
 
 
-def subspace_test(mesh_sequence_vertices, times, tol_factor=0.001):
+def subspace_test(mesh_sequence_vertices, X, tol_factor=0.001):
     """Test whether the manifold subspace where the data lie is euclidean.
 
     For 10 random pairs of meshes, we calculate:
@@ -43,7 +43,7 @@ def subspace_test(mesh_sequence_vertices, times, tol_factor=0.001):
     line = gs.array(
         [
             t * mesh_sequence_vertices[0] + (1 - t) * mesh_sequence_vertices[-1]
-            for t in times
+            for t in X
         ]
     )
 
@@ -54,7 +54,7 @@ def subspace_test(mesh_sequence_vertices, times, tol_factor=0.001):
 
     n_vertices = mesh_sequence_vertices[0].shape[0]
     normalized_mesh_sequence_diff = summed_mesh_sequence_diffs / (
-        n_vertices * len(times) * 3
+        n_vertices * len(X) * 3
     )
 
     diff_tolerance = tol_factor * data_utils.mesh_diameter(mesh_sequence_vertices[0])
