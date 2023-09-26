@@ -120,6 +120,26 @@ def load(config):
         raise ValueError(f"Unknown dataset name {config.dataset_name}")
 
 
+def load_non_mesh_data(config):
+    """Load synthetic data that is not mesh data.
+
+    Purpose: benchmarking regression on synthetic data.
+    """
+    if config.dataset_name == "hyperboloid":
+        print("Creating synthetic dataset on hyperboloid")
+        X, y, intercept, coef, rss = synthetic.generate_hyperboloid_data(
+            n_samples=50, noise_std=2
+        )
+    elif config.dataset_name == "hypersphere":
+        print("Creating synthetic dataset on hypersphere")
+        X, y, intercept, coef, rss = synthetic.generate_hypersphere_data(
+            n_samples=50, noise_std=2
+        )
+    else:
+        raise ValueError(f"Unknown dataset name {config.dataset_name}")
+    return X, y, intercept, coef, rss
+
+
 def load_mesh(mesh_type, n_subdivisions, ellipsoid_dims):
     """Load a mesh from the synthetic dataset.
 
