@@ -230,9 +230,12 @@ def generate_benchmark_data(space, n_samples=50, noise_std=2):
     X = gs.random.rand(n_samples)
     X -= gs.mean(X)
 
-    intercept = space.random_uniform()
+    random_euclidean_point = gs.random.rand(space.embedding_space.dim)
+    intercept = space.projection(random_euclidean_point)
+    print(f"intercept shape: {intercept.shape}")
     vector = 5.0 * gs.random.rand(space.embedding_space.dim)
     coef = space.to_tangent(vector, base_point=intercept)
+    print(f"coef shape: {coef.shape}")
     y = space.metric.exp(X[:, None] * coef, base_point=intercept)
 
     # Generate normal noise
