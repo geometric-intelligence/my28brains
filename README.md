@@ -2,14 +2,15 @@
 
 Official implementation of the paper “Geodesic Regression Characterizes 3D Shape Changes in the Female Brain During Menstruation”.
 
-***[[Paper](https://arxiv.org/abs/2210.01932)] published in ICCV proceedings under [[ICCV Workshop Computer Vision for Automated Medical Diagnosis](https://cvamd2023.github.io/)]***
+***[[Paper](xxxx)] published in ICCV proceedings under [[ICCV Workshop Computer Vision for Automated Medical Diagnosis](https://cvamd2023.github.io/)]***
 
 ## 🎤 We are developing AI to transform the field of NeuroImaging and Womens' Brain Health: See our Beginner-Friendly Public Talk at Brass Bear Brewing ##
 
 [![BBB Talk](/images/bbb_thumbnail.png)](https://youtu.be/BsdNQUcwb1M)
 Visual on thumbnail slide taken from: Caitlin M Taylor, Laura Pritschet, and Emily G Jacobs. The scientific body of knowledge–whose body does it serve? A spotlight on oral contraceptives and women’s health factors in neuroimaging. Frontiers in neuroendocrinology, 60:100874, 2021.
 
-## 💥 Poster Coming Soon ##
+## 💥 Poster, Presented at the ICCV Workshop: Computer Vision for Automated Medical Diagnosis ##
+[BBB Talk](/images/xxx.png)]
 
 ## 🤖 Installing My28Brains
 
