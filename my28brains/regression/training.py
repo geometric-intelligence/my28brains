@@ -22,7 +22,9 @@ def save_regression_results(
     regr_intercept,
     regr_coef,
     duration_time,
-    regress_dir,
+    results_dir,
+    model,
+    linear_residuals,
     y_hat=None,
 ):
     """Save regression results to files.
@@ -36,17 +38,26 @@ def save_regression_results(
     regr_intercept: numpy array, the intercept calculated via regression
     regr_coef: numpy array, the slope calculated via regression
     duration_time: float, the duration of the regression
+    model: linear regression or geodesic regression
+    linear_residuals: boolean, whether geodesic regression was performed
+        with linear residuals
+    results_directory: string, the directory in which to save the results
     y_hat: numpy array, the y values predicted by the regression model.
     """
-    suffix = f"{dataset_name}"
-    true_intercept_path = os.path.join(regress_dir, f"true_intercept_{suffix}")
-    true_coef_path = os.path.join(regress_dir, f"true_coef_{suffix}")
+    if model == "linear":
+        suffix = f"{dataset_name}_lr"
+    if linear_residuals:
+        suffix = f"{dataset_name}_gr_linear_residuals"
+    else:
+        suffix = f"{dataset_name}_gr_geodesic_residuals"
+    true_intercept_path = os.path.join(results_dir, f"true_intercept_{suffix}")
+    true_coef_path = os.path.join(results_dir, f"true_coef_{suffix}")
     regr_intercept_path = os.path.join(
-        regress_dir, f"regr_intercept_{suffix}_{duration_time}"
+        results_dir, f"regr_intercept_{suffix}_{duration_time}"
     )
-    regr_coef_path = os.path.join(regress_dir, f"regr_coef_{suffix}_{duration_time}")
-    y_path = os.path.join(regress_dir, f"y_{suffix}")
-    y_hat_path = os.path.join(regress_dir, f"y_hat_{suffix}")
+    regr_coef_path = os.path.join(results_dir, f"regr_coef_{suffix}_{duration_time}")
+    y_path = os.path.join(results_dir, f"y_{suffix}")
+    y_hat_path = os.path.join(results_dir, f"y_hat_{suffix}")
 
     if dataset_name == "synthetic_mesh" or dataset_name == "real_mesh":
         faces = gs.array(space.faces).numpy()
@@ -86,24 +97,26 @@ def save_regression_results(
 
 
 def fit_geodesic_regression(
-    mesh_sequence,
+    y,
     space,
     X,
     tol,
     intercept_hat_guess,
     coef_hat_guess,
     initialization="warm_start",
-    geodesic_residuals=False,
+    linear_residuals=False,
     # device = "cuda:0",
 ):
-    """Perform regression on parameterized meshes.
+    """Perform regression on parameterized meshes or benchmark data.
 
     Parameters
     ----------
-    mesh_sequence: list of vertices of meshes.
+    y:
+        for meshes- list of vertices of meshes.
+        for benchmark- list of points
     EACH MESH is a numpy array of shape (n, 3)
     space: space on which to perform regression
-    X: list of X corresponding to mesh_sequence
+    X: list of X corresponding to y
     intercept_hat_guess: initial guess for intercept of regression fit
     coef_hat_guess: initial guess for slope of regression fit
 
@@ -113,7 +126,7 @@ def fit_geodesic_regression(
     coef_hat: slope of regression fit
     """
     print(f"initialization: {initialization}")
-    print(f"geodesic_residuals: {geodesic_residuals}")
+    print(f"linear_residuals: {linear_residuals}")
 
     # maxiter was 100
     # method was riemannian
@@ -127,23 +140,16 @@ def fit_geodesic_regression(
         tol=tol,
         verbose=True,
         initialization=initialization,
-        geodesic_residuals=geodesic_residuals,
+        linear_residuals=linear_residuals,
     )
 
     if intercept_hat_guess is None:
-        intercept_hat_guess = gs.array(mesh_sequence[0])  # .to(device = device)
-    elif intercept_hat_guess.shape != mesh_sequence[0].shape:
-        raise ValueError(
-            "intercept_hat_guess must be None or have mesh_sequence[0].shape"
-        )
+        intercept_hat_guess = gs.array(y[0])  # .to(device = device)
+    elif intercept_hat_guess.shape != y[0].shape:
+        raise ValueError("intercept_hat_guess must be None or have y[0].shape")
 
     if coef_hat_guess is None:
-        coef_hat_guess = gs.array(
-            mesh_sequence[1] - mesh_sequence[0]
-        )  # .to(device = device)
-
-    # NOTE: THIS IS BUGGING on second iteration
-    # coeff_hat_guess = METRIC.log(mesh_sequence[1], mesh_sequence[0])
+        coef_hat_guess = gs.array(y[1] - y[0])  # .to(device = device)
 
     gr.intercept_ = intercept_hat_guess
     gr.coef_ = coef_hat_guess
@@ -151,44 +157,46 @@ def fit_geodesic_regression(
     print("Intercept guess: ", gr.intercept_.shape)
     print("Coef guess: ", gr.coef_.shape)
 
-    gr.fit(gs.array(X), gs.array(mesh_sequence), compute_training_score=False)
+    gr.fit(gs.array(X), gs.array(y), compute_training_score=False)
 
     intercept_hat, coef_hat = gr.intercept_, gr.coef_
 
     return intercept_hat, coef_hat, gr
 
 
-def fit_linear_regression(mesh_sequence_vertices, X):  # , device = "cuda:0"):
+def fit_linear_regression(y, X):  # , device = "cuda:0"):
     """Perform linear regression on parameterized meshes.
 
     Parameters
     ----------
-    mesh_sequence_vertices: vertices of mesh sequence to be fit
-    X: list of X corresponding to mesh_sequence_vertices
+    y:
+        for meshes: vertices of mesh sequence to be fit
+        for benchmark: points to be fit
+    X: list of X corresponding to y
 
     Returns
     -------
     intercept_hat: intercept of regression fit
     coef_hat: slope of regression fit
     """
-    original_mesh_shape = mesh_sequence_vertices[0].shape
+    original_y_shape = y[0].shape
 
-    print("mesh_sequence_vertices.shape: ", mesh_sequence_vertices.shape)
+    print("y.shape: ", y.shape)
     print("X.shape: ", X.shape)
 
-    mesh_sequence_vertices = gs.array(mesh_sequence_vertices.reshape((len(X), -1)))
-    print("mesh_sequence_vertices.shape: ", mesh_sequence_vertices.shape)
+    y = gs.array(y.reshape((len(X), -1)))
+    print("y.shape: ", y.shape)
 
     X = gs.array(X.reshape(len(X), 1))
 
     lr = LinearRegression()
 
-    lr.fit(X, mesh_sequence_vertices)
+    lr.fit(X, y)
 
     intercept_hat, coef_hat = lr.intercept_, lr.coef_
 
-    intercept_hat = intercept_hat.reshape(original_mesh_shape)
-    coef_hat = coef_hat.reshape(original_mesh_shape)
+    intercept_hat = intercept_hat.reshape(original_y_shape)
+    coef_hat = coef_hat.reshape(original_y_shape)
 
     intercept_hat = gs.array(intercept_hat)
     coef_hat = gs.array(coef_hat)

@@ -110,7 +110,7 @@ geodesic_initialization = [
     "warm_start",
     "random",
 ]  # "warm_start" or "random" (random on parka server)
-geodesic_residuals = [False]  # 'True' or 'False' (alternative is linear residuals)
+linear_residuals = [False]  # 'True' or 'False' (alternative is geodesic residuals)
 n_steps = [3, 5]  # n steps for the exp solver of geomstats.
 tol_factor = [
     0.001,
@@ -153,7 +153,7 @@ reparameterized_dir = os.path.join(preprocess_dir, "d_reparameterized")
 sorted_dir = os.path.join(preprocess_dir, "e_sorted")
 interpolated_dir = os.path.join(preprocess_dir, "f_interpolated")
 
-regress_dir = os.path.join(results_dir, "2_regress")
+regression_dir = os.path.join(results_dir, "2_regression")
 
 for mesh_dir in [
     synthetic_data_dir,
@@ -163,7 +163,7 @@ for mesh_dir in [
     reparameterized_dir,
     sorted_dir,
     interpolated_dir,
-    regress_dir,
+    regression_dir,
 ]:
     if not os.path.exists(mesh_dir):
         os.makedirs(mesh_dir)

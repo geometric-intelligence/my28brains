@@ -19,7 +19,7 @@ import my28brains.viz as viz
 import wandb
 from my28brains.regression import check_euclidean, training
 
-regress_dir = default_config.regress_dir
+regression_dir = default_config.regression_dir
 
 
 def main_run(config):
@@ -42,9 +42,9 @@ def main_run(config):
         wandb.run.name = run_name
         logging.info(f"\n\n---> START run: {run_name}.")
 
-        linear_regress_dir = os.path.join(regress_dir, f"{run_name}_linear")
-        geodesic_regress_dir = os.path.join(regress_dir, f"{run_name}_geodesic")
-        for one_regress_dir in [linear_regress_dir, geodesic_regress_dir]:
+        linear_regression_dir = os.path.join(regression_dir, f"{run_name}_linear")
+        geodesic_regression_dir = os.path.join(regression_dir, f"{run_name}_geodesic")
+        for one_regress_dir in [linear_regression_dir, geodesic_regression_dir]:
             if not os.path.exists(one_regress_dir):
                 os.makedirs(one_regress_dir)
 
@@ -146,19 +146,18 @@ def main_run(config):
             f"On intercept: {linear_intercept_err:.6f}, on coef: {linear_coef_err:.6f}"
         )
 
-        # TODO: edit below here.
-
         logging.info("Saving linear results...")
         training.save_regression_results(
             dataset_name=wandb_config.dataset_name,
-            mesh_sequence_vertices=gs.array(mesh_sequence_vertices),
-            true_intercept_faces=gs.array(mesh_faces),
+            y=gs.array(y),
+            space=space,
             true_coef=gs.array(true_coef),
             regr_intercept=linear_intercept_hat,
             regr_coef=linear_coef_hat,
             duration_time=linear_duration_time,
-            regress_dir=linear_regress_dir,
-            meshes_along_regression=y_pred_for_lr,
+            results_dir=linear_regression_dir,
+            model="linear",
+            y_hat=y_pred_for_lr,
         )
 
         # if (residual magnitude is too big... have max residual as a param):
@@ -166,8 +165,9 @@ def main_run(config):
 
         print(f"linear_intercept_hat: {linear_intercept_hat.shape}")
         print(f"linear_coef_hat: {linear_coef_hat.shape}")
-        print(f"mesh_sequence_vertices: {mesh_sequence_vertices.shape}")
-        print(f"mesh_faces: {mesh_faces.shape}")
+        print(f"y: {y.shape}")
+        if wandb_config.dataset_name in ["synthetic_mesh", "real_mesh"]:
+            print(f"mesh_faces: {mesh_faces.shape}")
 
         logging.info("\n- Geodesic Regression")
         (
@@ -175,15 +175,14 @@ def main_run(config):
             geodesic_coef_hat,
             gr,
         ) = training.fit_geodesic_regression(
-            mesh_sequence_vertices,
-            mesh_faces,
+            y,
+            space,
             X,
             tol=tol,
             intercept_hat_guess=linear_intercept_hat,
             coef_hat_guess=linear_coef_hat,
             initialization=wandb_config.geodesic_initialization,
-            geodesic_residuals=wandb_config.geodesic_residuals,
-            n_steps=wandb_config.n_steps,
+            linear_residuals=wandb_config.linear_residuals,
         )
 
         geodesic_duration_time = time.time() - start_time
@@ -194,19 +193,25 @@ def main_run(config):
         y_pred_for_gr = gr.predict(X)
         y_pred_for_gr = y_pred_for_gr.reshape(mesh_sequence_vertices.shape)
 
+        if wandb_config.dataset_name in ["synthetic_mesh", "real_mesh"]:
+            wandb.log(
+                {
+                    "geodesic_intercept_hat": wandb.Object3D(
+                        geodesic_intercept_hat.numpy()
+                    ),
+                    "geodesic_coef_hat": wandb.Object3D(geodesic_coef_hat.numpy()),
+                    "y_pred_for_gr": wandb.Object3D(
+                        y_pred_for_gr.detach().numpy().reshape((-1, 3))
+                    ),
+                    "n_faces": len(mesh_faces),
+                }
+            )
+
         wandb.log(
             {
                 "geodesic_duration_time": geodesic_duration_time,
                 "geodesic_intercept_err": geodesic_intercept_err,
                 "geodesic_coef_err": geodesic_coef_err,
-                "geodesic_intercept_hat": wandb.Object3D(
-                    geodesic_intercept_hat.numpy()
-                ),
-                "geodesic_coef_hat": wandb.Object3D(geodesic_coef_hat.numpy()),
-                "y_pred_for_gr": wandb.Object3D(
-                    y_pred_for_gr.detach().numpy().reshape((-1, 3))
-                ),
-                "n_faces": len(mesh_faces),
                 "geodesic_initialization": wandb_config.geodesic_initialization,
             }
         )
@@ -223,13 +228,15 @@ def main_run(config):
         logging.info("Saving geodesic results...")
         training.save_regression_results(
             dataset_name=wandb_config.dataset_name,
-            mesh_sequence_vertices=mesh_sequence_vertices,
-            true_intercept_faces=mesh_faces,
+            y=y,
+            space=space,
             true_coef=true_coef,
             regr_intercept=geodesic_intercept_hat,
             regr_coef=geodesic_coef_hat,
             duration_time=geodesic_duration_time,
-            regress_dir=geodesic_regress_dir,
+            results_dir=geodesic_regression_dir,
+            model="geodesic",
+            linear_residuals=wandb_config.linear_residuals,
             meshes_along_regression=y_pred_for_gr,
         )
 
@@ -250,20 +257,20 @@ def main():
     for (
         dataset_name,
         geodesic_initialization,
-        geodesic_residuals,
+        linear_residuals,
         tol_factor,
         n_steps,
     ) in itertools.product(
         default_config.dataset_name,
         default_config.geodesic_initialization,
-        default_config.geodesic_residuals,
+        default_config.linear_residuals,
         default_config.tol_factor,
         default_config.n_steps,
     ):
         main_config = {
             "dataset_name": dataset_name,
             "geodesic_initialization": geodesic_initialization,
-            "geodesic_residuals": geodesic_residuals,
+            "linear_residuals": linear_residuals,
             "tol_factor": tol_factor,
             "n_steps": n_steps,
         }
