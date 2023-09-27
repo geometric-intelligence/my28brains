@@ -195,11 +195,13 @@ class GeodesicRegression(BaseEstimator):
         regularization=1.0,
         compute_training_score=False,
         verbose=False,
+        tol=1e-5,
         linear_residuals=False,
     ):
         self.space = space
         self.center_X = center_X
         self.verbose = verbose
+        self.tol = tol
         self._method = None
         self.method = method
         self.initialization = initialization
@@ -243,7 +245,7 @@ class GeodesicRegression(BaseEstimator):
 
         self._method = value
 
-        tol = 1e-5
+        tol = self.tol
         max_iter = 100
         if value == "extrinsic":
             optimizer = ScipyMinimize(

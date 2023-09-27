@@ -135,9 +135,9 @@ def fit_geodesic_regression(
         space,
         center_X=False,
         method="extrinsic",
-        # tol=tol,
         compute_training_score=False,
         verbose=True,
+        tol=tol,
         initialization=initialization,
         linear_residuals=linear_residuals,
     )

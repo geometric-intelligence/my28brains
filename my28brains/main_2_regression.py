@@ -121,8 +121,11 @@ def main_run(config):
         print(f"y_pred_for_lr: {y_pred_for_lr.shape}")
         if wandb_config.dataset_name in ["synthetic_mesh", "real_mesh"]:
 
-            offset_mesh_sequence_vertices = viz.offset_mesh_sequence(
-                mesh_sequence_vertices
+            offset_mesh_sequence_vertices = gs.array(
+                viz.offset_mesh_sequence(mesh_sequence_vertices)
+            )[0]
+            print(
+                f"offset_mesh_sequence_vertices: {offset_mesh_sequence_vertices.shape}"
             )
             wandb.log(  # TODO: implement a general visualization thing instead of this hack
                 {

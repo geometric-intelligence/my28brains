@@ -51,7 +51,22 @@ def load(config):
             X = gs.array(np.load(X_path))
             true_intercept = gs.array(np.load(true_intercept_path))
             true_coef = gs.array(np.load(true_coef_path))
-            return mesh_sequence_vertices, mesh_faces, X, true_intercept, true_coef
+
+            space = DiscreteSurfaces(faces=gs.array(mesh_faces))
+            elastic_metric = ElasticMetric(
+                space=space,
+                a0=default_config.a0,
+                a1=default_config.a1,
+                b1=default_config.b1,
+                c1=default_config.c1,
+                d1=default_config.d1,
+                a2=default_config.a2,
+            )
+            elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
+            space.metric = elastic_metric
+
+            y = mesh_sequence_vertices
+            return space, y, X, true_intercept, true_coef
 
         print(f"No synthetic geodesic found in {mesh_dir}. Creating one.")
         start_mesh = load_mesh(start_shape, n_subdivisions, ellipsoid_dims)
@@ -72,7 +87,7 @@ def load(config):
 
         print("Original mesh_sequence vertices: ", mesh_sequence_vertices.shape)
         print("Original mesh faces: ", mesh_faces.shape)
-        print("Times: ", X.shape)
+        print("X: ", X.shape)
 
         os.makedirs(mesh_dir)
         np.save(mesh_sequence_vertices_path, mesh_sequence_vertices)
@@ -81,7 +96,7 @@ def load(config):
         np.save(true_intercept_path, true_intercept)
         np.save(true_coef_path, true_coef)
 
-        space = DiscreteSurfaces(faces=mesh_faces)
+        space = DiscreteSurfaces(faces=gs.array(mesh_faces))
         print(f"space faces: {space.faces.shape}")
         elastic_metric = ElasticMetric(
             space=space,
@@ -98,7 +113,7 @@ def load(config):
         y = mesh_sequence_vertices
         return space, y, X, true_intercept, true_coef
 
-    elif config.dataset_name == "real_meshes":
+    elif config.dataset_name == "real_mesh":
         print("Using real mesh data")
         mesh_dir = default_config.sorted_dir
         mesh_sequence_vertices = []

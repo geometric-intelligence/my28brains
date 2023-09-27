@@ -103,7 +103,7 @@ run_interpolate = False
 # 2. Regression Parameters
 
 dataset_name = [
-    "hypersphere"
+    "synthetic_mesh"
 ]  # "synthetic_mesh" "real_mesh" "hypersphere", or "hyperboloid"
 
 geodesic_initialization = [
@@ -157,6 +157,7 @@ regression_dir = os.path.join(results_dir, "2_regression")
 
 for mesh_dir in [
     synthetic_data_dir,
+    preprocess_dir,
     meshed_dir,
     centered_dir,
     nondegenerate_dir,
