@@ -57,7 +57,10 @@ def main_run(config):
             true_coef,
         ) = data_utils.load(wandb_config)
 
-        if config.dataset_name in ["synthetic_mesh", "real_mesh"]:
+        if (
+            wandb_config.dataset_name == "synthetic_mesh"
+            or wandb_config.dataset_name == "real_mesh"
+        ):
             mesh_sequence_vertices = y
             mesh_faces = space.faces
             logging.info(
@@ -76,6 +79,7 @@ def main_run(config):
             )
 
             logging.info("\n- Testing whether data subspace is euclidean.")
+            # TODO: implement this for general data.
             euclidean_subspace, diff_tolerance = check_euclidean.subspace_test(
                 mesh_sequence_vertices,
                 X,
@@ -95,6 +99,9 @@ def main_run(config):
                     "test_diff_tolerance": diff_tolerance,
                 }
             )
+        else:
+            tol = 1e-3
+            wandb.log({"geodesic_tol": tol})
 
         logging.info("\n- Linear Regression")
         (
@@ -112,8 +119,8 @@ def main_run(config):
         y_pred_for_lr = lr.predict(X_for_lr)
         y_pred_for_lr = y_pred_for_lr.reshape(y.shape)
         print(f"y_pred_for_lr: {y_pred_for_lr.shape}")
+        if wandb_config.dataset_name in ["synthetic_mesh", "real_mesh"]:
 
-        if config.dataset_name in ["synthetic_mesh", "real_mesh"]:
             offset_mesh_sequence_vertices = viz.offset_mesh_sequence(
                 mesh_sequence_vertices
             )
@@ -157,6 +164,7 @@ def main_run(config):
             duration_time=linear_duration_time,
             results_dir=linear_regression_dir,
             model="linear",
+            linear_residuals=wandb_config.linear_residuals,
             y_hat=y_pred_for_lr,
         )
 
@@ -191,7 +199,7 @@ def main_run(config):
 
         logging.info("Computing meshes along geodesic regression...")
         y_pred_for_gr = gr.predict(X)
-        y_pred_for_gr = y_pred_for_gr.reshape(mesh_sequence_vertices.shape)
+        y_pred_for_gr = y_pred_for_gr.reshape(y.shape)
 
         if wandb_config.dataset_name in ["synthetic_mesh", "real_mesh"]:
             wandb.log(
@@ -237,7 +245,7 @@ def main_run(config):
             results_dir=geodesic_regression_dir,
             model="geodesic",
             linear_residuals=wandb_config.linear_residuals,
-            meshes_along_regression=y_pred_for_gr,
+            y_hat=y_pred_for_gr,
         )
 
         wandb_config.update({"full_run": full_run})
@@ -316,7 +324,7 @@ def main():
                     "noise_factor": noise_factor,
                 }
                 config.update(main_config)
-                # main_run_benchmarks(config)
+                main_run(config)
 
 
 main()

@@ -103,14 +103,14 @@ run_interpolate = False
 # 2. Regression Parameters
 
 dataset_name = [
-    "synthetic_mesh"
+    "hypersphere"
 ]  # "synthetic_mesh" "real_mesh" "hypersphere", or "hyperboloid"
 
 geodesic_initialization = [
     "warm_start",
     "random",
 ]  # "warm_start" or "random" (random on parka server)
-linear_residuals = [False]  # 'True' or 'False' (alternative is geodesic residuals)
+linear_residuals = [True]  # 'True' or 'False' (alternative is geodesic residuals)
 n_steps = [3, 5]  # n steps for the exp solver of geomstats.
 tol_factor = [
     0.001,

@@ -119,6 +119,7 @@ def fit_geodesic_regression(
     X: list of X corresponding to y
     intercept_hat_guess: initial guess for intercept of regression fit
     coef_hat_guess: initial guess for slope of regression fit
+    tol: tolerance for geodesic regression. If none logged, value 0.001.
 
     Returns
     -------
@@ -132,12 +133,10 @@ def fit_geodesic_regression(
     # method was riemannian
     gr = GeodesicRegression(
         space,
-        metric=space.metric,
         center_X=False,
         method="extrinsic",
-        max_iter=5,
-        init_step_size=0.1,
-        tol=tol,
+        # tol=tol,
+        compute_training_score=False,
         verbose=True,
         initialization=initialization,
         linear_residuals=linear_residuals,
@@ -157,7 +156,7 @@ def fit_geodesic_regression(
     print("Intercept guess: ", gr.intercept_.shape)
     print("Coef guess: ", gr.coef_.shape)
 
-    gr.fit(gs.array(X), gs.array(y), compute_training_score=False)
+    gr.fit(gs.array(X), gs.array(y))
 
     intercept_hat, coef_hat = gr.intercept_, gr.coef_
 

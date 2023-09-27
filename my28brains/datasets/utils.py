@@ -82,6 +82,7 @@ def load(config):
         np.save(true_coef_path, true_coef)
 
         space = DiscreteSurfaces(faces=mesh_faces)
+        print(f"space faces: {space.faces.shape}")
         elastic_metric = ElasticMetric(
             space=space,
             a0=default_config.a0,
