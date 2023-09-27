@@ -6,11 +6,7 @@ import numpy as np
 
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"  # noqa: E402
 import geomstats.backend as gs
-from geomstats.geometry.discrete_surfaces import (
-    DiscreteSurfaces,
-    ElasticMetric,
-    _ExpSolver,
-)
+from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 from sklearn.linear_model import LinearRegression
 
 import H2_SurfaceMatch.utils.input_output as h2_io  # noqa: E402
@@ -20,88 +16,84 @@ from my28brains.regression.geodesic_regression import GeodesicRegression
 
 def save_regression_results(
     dataset_name,
-    sped_up,
-    mesh_sequence_vertices,
-    true_intercept_faces,
+    y,
+    space,
     true_coef,
     regr_intercept,
     regr_coef,
     duration_time,
     regress_dir,
-    meshes_along_regression=None,
+    y_hat=None,
 ):
     """Save regression results to files.
 
     Parameters
     ----------
     dataset_name: string, either "synthetic_mesh" or "real_mesh"
-    sped_up: boolean, whether or not the data was sped up
+    y: input data given to regression (points on manifold)
     true_intercept: numpy array, the true intercept
     true_coef: numpy array, the true slope
     regr_intercept: numpy array, the intercept calculated via regression
     regr_coef: numpy array, the slope calculated via regression
     duration_time: float, the duration of the regression
+    y_hat: numpy array, the y values predicted by the regression model.
     """
-    suffix = f"{dataset_name}_sped_up_{sped_up}"
+    suffix = f"{dataset_name}"
     true_intercept_path = os.path.join(regress_dir, f"true_intercept_{suffix}")
     true_coef_path = os.path.join(regress_dir, f"true_coef_{suffix}")
     regr_intercept_path = os.path.join(
         regress_dir, f"regr_intercept_{suffix}_{duration_time}"
     )
     regr_coef_path = os.path.join(regress_dir, f"regr_coef_{suffix}_{duration_time}")
-    mesh_sequence_vertices_path = os.path.join(
-        regress_dir, f"mesh_sequence_vertices_{suffix}"
-    )
-    mesh_along_regression_path = os.path.join(
-        regress_dir, f"meshes_along_regression_{suffix}"
-    )
+    y_path = os.path.join(regress_dir, f"y_{suffix}")
+    y_hat_path = os.path.join(regress_dir, f"y_hat_{suffix}")
 
-    faces = gs.array(true_intercept_faces).numpy()
+    if dataset_name == "synthetic_mesh" or dataset_name == "real_mesh":
+        faces = gs.array(space.faces).numpy()
+        mesh_sequence_vertices = y
+        h2_io.save_data(
+            true_intercept_path,
+            ".ply",
+            gs.array(mesh_sequence_vertices[0]).numpy(),
+            faces,
+        )
+        h2_io.save_data(
+            regr_intercept_path,
+            ".ply",
+            gs.array(regr_intercept).numpy(),
+            faces,
+        )
 
-    h2_io.save_data(
-        true_intercept_path,
-        ".ply",
-        gs.array(mesh_sequence_vertices[0]).numpy(),
-        faces,
-    )
-    h2_io.save_data(
-        regr_intercept_path,
-        ".ply",
-        gs.array(regr_intercept).numpy(),
-        faces,
-    )
+        # HACK ALERT: uses the plotGeodesic function to plot
+        # the original mesh sequence, which is not a geodesic
+        h2_io.plotGeodesic(
+            geod=gs.array(mesh_sequence_vertices).detach().numpy(),
+            F=faces,
+            stepsize=default_config.stepsize[dataset_name],
+            file_name=y_path,
+        )
+
+        if y_hat is not None:
+            h2_io.plotGeodesic(
+                geod=gs.array(y_hat).detach().numpy(),
+                F=faces,
+                stepsize=default_config.stepsize[dataset_name],
+                file_name=y_hat_path,
+            )
 
     np.savetxt(true_coef_path, true_coef)
     np.savetxt(regr_coef_path, regr_coef)
 
-    # HACK ALERT: uses the plotGeodesic function to plot
-    # the original mesh sequence, which is not a geodesic
-    h2_io.plotGeodesic(
-        geod=gs.array(mesh_sequence_vertices).detach().numpy(),
-        F=faces,
-        stepsize=default_config.stepsize[dataset_name],
-        file_name=mesh_sequence_vertices_path,
-    )
-
-    if meshes_along_regression is not None:
-        h2_io.plotGeodesic(
-            geod=gs.array(meshes_along_regression).detach().numpy(),
-            F=faces,
-            stepsize=default_config.stepsize[dataset_name],
-            file_name=mesh_along_regression_path,
-        )
-
 
 def fit_geodesic_regression(
     mesh_sequence,
-    mesh_faces,
+    space,
     X,
     tol,
     intercept_hat_guess,
     coef_hat_guess,
     initialization="warm_start",
     geodesic_residuals=False,
-    n_steps=3,
     # device = "cuda:0",
 ):
     """Perform regression on parameterized meshes.
@@ -110,8 +102,7 @@ def fit_geodesic_regression(
     ----------
     mesh_sequence: list of vertices of meshes.
     EACH MESH is a numpy array of shape (n, 3)
-    mesh_faces: numpy array of shape (m, 3)
-    where m is the number of faces
+    space: space on which to perform regression
     X: list of X corresponding to mesh_sequence
     intercept_hat_guess: initial guess for intercept of regression fit
     coef_hat_guess: initial guess for slope of regression fit
@@ -123,25 +114,12 @@ def fit_geodesic_regression(
     """
     print(f"initialization: {initialization}")
     print(f"geodesic_residuals: {geodesic_residuals}")
-    discrete_surfaces = DiscreteSurfaces(faces=gs.array(mesh_faces))
-
-    elastic_metric = ElasticMetric(
-        space=discrete_surfaces,
-        a0=default_config.a0,
-        a1=default_config.a1,
-        b1=default_config.b1,
-        c1=default_config.c1,
-        d1=default_config.d1,
-        a2=default_config.a2,
-    )
-
-    elastic_metric.exp_solver = _ExpSolver(n_steps=n_steps)
 
     # maxiter was 100
     # method was riemannian
     gr = GeodesicRegression(
-        discrete_surfaces,
-        metric=elastic_metric,
+        space,
+        metric=space.metric,
         center_X=False,
         method="extrinsic",
         max_iter=5,

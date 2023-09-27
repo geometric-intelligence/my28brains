@@ -105,7 +105,7 @@ run_interpolate = False
 dataset_name = [
     "synthetic_mesh"
 ]  # "synthetic_mesh" "real_mesh" "hypersphere", or "hyperboloid"
-sped_up = [True]  # 'True' or 'False' (not currently used)
+
 geodesic_initialization = [
     "warm_start",
     "random",

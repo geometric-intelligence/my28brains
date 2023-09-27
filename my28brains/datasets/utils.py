@@ -6,7 +6,11 @@ import default_config
 import geomstats.backend as gs
 import numpy as np
 import trimesh
-from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
+from geomstats.geometry.discrete_surfaces import (
+    DiscreteSurfaces,
+    ElasticMetric,
+    _ExpSolver,
+)
 from geomstats.geometry.hyperbolic import Hyperbolic
 from geomstats.geometry.hypersphere import Hypersphere
 from geomstats.learning.frechet_mean import FrechetMean, variance
@@ -76,7 +80,20 @@ def load(config):
         np.save(X_path, X)
         np.save(true_intercept_path, true_intercept)
         np.save(true_coef_path, true_coef)
+
         space = DiscreteSurfaces(faces=mesh_faces)
+        elastic_metric = ElasticMetric(
+            space=space,
+            a0=default_config.a0,
+            a1=default_config.a1,
+            b1=default_config.b1,
+            c1=default_config.c1,
+            d1=default_config.d1,
+            a2=default_config.a2,
+        )
+        elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
+        space.metric = elastic_metric
+
         y = mesh_sequence_vertices
         return space, y, X, true_intercept, true_coef
 
@@ -121,7 +138,20 @@ def load(config):
         true_intercept = gs.array(mesh_sequence_vertices[0])
         true_coef = gs.array(mesh_sequence_vertices[1] - mesh_sequence_vertices[0])
         print(mesh_dir)
+
         space = DiscreteSurfaces(faces=mesh_faces)
+        elastic_metric = ElasticMetric(
+            space=space,
+            a0=default_config.a0,
+            a1=default_config.a1,
+            b1=default_config.b1,
+            c1=default_config.c1,
+            d1=default_config.d1,
+            a2=default_config.a2,
+        )
+        elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
+        space.metric = elastic_metric
+
         y = mesh_sequence_vertices
         return space, y, X, true_intercept, true_coef
     if config.dataset_name == "hyperboloid":
