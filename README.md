@@ -38,23 +38,7 @@ pre-commit install
 If this code is useful to your research, please cite:
 
 ```
-@misc{https://doi.org/10.48550/arxiv.2210.01932,
-  doi = {10.48550/ARXIV.2210.01932},
-
-  url = {https://arxiv.org/abs/2210.01932},
-
-  author = {Myers, Adele and Miolane, Nina},
-
-  keywords = {Machine Learning (cs.LG), FOS: Computer and information sciences, FOS: Computer and information sciences},
-
-  title = {Regression-Based Elastic Metric Learning on Shape Spaces of Elastic Curves},
-
-  publisher = {arXiv},
-
-  year = {2022},
-
-  copyright = {Creative Commons Attribution 4.0 International}
-}
+Citation Coming Soon
 ```
 
 ## 🏃‍♀️ How to Run the Code ##
@@ -71,20 +55,32 @@ to sign into your account.
 
 #### 2. Create a new project in Wandb.
 
-Create a new project in Wandb called "TODO".
+Create a new project in Wandb called "<project_name>". Then, edit `main_xxx.py` files so that they use this project name.
 
-#### 3. Choose the `main` file that fits your goal. 
+#### 3. Specify hyperparameters in default_config.py.
 
+Most Important General Paramters in `default_config.py` (see descriptions in `default_config.py`):
 
-#### 4. Specify hyperparameters in default_config.py.
+- Elastic Metric Parameters: `a0`, `a1`, `b1`, `c1`, `d1`, `a2`
+- `dataset_name`
+- `geodesic_initialization`
+- `linear_residuals`
+- `n_X`
 
-#### 5. Run your `main` file.
-For a single run, use the command:
+#### 4. Run the `main` file that fits your goal.
+
+- `main_1_preprocess.py`: Preprocesses hippocampus data, as described in the notes at the top of the file.
+- `main_2_regression.py`: Runs regression (linear and geodesic) on dataset specified in `default_config.py`. Runs geodesic regression with linear residuals if `linear_residuals = True` in `default_config.py`.
+- `main_3_line_vs_geodesic.py`: Creates synthetic data (data type determined by `dataset_name` in `default_config.py`) that lies in a curved space. Then, computes a line between two synthetic data points and a geodesic between the two synthetic data points and compares how different they are, indicating whether the distance between the points is large or small are compared to the curvature of the manifold. Used to inform "rules of thumb" for whether linear regression or geodesic regression with linear residuals can be used to approximate geodesic regression on a particular dataset.
+
+To run one of the main files, use the command:
 ```
 python main_xxx.py
 ```
 
-### 6. 👀 See Results.
+where xxx is replaced by the actual name of the file.
+
+### 5. 👀 See Results.
 
 You can see all of your runs by logging into the Wandb webpage and looking under your project name "TODO".
 
