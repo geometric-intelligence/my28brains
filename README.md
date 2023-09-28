@@ -10,7 +10,7 @@ Official implementation of the paper “Geodesic Regression Characterizes 3D Sha
 Visual on thumbnail slide taken from: Caitlin M Taylor, Laura Pritschet, and Emily G Jacobs. The scientific body of knowledge–whose body does it serve? A spotlight on oral contraceptives and women’s health factors in neuroimaging. Frontiers in neuroendocrinology, 60:100874, 2021.
 
 ## 💥 Poster, Presented at the ICCV Workshop: Computer Vision for Automated Medical Diagnosis ##
-![BBB Talk](/images/Adele_Myers_poster.pdf)
+![BBB Talk](/images/Adele_Myers_poster.png)
 
 ## 🤖 Installing My28Brains
 
