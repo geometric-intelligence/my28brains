@@ -55,7 +55,7 @@ to sign into your account.
 
 #### 2. Create a new project in Wandb.
 
-Create a new project in Wandb called "<project_name>". Then, edit `main_xxx.py` files so that they use this project name.
+Create a new project in Wandb and give it a project name. Then, edit `main_xxx.py` files so that they use this project name.
 
 #### 3. Specify hyperparameters in default_config.py.
 
@@ -82,7 +82,7 @@ where xxx is replaced by the actual name of the file.
 
 ### 5. 👀 See Results.
 
-You can see all of your runs by logging into the Wandb webpage and looking under your project name "TODO".
+You can see all of your runs by logging into the Wandb webpage and looking under your project name.
 
 ## 👩‍🔧 Authors ##
 [Adele Myers](https://ahma2017.wixsite.com/adelemyers)
