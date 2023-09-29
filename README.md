@@ -2,7 +2,7 @@
 
 Official implementation of the paper “Geodesic Regression Characterizes 3D Shape Changes in the Female Brain During Menstruation”.
 
-***[[Paper](xxxx)] published in ICCV proceedings under [[ICCV Workshop Computer Vision for Automated Medical Diagnosis](https://cvamd2023.github.io/)]***
+***[[Paper]([xxxx](https://arxiv.org/abs/2309.16662))] published in ICCV proceedings under [[ICCV Workshop Computer Vision for Automated Medical Diagnosis](https://cvamd2023.github.io/)]***
 
 ## 🎤 We are developing AI to transform the field of NeuroImaging and Womens' Brain Health: See our Beginner-Friendly Public Talk at Brass Bear Brewing ##
 
