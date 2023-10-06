@@ -6,6 +6,14 @@ import default_config
 import geomstats.backend as gs
 import numpy as np
 import trimesh
+from geomstats.geometry.discrete_surfaces import (
+    DiscreteSurfaces,
+    ElasticMetric,
+    _ExpSolver,
+)
+from geomstats.geometry.hyperbolic import Hyperbolic
+from geomstats.geometry.hypersphere import Hypersphere
+from geomstats.learning.frechet_mean import FrechetMean, variance
 
 import H2_SurfaceMatch.utils.input_output as h2_io
 import my28brains.datasets.synthetic as synthetic
@@ -13,18 +21,18 @@ import my28brains.datasets.synthetic as synthetic
 
 def load(config):
     """Load data according to values in config file."""
-    if config.dataset_name == "synthetic":
-        print("Using synthetic data")
+    if config.dataset_name == "synthetic_mesh":
+        print("Using synthetic mesh data")
         data_dir = default_config.synthetic_data_dir
         start_shape, end_shape = config.start_shape, config.end_shape
-        n_times = config.n_times
+        n_X = config.n_X
         n_subdivisions = config.n_subdivisions
         ellipsoid_dims = config.ellipsoid_dims
         noise_factor = config.noise_factor
 
         mesh_dir = os.path.join(
             data_dir,
-            f"geodesic_{start_shape}_{end_shape}_{n_times}_subs{n_subdivisions}"
+            f"geodesic_{start_shape}_{end_shape}_{n_X}_subs{n_subdivisions}"
             f"_ell{ellipsoid_dims}_noise{noise_factor}",
         )
 
@@ -32,7 +40,7 @@ def load(config):
             mesh_dir, "mesh_sequence_vertices.npy"
         )
         mesh_faces_path = os.path.join(mesh_dir, "mesh_faces.npy")
-        times_path = os.path.join(mesh_dir, "times.npy")
+        X_path = os.path.join(mesh_dir, "X.npy")
         true_intercept_path = os.path.join(mesh_dir, "true_intercept.npy")
         true_coef_path = os.path.join(mesh_dir, "true_coef.npy")
 
@@ -40,10 +48,25 @@ def load(config):
             print(f"Synthetic geodesic exists in {mesh_dir}. Loading now.")
             mesh_sequence_vertices = gs.array(np.load(mesh_sequence_vertices_path))
             mesh_faces = gs.array(np.load(mesh_faces_path))
-            times = gs.array(np.load(times_path))
+            X = gs.array(np.load(X_path))
             true_intercept = gs.array(np.load(true_intercept_path))
             true_coef = gs.array(np.load(true_coef_path))
-            return mesh_sequence_vertices, mesh_faces, times, true_intercept, true_coef
+
+            space = DiscreteSurfaces(faces=gs.array(mesh_faces))
+            elastic_metric = ElasticMetric(
+                space=space,
+                a0=default_config.a0,
+                a1=default_config.a1,
+                b1=default_config.b1,
+                c1=default_config.c1,
+                d1=default_config.d1,
+                a2=default_config.a2,
+            )
+            elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
+            space.metric = elastic_metric
+
+            y = mesh_sequence_vertices
+            return space, y, X, true_intercept, true_coef
 
         print(f"No synthetic geodesic found in {mesh_dir}. Creating one.")
         start_mesh = load_mesh(start_shape, n_subdivisions, ellipsoid_dims)
@@ -52,11 +75,11 @@ def load(config):
         (
             mesh_sequence_vertices,
             mesh_faces,
-            times,
+            X,
             true_intercept,
             true_coef,
         ) = synthetic.generate_parameterized_geodesic(
-            start_mesh, end_mesh, n_times, config.n_steps
+            start_mesh, end_mesh, n_X, config.n_steps
         )
 
         print(f"\n- Adding noise  with factor: {noise_factor}")
@@ -64,33 +87,47 @@ def load(config):
 
         print("Original mesh_sequence vertices: ", mesh_sequence_vertices.shape)
         print("Original mesh faces: ", mesh_faces.shape)
-        print("Times: ", times.shape)
+        print("X: ", X.shape)
 
         os.makedirs(mesh_dir)
         np.save(mesh_sequence_vertices_path, mesh_sequence_vertices)
         np.save(mesh_faces_path, mesh_faces)
-        np.save(times_path, times)
+        np.save(X_path, X)
         np.save(true_intercept_path, true_intercept)
         np.save(true_coef_path, true_coef)
-        # Nina modifies:
-        # data_points = (mesh_sequence_vertices, mesh_face)
-        return mesh_sequence_vertices, mesh_faces, times, true_intercept, true_coef
 
-    elif config.dataset_name == "real":  # real_meshes
-        print("Using real data")
+        space = DiscreteSurfaces(faces=gs.array(mesh_faces))
+        print(f"space faces: {space.faces.shape}")
+        elastic_metric = ElasticMetric(
+            space=space,
+            a0=default_config.a0,
+            a1=default_config.a1,
+            b1=default_config.b1,
+            c1=default_config.c1,
+            d1=default_config.d1,
+            a2=default_config.a2,
+        )
+        elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
+        space.metric = elastic_metric
+
+        y = mesh_sequence_vertices
+        return space, y, X, true_intercept, true_coef
+
+    elif config.dataset_name == "real_mesh":
+        print("Using real mesh data")
         mesh_dir = default_config.sorted_dir
         mesh_sequence_vertices = []
         mesh_sequence_faces = []
         first_day = int(default_config.day_range[0])
         last_day = int(default_config.day_range[1])
-        # times = gs.arange(0, 1, 1/(last_day - first_day + 1))
+        # X = gs.arange(0, 1, 1/(last_day - first_day + 1))
 
         hormone_levels_path = os.path.join(
             default_config.sorted_dir, "sorted_hormone_levels.npy"
         )
         hormone_levels = np.loadtxt(hormone_levels_path, delimiter=",")
-        times = gs.array(hormone_levels)
-        print("times: ", times)
+        X = gs.array(hormone_levels)
+        print("X: ", X)
 
         # for i_mesh in range(first_day, last_day + 1):
         for i_mesh in range(last_day - first_day + 1):
@@ -117,30 +154,38 @@ def load(config):
         true_intercept = gs.array(mesh_sequence_vertices[0])
         true_coef = gs.array(mesh_sequence_vertices[1] - mesh_sequence_vertices[0])
         print(mesh_dir)
-        return mesh_sequence_vertices, mesh_faces, times, true_intercept, true_coef
-    else:
-        raise ValueError(f"Unknown dataset name {config.dataset_name}")
 
+        space = DiscreteSurfaces(faces=mesh_faces)
+        elastic_metric = ElasticMetric(
+            space=space,
+            a0=default_config.a0,
+            a1=default_config.a1,
+            b1=default_config.b1,
+            c1=default_config.c1,
+            d1=default_config.d1,
+            a2=default_config.a2,
+        )
+        elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
+        space.metric = elastic_metric
 
-def load_benchmark_data(config):
-    """Load synthetic data that is not mesh data.
-
-    i.e. data on hypersphere, data on hyperboloid.
-    Purpose: benchmarking regression on synthetic data.
-    """
+        y = mesh_sequence_vertices
+        return space, y, X, true_intercept, true_coef
     if config.dataset_name == "hyperboloid":
         print("Creating synthetic dataset on hyperboloid")
-        X, y, intercept, coef, rss = synthetic.generate_hyperboloid_data(
-            n_samples=50, noise_std=2
+        space = Hyperbolic(dim=2, default_coords_type="extrinsic")
+        X, y, true_intercept, true_coef, _ = synthetic.generate_noisy_benchmark_data(
+            space=space, n_samples=50, noise_std=2
         )
+        return space, y, X, true_intercept, true_coef
     elif config.dataset_name == "hypersphere":
         print("Creating synthetic dataset on hypersphere")
-        X, y, intercept, coef, rss = synthetic.generate_hypersphere_data(
-            n_samples=50, noise_std=2
+        space = Hypersphere(dim=2)
+        X, y, true_intercept, true_coef, _ = synthetic.generate_noisy_benchmark_data(
+            space=space, n_samples=50, noise_std=2
         )
+        return space, y, X, true_intercept, true_coef
     else:
         raise ValueError(f"Unknown dataset name {config.dataset_name}")
-    return X, y, intercept, coef, rss
 
 
 def load_mesh(mesh_type, n_subdivisions, ellipsoid_dims):

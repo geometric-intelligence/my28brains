@@ -63,8 +63,8 @@ torch_dtype = torch.float64
 
 # Saving geodesics using plotGeodesic
 stepsize = {
-    "synthetic": 55,
-    "real": 6,
+    "synthetic_mesh": 55,
+    "real_mesh": 6,
 }
 
 # 1. Preprocessing Parameters
@@ -102,13 +102,15 @@ run_interpolate = False
 
 # 2. Regression Parameters
 
-dataset_name = ["synthetic"]  # "synthetic" "real" "hypersphere", or "hyperboloid"
-sped_up = [True]  # 'True' or 'False' (not currently used)
+dataset_name = [
+    "synthetic_mesh"
+]  # "synthetic_mesh" "real_mesh" "hypersphere", or "hyperboloid"
+
 geodesic_initialization = [
     "warm_start",
     "random",
 ]  # "warm_start" or "random" (random on parka server)
-geodesic_residuals = [False]  # 'True' or 'False' (alternative is linear residuals)
+linear_residuals = [True]  # 'True' or 'False' (alternative is geodesic residuals)
 n_steps = [3, 5]  # n steps for the exp solver of geomstats.
 tol_factor = [
     0.001,
@@ -116,16 +118,16 @@ tol_factor = [
     0.1,
     0.5,
 ]  # tolerance for geodesic regression. If none logged, value 0.001.
-n_times = [5]  # , 10, 15, 20, 30]  # Only for dataset_name == synthetic
+n_X = [5]  # , 10, 15, 20, 30]  # Only for dataset_name == synthetic
 start_shape = ["sphere"]  # "sphere" or "ellipsoid" for synthetic
 end_shape = ["ellipsoid"]  # "sphere" or "ellipsoid" for synthetic
 noise_factor = [0.0]  # , 0.0001, 0.001, 0.01]  # noise added to the data.
 # Will be multiplied by the size of the mesh to calculate the standard
 # deviation of added noise distribution.
 # only applied to synthetic data.
-n_subdivisions = [2]  # , 1, 3, 4, 5]
+n_subdivisions = [2]  # , 1, 2, 3, 4, 5]
 
-# How many times to subdivide the mesh. Note that the number of faces will grow
+# How many X to subdivide the mesh. Note that the number of faces will grow
 # as function of 4 ** subdivisions, so you probably want to keep this under ~5.
 # if nothing recorded, value 3.
 ellipsoid_dims = [[2, 2, 3]]
@@ -137,7 +139,7 @@ ellipsoid_dims = [[2, 2, 3]]
 
 # Data (inside my28brains_dir : my28brains/my28brains/)
 data_dir = os.path.join(my28brains_dir, "data")
-synthetic_data_dir = os.path.join(data_dir, "synthetic")
+synthetic_data_dir = os.path.join(data_dir, "synthetic_mesh")
 
 # Results (inside my28brains_dir : my28brains/my28brains/)
 results_dir = os.path.join(my28brains_dir, "results")
@@ -151,17 +153,18 @@ reparameterized_dir = os.path.join(preprocess_dir, "d_reparameterized")
 sorted_dir = os.path.join(preprocess_dir, "e_sorted")
 interpolated_dir = os.path.join(preprocess_dir, "f_interpolated")
 
-regress_dir = os.path.join(results_dir, "2_regress")
+regression_dir = os.path.join(results_dir, "2_regression")
 
 for mesh_dir in [
     synthetic_data_dir,
+    preprocess_dir,
     meshed_dir,
     centered_dir,
     nondegenerate_dir,
     reparameterized_dir,
     sorted_dir,
     interpolated_dir,
-    regress_dir,
+    regression_dir,
 ]:
     if not os.path.exists(mesh_dir):
         os.makedirs(mesh_dir)
@@ -188,7 +191,7 @@ param1 = {
     "weight_coef_dist_T": 10**1,  # target varifold term
     "weight_coef_dist_S": 10**1,  # source varifold term
     "sig_geom": 0.4,
-    "max_iter": 1000,  # bfgs gets really close really fast and sometimes
+    "max_iter": 1000,  # bfgs gets really close really fast and someX
     # worth letting it run for a bunch of iterations + see scipy,
     # esp stopping condition to get decent figures
     "time_steps": 2,

@@ -14,6 +14,16 @@ from matplotlib import animation
 
 import my28brains.default_config as default_config
 
+os.environ["GEOMSTATS_BACKEND"] = "pytorch"
+import geomstats.backend as gs
+import geomstats.visualization as visualization
+
+viz_dict = {
+    "Hypersphere": visualization.Sphere(n_meridians=30),
+    "PoincareBall": visualization.PoincareDisk(),  # note: this did not work. points that belonged to poincare ball did not belong to H2
+    "Hyperboloid": visualization.PoincareDisk(),
+}
+
 IMG_DIR = "/home/data/28andme/"
 HORMONES = {"Estro": "Estrogen", "Prog": "Progesterone", "LH": "LH", "FSH": "FSH"}
 
@@ -139,17 +149,17 @@ def plot_hormones(df, dayID, plot_type="dot", hormones=HORMONES, savefig=False):
     """
     if plot_type == "dot":
         df = df[df["dayID"] < dayID]
-    times = df["dayID"]
+    X = df["dayID"]
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
     for h in hormones:
-        ax.plot(times, df[h], label=HORMONES[h])
+        ax.plot(X, df[h], label=HORMONES[h])
 
     if dayID > 2:
         if plot_type == "dot":
             for h in hormones:
-                ax.scatter(times.values[-1], df[h].values[-1], s=100)
+                ax.scatter(X.values[-1], df[h].values[-1], s=100)
 
     ax.set_xlim((0, 30))
     ax.set_ylim(0, df["Estro"].max() + 5)
@@ -190,7 +200,7 @@ def plotly_hormones(df, by, day, hormones=HORMONES, ymax=None, savefig=False):
 
     df = df[df[by] <= day]
     df = df.sort_values(by=by)
-    times = df[by]
+    X = df[by]
 
     fig = go.Figure()
 
@@ -198,7 +208,7 @@ def plotly_hormones(df, by, day, hormones=HORMONES, ymax=None, savefig=False):
     for h in hormones:
         fig.add_trace(
             go.Scatter(
-                x=times,
+                x=X,
                 y=df[h],
                 mode="lines",
                 name=HORMONES[h],
@@ -250,20 +260,20 @@ def offset_mesh_sequence(mesh_sequence_vertices):
 
     Parameters
     ----------
-    mesh_sequence_vertices : np.array, shape=[n_times, n_vertices, 3]
+    mesh_sequence_vertices : np.array, shape=[n_X, n_vertices, 3]
         Sequence of meshes.
 
     Returns
     -------
-    _ : np.array, shape=[n_times, n_vertices, 3]
+    _ : np.array, shape=[n_X, n_vertices, 3]
         Offset sequence of meshes.
     """
-    n_times = len(mesh_sequence_vertices)
+    n_X = len(mesh_sequence_vertices)
     x_max = max([max(mesh[:, 0]) for mesh in mesh_sequence_vertices])
     x_min = min([min(mesh[:, 0]) for mesh in mesh_sequence_vertices])
     x_diameter = np.abs(x_max - x_min)
-    max_offset = n_times * x_diameter
-    offsets = np.linspace(0, max_offset, n_times)
+    max_offset = n_X * x_diameter
+    offsets = np.linspace(0, max_offset, n_X)
 
     offset_mesh_sequence_vertices = []
     for i_mesh, mesh in enumerate(mesh_sequence_vertices):
@@ -280,7 +290,7 @@ def plot_mesh_sequence(mesh_sequence_vertices, savefig=False, label=None):
 
     Parameters
     ----------
-    mesh_sequence_vertices : np.array, shape=[n_times, n_vertices, 3]
+    mesh_sequence_vertices : np.array, shape=[n_X, n_vertices, 3]
         Sequence of meshes.
     """
     fig = plt.figure(figsize=(10, 20))
@@ -316,7 +326,7 @@ def plotly_mesh_sequence(mesh_sequence_vertices):
 
     Parameters
     ----------
-    mesh_sequence_vertices : np.array, shape=[n_times, n_vertices, 3]
+    mesh_sequence_vertices : np.array, shape=[n_X, n_vertices, 3]
         Sequence of meshes.
     """
     plasma_cmap = px.colors.sequential.Plasma
@@ -338,3 +348,51 @@ def plotly_mesh_sequence(mesh_sequence_vertices):
     fig = go.Figure(data=data)
 
     fig.show()
+
+
+def benchmark_data_sequence(space, sequence_1, sequence_2):
+    """Compare two benchmark datasets.
+
+    Examples
+    --------
+    - main_2_regression: compare true sequence vs modeled sequence.
+    - main_3_line_vs_geodesic: compare line vs geodesic.
+
+    Parameters
+    ----------
+    space : space where data points lie.
+    sequence_1:
+        for regression: true points sequence
+        for line vs geodesic: line
+    sequence_2:
+        for regression: modeled points sequence
+        for line vs geodesic: geodesic
+    """
+    # Plot
+    fig = plt.figure(figsize=(8, 8))
+
+    assert space.dim == 2, "space's dimension is not 2 -> can't visualize!"
+    manifold_visu = viz_dict[space.__class__.__name__]
+
+    size = 10
+    marker = "o"
+
+    if space.__class__.__name__ == "Hypersphere":
+        ax = fig.add_subplot(111, projection="3d")
+    elif space.__class__.__name__ == "Hyperboloid":
+        ax = fig.add_subplot(111)
+    ax = manifold_visu.set_ax(ax=ax)
+    projected_intercept_hat = space.projection(sequence_2[0])
+    projected_sequence_2 = space.projection(sequence_2)
+    projected_sequence_1 = space.projection(sequence_1)
+    manifold_visu.plot(
+        gs.array([projected_intercept_hat]), ax=ax, marker=marker, c="r", s=size
+    )
+    manifold_visu.plot(projected_sequence_1, ax=ax, marker=marker, c="b", s=size)
+    manifold_visu.plot(projected_sequence_2, ax=ax, marker=marker, c="g", s=size)
+
+    ax.grid(False)
+    plt.axis("off")
+
+    return fig
+    # plt.show()

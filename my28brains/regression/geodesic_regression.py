@@ -195,11 +195,13 @@ class GeodesicRegression(BaseEstimator):
         regularization=1.0,
         compute_training_score=False,
         verbose=False,
+        tol=1e-5,
         linear_residuals=False,
     ):
         self.space = space
         self.center_X = center_X
         self.verbose = verbose
+        self.tol = tol
         self._method = None
         self.method = method
         self.initialization = initialization
@@ -243,7 +245,7 @@ class GeodesicRegression(BaseEstimator):
 
         self._method = value
 
-        tol = 1e-5
+        tol = self.tol
         max_iter = 100
         if value == "extrinsic":
             optimizer = ScipyMinimize(
@@ -395,15 +397,15 @@ class GeodesicRegression(BaseEstimator):
         self : object
             Returns self.
         """
-        times = gs.copy(X)
+        X = gs.copy(X)
         if self.center_X:
             self.mean_ = gs.mean(X)
-            times -= self.mean_
+            X -= self.mean_
 
         if self.method == "extrinsic":
-            res = self._fit_extrinsic(times, y, weights)
+            res = self._fit_extrinsic(X, y, weights)
         if self.method == "riemannian":
-            res = self._fit_riemannian(times, y, weights)
+            res = self._fit_riemannian(X, y, weights)
 
         intercept_hat, coef_hat = gs.split(res.x, 2)
         intercept_hat = gs.reshape(intercept_hat, self.space.shape)
@@ -499,12 +501,12 @@ class GeodesicRegression(BaseEstimator):
         if self.coef_ is None:
             raise RuntimeError("Fit method must be called before predict.")
 
-        times = gs.copy(X)
+        X = gs.copy(X)
 
         if self.center_X:
-            times = times - self.mean_
+            X = X - self.mean_
 
-        return self._model(times, self.coef_, self.intercept_)
+        return self._model(X, self.coef_, self.intercept_)
 
     def score(self, X, y, weights=None):
         """Compute training score.

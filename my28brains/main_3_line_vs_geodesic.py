@@ -7,8 +7,7 @@ Note: the following paths in are my python path:
 For Nina: export PYTHONPATH=/home/nmiolane/code/my28brains/H2_SurfaceMatch:
 /home/nmiolane/code/my28brains/
 
-For Adele: export PYTHONPATH=/home/adele/code/my28brains/H2_SurfaceMatch:
-/home/adele/code/my28brains/
+For Adele: export PYTHONPATH=/home/adele/code/my28brains/H2_SurfaceMatch:/home/adele/code/my28brains/
 """
 
 import itertools
@@ -23,18 +22,75 @@ from geomstats.geometry.discrete_surfaces import (
     ElasticMetric,
     _ExpSolver,
 )
+from geomstats.geometry.hyperbolic import Hyperbolic
+from geomstats.geometry.hypersphere import Hypersphere
+from geomstats.learning.frechet_mean import FrechetMean, variance
 
 import my28brains.datasets.synthetic as synthetic
 import my28brains.datasets.utils as data_utils
 import my28brains.viz as viz
 import wandb
 
-NOISE_FACTORS = [0.01, 0.1, 0.5, 1.0]  #
-N_STEPS = [20]  # 3, 5, 8, 10, 20]  #
-SUBDIVISIONS = [1, 2, 3]
-N_TIMES = [10]  # 5
+NOISE_FACTORS = [0, 0.01, 0.1, 0.5, 1.0]  # [0.01, 0.1, 0.5, 1.0]
+N_STEPS = [1, 3, 5, 8, 10, 20]  # 3, 5, 8, 10, 20]  #
+SUBDIVISIONS = [1, 2, 3]  # [1, 2, 3]
+N_TIMES = [5, 10]  # 5, 10
+DATASET_NAMES = [
+    "hypersphere",
+    "hyperboloid",
+]  # "synthetic_mesh", "hypersphere", "hyperboloid"
+END_MESH = ["different_shape", "noisy"]  # noisy, different_shape
 
-# NOTE: need to do noise_factor 1.0 n_times 10, n_steps 5
+# NOTE: need to do noise_factor 1.0 n_X 10, n_steps 5
+
+
+def load(config):
+    """Load space, start point, end point.
+
+    Parameters
+    ----------
+    reference mesh: trimesh object. start point.
+    """
+    if config.dataset_name == "synthetic_mesh":
+        reference_mesh = synthetic.generate_ellipsoid_mesh(
+            subdivisions=config.subdivisions, ellipsoid_dims=[2, 2, 3]
+        )
+        reference_vertices = gs.array(reference_mesh.vertices)
+        reference_faces = reference_mesh.faces
+        start_point = reference_vertices
+
+        if config.end_mesh == "noisy":
+            noiseless_vertices = gs.copy(reference_vertices)
+            noisy_vertices = data_utils.add_noise(
+                mesh_sequence_vertices=[noiseless_vertices],
+                noise_factor=config.noise_factor,
+            )
+            end_point = noisy_vertices[0]
+        elif config.end_mesh == "different_shape":
+            end_point = synthetic.generate_sphere_mesh(subdivisions=config.subdivisions)
+        space = DiscreteSurfaces(faces=gs.array(reference_faces))
+        elastic_metric = ElasticMetric(space=space)
+        elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
+        space.metric = elastic_metric
+        true_coef = end_point - start_point
+    elif config.dataset_name in ["hypersphere", "hyperboloid"]:
+        if config.dataset_name == "hypersphere":
+            space = Hypersphere(dim=2)
+        else:
+            space = Hyperbolic(dim=2, default_coords_type="extrinsic")
+
+        _, y, y_noisy, _, true_coef, _ = synthetic.generate_noisy_benchmark_data(
+            space, n_samples=2
+        )
+
+        if config.end_mesh == "different_shape":
+            start_point = y[0]
+            end_point = y[1]
+        elif config.end_mesh == "noisy":
+            start_point = y_noisy[0]
+            end_point = y_noisy[1]
+
+    return space, start_point, end_point, true_coef
 
 
 def main_run(config):
@@ -46,55 +102,34 @@ def main_run(config):
     logging.info(f"\n\n---> MAIN 5 : START run: {wandb.run.name}.")
     logging.info(wandb_config)
 
-    reference_mesh = synthetic.generate_ellipsoid_mesh(
-        subdivisions=wandb_config.subdivisions, ellipsoid_dims=[2, 2, 3]
-    )
-    reference_vertices = gs.array(reference_mesh.vertices)
-    reference_faces = reference_mesh.faces
-    n_vertices = len(reference_vertices)
-    n_faces = len(reference_faces)
-    diameter = data_utils.mesh_diameter(reference_vertices)
+    space, start_point, end_point, true_coef = load(wandb_config)
 
-    noiseless_vertices = gs.copy(reference_vertices)
-    noisy_vertices = data_utils.add_noise(
-        mesh_sequence_vertices=[reference_vertices],
-        noise_factor=wandb_config.noise_factor,
-    )
-    noisy_vertices = noisy_vertices[0]
-
-    wandb_config.update(
-        {
-            "n_faces": n_faces,
-            "n_vertices": n_vertices,
-            "diameter": diameter,
-        }
-    )
-
-    discrete_surfaces = DiscreteSurfaces(faces=gs.array(reference_faces))
-    elastic_metric = ElasticMetric(space=discrete_surfaces)
-    elastic_metric.exp_solver = _ExpSolver(n_steps=wandb_config.n_steps)
+    if wandb_config.dataset_name == "synthetic_mesh":
+        n_vertices = len(start_point)
+        n_faces = len(start_point)
+        diameter = data_utils.mesh_diameter(start_point)
+        wandb_config.update(
+            {
+                "n_faces": n_faces,
+                "n_vertices": n_vertices,
+                "diameter": diameter,
+            }
+        )
 
     logging.info("Computing geodesic distance.")
     start = time.time()
     geodesic_sq_dist = (
-        # discrete_surfaces.metric.squared_dist(noisy_vertices, noiseless_vertices)
-        discrete_surfaces.metric.squared_dist(noiseless_vertices, noisy_vertices)
-        .detach()
-        .numpy()
-    )[0]
+        space.metric.squared_dist(start_point, end_point).detach().numpy()
+    )  # [0]
     geodesic_dist = gs.sqrt(geodesic_sq_dist)
     geodesic_regression_duration = time.time() - start
 
     logging.info("Computing geodesic.")
     start = time.time()
-    true_coef = noiseless_vertices - noisy_vertices
-    geodesic_fn = elastic_metric.geodesic(
-        initial_point=noiseless_vertices, initial_tangent_vec=true_coef
+    geodesic_fn = space.metric.geodesic(
+        initial_point=start_point, initial_tangent_vec=true_coef
     )
-    # geodesic_fn = elastic_metric.geodesic(
-    #     initial_point=noiseless_vertices, end_point=noisy_vertices
-    # )
-    geodesic = geodesic_fn(gs.linspace(0, 1, wandb_config.n_times))
+    geodesic = geodesic_fn(gs.linspace(0, 1, wandb_config.n_X))
     geodesic_duration = time.time() - start
     logging.info(
         f"--> Done ({geodesic_regression_duration:.1f} sec): "
@@ -113,14 +148,9 @@ def main_run(config):
     logging.info("Computing line.")
     start = time.time()
     line = gs.array(
-        [t * q_end + (1 - t) * q_start for t in gs.linspace(0, 1, wandb_config.n_times)]
+        [t * q_end + (1 - t) * q_start for t in gs.linspace(0, 1, wandb_config.n_X)]
     )
-    # line = gs.array(
-    #     [
-    #         t * noiseless_vertices + (1 - t) * noisy_vertices
-    #         for t in gs.linspace(0, 1, wandb_config.n_times)
-    #     ]
-    # )
+
     line_duration = time.time() - start
     logging.info(
         f"--> Done ({linear_regression_duration:.1f} sec): linear_dist = {linear_dist}"
@@ -131,61 +161,81 @@ def main_run(config):
     diff_duration = linear_regression_duration - geodesic_regression_duration
     relative_diff_duration = diff_duration / linear_regression_duration
 
-    diff_seq_per_time_and_vertex = gs.linalg.norm(line - geodesic) / (
-        wandb_config.n_times * n_vertices
-    )
-    rmsd = gs.linalg.norm(line - geodesic) / gs.sqrt(wandb_config.n_times * n_vertices)
+    diff_seq_per_time = gs.linalg.norm(line - geodesic) / (wandb_config.n_X)
+    rmsd = gs.linalg.norm(line - geodesic) / gs.sqrt(wandb_config.n_X)
     abs_seq = gs.abs(line - geodesic)
 
-    diff_seq_per_time_vertex_diameter = diff_seq_per_time_and_vertex / diameter
-    rmsd_diameter = rmsd / diameter
     diff_seq_duration = line_duration - geodesic_duration
     relative_diff_seq_duration = diff_seq_duration / line_duration
 
-    offset_line = gs.array(viz.offset_mesh_sequence(line))
-    offset_geodesic = gs.array(viz.offset_mesh_sequence(geodesic))
-    print(f"offset_line.shape = {offset_line.shape}")
+    if wandb_config.dataset_name == "synthetic_mesh":
+        diff_seq_per_time_and_vertex = diff_seq_per_time / (n_vertices)
+        rmsd = rmsd / n_vertices
+
+        diff_seq_per_time_vertex_diameter = diff_seq_per_time_and_vertex / diameter
+        rmsd_diameter = rmsd / diameter
+
+        offset_line = gs.array(viz.offset_mesh_sequence(line))
+        offset_geodesic = gs.array(viz.offset_mesh_sequence(geodesic))
+        print(f"offset_line.shape = {offset_line.shape}")
+
+        wandb.log(
+            {
+                "linear_dist_per_vertex": linear_dist / n_vertices,
+                "geodesic_dist_per_vertex": geodesic_dist / n_vertices,
+                "diff_dist_per_vertex": diff_dist / n_vertices,
+                "linear_regression_duration_per_vertex": linear_regression_duration
+                / n_vertices,
+                "geodesic_regression_duration_per_vertex": geodesic_regression_duration
+                / n_vertices,
+                "start_point_vertices": wandb.Object3D(start_point.numpy()),
+                "end_point_vertices": wandb.Object3D(end_point.numpy()),
+                "offset_line": wandb.Object3D(
+                    offset_line.detach().numpy().reshape((-1, 3))
+                ),
+                "offset_geodesic": wandb.Object3D(
+                    offset_geodesic.detach().numpy().reshape((-1, 3))
+                ),
+                "diff_seq_per_time_and_vertex": diff_seq_per_time_and_vertex,
+                "diff_seq_per_time_vertex_diameter": diff_seq_per_time_vertex_diameter,
+                "rmsd_diameter": rmsd_diameter,
+                "diff_seq_duration_per_time_and_vertex": diff_seq_duration
+                / (wandb_config.n_X * n_vertices),
+                "relative_diff_seq_per_time_and_vertex": relative_diff_seq_duration
+                / (wandb_config.n_X * n_vertices),
+                "diff_duration_per_vertex": diff_duration / n_vertices,
+            }
+        )
+
+    if wandb_config.dataset_name in ["hypersphere", "hyperboloid"]:
+        fig = viz.benchmark_data_sequence(space, line, geodesic)
+        plt = wandb.Image(fig)
+
+        # TODO: why is this viz not changing?
+
+        wandb.log(
+            {
+                "line vs geodesic": plt,
+            }
+        )
 
     wandb.log(
         {
             "run_name": wandb.run.name,
             "linear_dist": linear_dist,
-            "linear_dist_per_vertex": linear_dist / n_vertices,
             "geodesic_dist": geodesic_dist,
-            "geodesic_dist_per_vertex": geodesic_dist / n_vertices,
             "diff_dist": diff_dist,
-            "diff_dist_per_vertex": diff_dist / n_vertices,
             "relative_diff_dist": relative_diff_dist,
             "line_duration": line_duration,
             "linear_regression_duration": linear_regression_duration,
-            "linear_regression_duration_per_vertex": linear_regression_duration
-            / n_vertices,
             "geodesic_regression_duration": geodesic_regression_duration,
-            "geodesic_regression_duration_per_vertex": geodesic_regression_duration
-            / n_vertices,
             "geodesic_duration": geodesic_duration,
             "diff_duration": diff_duration,
-            "diff_duration_per_vertex": diff_duration / n_vertices,
             "relative_diff_duration": relative_diff_duration,
-            "noiseless_vertices": wandb.Object3D(noiseless_vertices.numpy()),
-            "noisy_vertices": wandb.Object3D(noisy_vertices.numpy()),
-            "offset_line": wandb.Object3D(
-                offset_line.detach().numpy().reshape((-1, 3))
-            ),
-            "offset_geodesic": wandb.Object3D(
-                offset_geodesic.detach().numpy().reshape((-1, 3))
-            ),
-            "diff_seq_per_time_and_vertex": diff_seq_per_time_and_vertex,
             "rmsd": rmsd,
             "abs_seq": abs_seq,
-            "diff_seq_per_time_vertex_diameter": diff_seq_per_time_vertex_diameter,
-            "rmsd_diameter": rmsd_diameter,
             "diff_seq_duration": diff_seq_duration,
-            "diff_seq_duration_per_time_and_vertex": diff_seq_duration
-            / (wandb_config.n_times * n_vertices),
             "relative_diff_seq_duration": relative_diff_seq_duration,
-            "relative_diff_seq_per_time_and_vertex": relative_diff_seq_duration
-            / (wandb_config.n_times * n_vertices),
             # Log actual lines
             "line": line.numpy(),
             "geodesic": geodesic.numpy(),
@@ -201,14 +251,19 @@ def main():
         noise_factor,
         n_steps,
         subdivisions,
-        n_times,
-    ) in itertools.product(NOISE_FACTORS, N_STEPS, SUBDIVISIONS, N_TIMES):
+        n_X,
+        dataset_name,
+        end_mesh,
+    ) in itertools.product(
+        NOISE_FACTORS, N_STEPS, SUBDIVISIONS, N_TIMES, DATASET_NAMES, END_MESH
+    ):
         config = {
-            "dataset_name": "synthetic",
+            "dataset_name": dataset_name,
             "n_steps": n_steps,
             "noise_factor": noise_factor,
             "subdivisions": subdivisions,
-            "n_times": n_times,
+            "n_X": n_X,
+            "end_mesh": end_mesh,
         }
 
         main_run(config)
