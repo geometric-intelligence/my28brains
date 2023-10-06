@@ -8,6 +8,7 @@ my28brains/results/figs/
 my28brains/results/regression/
 wandb/*
 H2_Surface_Match/*
+my28brains/blender/blends/*
 
 # anaconda stuff
 Anaconda3-2021.11-Linux-x86_64.sh
