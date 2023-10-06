@@ -173,14 +173,14 @@ def load(config):
     if config.dataset_name == "hyperboloid":
         print("Creating synthetic dataset on hyperboloid")
         space = Hyperbolic(dim=2, default_coords_type="extrinsic")
-        X, y, true_intercept, true_coef, _ = synthetic.generate_benchmark_data(
+        X, y, true_intercept, true_coef, _ = synthetic.generate_noisy_benchmark_data(
             space=space, n_samples=50, noise_std=2
         )
         return space, y, X, true_intercept, true_coef
     elif config.dataset_name == "hypersphere":
         print("Creating synthetic dataset on hypersphere")
         space = Hypersphere(dim=2)
-        X, y, true_intercept, true_coef, _ = synthetic.generate_benchmark_data(
+        X, y, true_intercept, true_coef, _ = synthetic.generate_noisy_benchmark_data(
             space=space, n_samples=50, noise_std=2
         )
         return space, y, X, true_intercept, true_coef

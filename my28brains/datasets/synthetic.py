@@ -223,8 +223,38 @@ def generate_unparameterized_geodesic(start_mesh, end_mesh, gpu_id=1):
     return geod, F0
 
 
-def generate_benchmark_data(space, n_samples=50, noise_std=2):
-    """Generate synthetic data on the hypersphere."""
+def generate_noisy_benchmark_data(space, n_samples=50, noise_std=2):
+    """Generate synthetic data on the hypersphere or hyperboloid.
+
+    Note: data is "random".
+    """
+    X, y, intercept, coef = generate_benchmark_data(space, n_samples)
+
+    # Generate normal noise
+    normal_noise = gs.random.normal(
+        size=(n_samples, space.embedding_space.dim), scale=noise_std
+    )
+    noise = space.to_tangent(normal_noise, base_point=y) / gs.pi / 2
+
+    rss = gs.sum(space.metric.squared_norm(noise, base_point=y)) / n_samples
+
+    # Add noise
+    y_noisy = space.metric.exp(noise, y)
+
+    return X, y, y_noisy, intercept, coef, rss
+
+
+def generate_benchmark_data(space, n_samples=1):
+    """Generate a pair of random points on the hypersphere or hyperboloid.
+
+    Parameters
+    ----------
+    X: torch.tensor, shape=[n_samples]
+    y: points on manifold, torch.tensor, shape=[n_samples, dim]
+    intercept: torch.tensor, shape=[dim]. "intercept" of distribution
+        (named for purpose of regression)
+    coef: torch.tensor, shape=[dim]. "coef" of distribution
+    """
     gs.random.seed(0)
 
     X = gs.random.rand(n_samples)
@@ -237,16 +267,4 @@ def generate_benchmark_data(space, n_samples=50, noise_std=2):
     coef = space.to_tangent(vector, base_point=intercept)
     print(f"coef shape: {coef.shape}")
     y = space.metric.exp(X[:, None] * coef, base_point=intercept)
-
-    # Generate normal noise
-    normal_noise = gs.random.normal(
-        size=(n_samples, space.embedding_space.dim), scale=noise_std
-    )
-    noise = space.to_tangent(normal_noise, base_point=y) / gs.pi / 2
-
-    rss = gs.sum(space.metric.squared_norm(noise, base_point=y)) / n_samples
-
-    # Add noise
-    y = space.metric.exp(noise, y)
-
-    return X, y, intercept, coef, rss
+    return X, y, intercept, coef

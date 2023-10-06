@@ -14,6 +14,16 @@ from matplotlib import animation
 
 import my28brains.default_config as default_config
 
+os.environ["GEOMSTATS_BACKEND"] = "pytorch"
+import geomstats.backend as gs
+import geomstats.visualization as visualization
+
+viz_dict = {
+    "Hypersphere": visualization.Sphere(n_meridians=30),
+    "PoincareBall": visualization.PoincareDisk(),  # note: this did not work. points that belonged to poincare ball did not belong to H2
+    "Hyperboloid": visualization.PoincareDisk(),
+}
+
 IMG_DIR = "/home/data/28andme/"
 HORMONES = {"Estro": "Estrogen", "Prog": "Progesterone", "LH": "LH", "FSH": "FSH"}
 
@@ -338,3 +348,51 @@ def plotly_mesh_sequence(mesh_sequence_vertices):
     fig = go.Figure(data=data)
 
     fig.show()
+
+
+def benchmark_data_sequence(space, sequence_1, sequence_2):
+    """Compare two benchmark datasets.
+
+    Examples
+    --------
+    - main_2_regression: compare true sequence vs modeled sequence.
+    - main_3_line_vs_geodesic: compare line vs geodesic.
+
+    Parameters
+    ----------
+    space : space where data points lie.
+    sequence_1:
+        for regression: true points sequence
+        for line vs geodesic: line
+    sequence_2:
+        for regression: modeled points sequence
+        for line vs geodesic: geodesic
+    """
+    # Plot
+    fig = plt.figure(figsize=(8, 8))
+
+    assert space.dim == 2, "space's dimension is not 2 -> can't visualize!"
+    manifold_visu = viz_dict[space.__class__.__name__]
+
+    size = 10
+    marker = "o"
+
+    if space.__class__.__name__ == "Hypersphere":
+        ax = fig.add_subplot(111, projection="3d")
+    elif space.__class__.__name__ == "Hyperboloid":
+        ax = fig.add_subplot(111)
+    ax = manifold_visu.set_ax(ax=ax)
+    projected_intercept_hat = space.projection(sequence_2[0])
+    projected_sequence_2 = space.projection(sequence_2)
+    projected_sequence_1 = space.projection(sequence_1)
+    manifold_visu.plot(
+        gs.array([projected_intercept_hat]), ax=ax, marker=marker, c="r", s=size
+    )
+    manifold_visu.plot(projected_sequence_1, ax=ax, marker=marker, c="b", s=size)
+    manifold_visu.plot(projected_sequence_2, ax=ax, marker=marker, c="g", s=size)
+
+    ax.grid(False)
+    plt.axis("off")
+
+    return fig
+    # plt.show()
