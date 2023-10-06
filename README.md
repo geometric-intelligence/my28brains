@@ -32,8 +32,6 @@ pip install -e .[all]
 pre-commit install
 ```
 
-## ⭐️ Overview of Goals ##
-
 ## 🌎 Bibtex ##
 If this code is useful to your research, please cite:
 
