@@ -70,8 +70,8 @@ dev = ["my28brains[test, lint]"]
 all = ["my28brains[doc, dev]"]
 
 [project.urls]
-homepage="https://github.com/bioshape-lab/my28brains"
-repository="https://github.com/bioshape-lab/my28brains"
+homepage="https://github.com/geometric-intelligence/my28brains"
+repository="https://github.com/geometric-intelligence/my28brains"
 
 [tool.setuptools.dynamic]
 version = {attr = "my28brains.__version__"}
