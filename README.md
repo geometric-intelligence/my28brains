@@ -2,7 +2,7 @@
 
 Official implementation of the paper “Geodesic Regression Characterizes 3D Shape Changes in the Female Brain During Menstruation”.
 
-***[[Paper]([xxxx](https://arxiv.org/abs/2309.16662))] published in ICCV proceedings under [[ICCV Workshop Computer Vision for Automated Medical Diagnosis](https://cvamd2023.github.io/)]***
+***[[Paper](https://arxiv.org/abs/2309.16662)] published in ICCV proceedings under [[ICCV Workshop Computer Vision for Automated Medical Diagnosis](https://cvamd2023.github.io/)]***
 
 ## 🎤 We are developing AI to transform the field of NeuroImaging and Womens' Brain Health: See our Beginner-Friendly Public Talk at Brass Bear Brewing ##
 
@@ -32,13 +32,18 @@ pip install -e .[all]
 pre-commit install
 ```
 
-## ⭐️ Overview of Goals ##
-
 ## 🌎 Bibtex ##
 If this code is useful to your research, please cite:
 
 ```
-Citation Coming Soon
+@misc{myers2023geodesic,
+      title={Geodesic Regression Characterizes 3D Shape Changes in the Female Brain During Menstruation}, 
+      author={Adele Myers and Caitlin Taylor and Emily Jacobs and Nina Miolane},
+      year={2023},
+      eprint={2309.16662},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}
 ```
 
 ## 🏃‍♀️ How to Run the Code ##
