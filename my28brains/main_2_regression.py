@@ -200,6 +200,8 @@ def main_run(config):
         geodesic_intercept_err = gs.linalg.norm(geodesic_intercept_hat - true_intercept)
         geodesic_coef_err = gs.linalg.norm(geodesic_coef_hat - true_coef)
 
+        n_iterations = gr.n_iterations
+
         logging.info("Computing meshes along geodesic regression...")
         y_pred_for_gr = gr.predict(X)
         y_pred_for_gr = y_pred_for_gr.reshape(y.shape)
@@ -224,6 +226,7 @@ def main_run(config):
                 "geodesic_intercept_err": geodesic_intercept_err,
                 "geodesic_coef_err": geodesic_coef_err,
                 "geodesic_initialization": wandb_config.geodesic_initialization,
+                "n_geod_iterations": n_iterations,
             }
         )
 

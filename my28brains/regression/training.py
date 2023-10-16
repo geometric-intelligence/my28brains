@@ -105,6 +105,7 @@ def fit_geodesic_regression(
     coef_hat_guess,
     initialization="warm_start",
     linear_residuals=False,
+    compute_iterations=False,
     # device = "cuda:0",
 ):
     """Perform regression on parameterized meshes or benchmark data.
