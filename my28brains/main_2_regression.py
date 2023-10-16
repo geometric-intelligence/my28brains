@@ -119,7 +119,12 @@ def main_run(config):
         y_pred_for_lr = lr.predict(X_for_lr)
         y_pred_for_lr = y_pred_for_lr.reshape(y.shape)
         print(f"y_pred_for_lr: {y_pred_for_lr.shape}")
+
+        rmsd_linear = gs.linalg.norm(y_pred_for_lr - y) / gs.sqrt(len(y))
+
         if wandb_config.dataset_name in ["synthetic_mesh", "real_mesh"]:
+
+            rmsd_linear = rmsd_linear / (len(mesh_sequence_vertices[0]) * mesh_diameter)
 
             offset_mesh_sequence_vertices = gs.array(
                 viz.offset_mesh_sequence(mesh_sequence_vertices)
@@ -142,11 +147,15 @@ def main_run(config):
                 }
             )
 
+        nrmsd_linear = rmsd_linear / gs.linalg.norm(y[0] - y[-1])
+
         wandb.log(
             {
                 "linear_duration_time": linear_duration_time,
                 "linear_intercept_err": linear_intercept_err,
                 "linear_coef_err": linear_coef_err,
+                "rmsd_linear": rmsd_linear,
+                "nrmsd_linear": nrmsd_linear,
             }
         )
 
@@ -206,7 +215,12 @@ def main_run(config):
         y_pred_for_gr = gr.predict(X)
         y_pred_for_gr = y_pred_for_gr.reshape(y.shape)
 
+        rmsd_geod = gs.linalg.norm(y_pred_for_gr - y) / gs.sqrt(len(y))
+
         if wandb_config.dataset_name in ["synthetic_mesh", "real_mesh"]:
+
+            rmsd_geod = rmsd_geod / (len(mesh_sequence_vertices[0]) * mesh_diameter)
+
             wandb.log(
                 {
                     "geodesic_intercept_hat": wandb.Object3D(
@@ -220,6 +234,8 @@ def main_run(config):
                 }
             )
 
+        nrmsd_geod = rmsd_geod / gs.linalg.norm(y[0] - y[-1])
+
         wandb.log(
             {
                 "geodesic_duration_time": geodesic_duration_time,
@@ -227,6 +243,8 @@ def main_run(config):
                 "geodesic_coef_err": geodesic_coef_err,
                 "geodesic_initialization": wandb_config.geodesic_initialization,
                 "n_geod_iterations": n_iterations,
+                "rmsd_geod": rmsd_geod,
+                "nrmsd_geod": nrmsd_geod,
             }
         )
 
