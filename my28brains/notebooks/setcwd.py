@@ -40,3 +40,7 @@ def main():
     h2_dir = os.path.join(sys_dir, "H2_SurfaceMatch")
     sys.path.append(h2_dir)
     print("Directory added to path: ", h2_dir)
+    notebook_dir = os.path.join(os.getcwd(), "notebooks")
+    print("Directory added to path: ", notebook_dir)
+    csv_dir = os.path.join(notebook_dir, "csv")
+    print("Directory added to path: ", csv_dir)
