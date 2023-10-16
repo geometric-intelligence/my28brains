@@ -120,7 +120,9 @@ def main_run(config):
         y_pred_for_lr = y_pred_for_lr.reshape(y.shape)
         print(f"y_pred_for_lr: {y_pred_for_lr.shape}")
 
-        rmsd_linear = gs.linalg.norm(y_pred_for_lr - y) / gs.sqrt(len(y))
+        rmsd_linear = gs.linalg.norm(gs.array(y_pred_for_lr) - gs.array(y)) / gs.sqrt(
+            len(y)
+        )
 
         if wandb_config.dataset_name in ["synthetic_mesh", "real_mesh"]:
 
@@ -215,7 +217,9 @@ def main_run(config):
         y_pred_for_gr = gr.predict(X)
         y_pred_for_gr = y_pred_for_gr.reshape(y.shape)
 
-        rmsd_geod = gs.linalg.norm(y_pred_for_gr - y) / gs.sqrt(len(y))
+        rmsd_geod = gs.linalg.norm(gs.array(y_pred_for_gr) - gs.array(y)) / gs.sqrt(
+            len(y)
+        )
 
         if wandb_config.dataset_name in ["synthetic_mesh", "real_mesh"]:
 
