@@ -105,10 +105,12 @@ run_interpolate = False
 # 2. Regression Parameters
 
 dataset_name = [
-    "hypersphere",
+    # "hypersphere",
     "hyperboloid",
     "synthetic_mesh",
 ]  # "synthetic_mesh" "real_mesh" "hypersphere", or "hyperboloid"
+
+space_dimension = [3]  # 2 or 3 (only for hypersphere and hyperboloid)
 
 geodesic_initialization = [
     "warm_start",

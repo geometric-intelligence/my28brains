@@ -276,7 +276,10 @@ def main_run(config):
             y_hat=y_pred_for_gr,
         )
 
-        if wandb_config.dataset_name in ["hypersphere", "hyperboloid"]:
+        if (
+            wandb_config.dataset_name in ["hypersphere", "hyperboloid"]
+            and space.dim == 2
+        ):
             fig = viz.benchmark_data_sequence(space, y, y_pred_for_lr, y_pred_for_gr)
             plt = wandb.Image(fig)
 
@@ -353,13 +356,15 @@ def main():
                 main_run(config)
 
         elif dataset_name == "hypersphere" or dataset_name == "hyperboloid":
-            for (n_X, noise_factor,) in itertools.product(
+            for (n_X, noise_factor, space_dimension) in itertools.product(
                 default_config.n_X,
                 default_config.noise_factor,
+                default_config.space_dimension,
             ):
                 config = {
                     "n_X": n_X,
                     "noise_factor": noise_factor,
+                    "space_dimension": space_dimension,
                 }
                 config.update(main_config)
                 main_run(config)
