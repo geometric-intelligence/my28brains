@@ -276,6 +276,16 @@ def main_run(config):
             y_hat=y_pred_for_gr,
         )
 
+        if wandb_config.dataset_name in ["hypersphere", "hyperboloid"]:
+            fig = viz.benchmark_data_sequence(space, y, y_pred_for_lr, y_pred_for_gr)
+            plt = wandb.Image(fig)
+
+            wandb.log(
+                {
+                    "line vs geodesic": plt,
+                }
+            )
+
         wandb_config.update({"full_run": full_run})
         wandb.finish()
     except Exception as e:
