@@ -136,7 +136,7 @@ noise_factor = [
 # Will be multiplied by the size of the mesh to calculate the standard
 # deviation of added noise distribution.
 # only applied to synthetic data.
-n_subdivisions = [1, 2, 3, 4, 5]  # , 1, 2, 3, 4, 5]
+n_subdivisions = [1, 2]  # , 1, 2, 3, 4, 5]
 
 # How many X to subdivide the mesh. Note that the number of faces will grow
 # as function of 4 ** subdivisions, so you probably want to keep this under ~5.
