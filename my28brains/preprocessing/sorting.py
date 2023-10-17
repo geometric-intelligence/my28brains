@@ -59,10 +59,10 @@ def sort_meshes_by_hormones_and_write(
     mesh_sequence_vertices, mesh_sequence_faces = [], []
     first_day = int(config.day_range[0])
     last_day = int(config.day_range[1])
-    for i_mesh in range(first_day, last_day + 1):
+    for day in range(first_day, last_day + 1):
         mesh_path = os.path.join(
             input_dir,
-            f"{hemisphere}_structure_{structure_id}_day{i_mesh:02d}"
+            f"{hemisphere}_structure_{structure_id}_day{day:02d}"
             f"_at_{area_threshold}.ply",
         )
         vertices, faces, _ = h2_io.loadData(mesh_path)
@@ -87,9 +87,10 @@ def sort_meshes_by_hormones_and_write(
 
     # Save the sorted meshes
     for i_mesh, mesh in enumerate(sorted_meshes):
+        day = i_mesh + 1
         ply_path = os.path.join(
             output_dir,
-            f"{hemisphere}_structure_{structure_id}_day{i_mesh:02d}"
+            f"{hemisphere}_structure_{structure_id}_day{day:02d}"
             f"_at_{area_threshold}.ply",
         )
         if os.path.exists(ply_path):

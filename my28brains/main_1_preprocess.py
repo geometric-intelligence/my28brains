@@ -20,6 +20,7 @@ d. Reparameterize meshes: use parameterization of the first mesh
 e. Sort meshes by hormone levels
 -> outputs in sorted_dir
 NOTE: Sorting is not necessary for regression.
+NOTE: make sure day_range = [2, 11] in default_config.py
 
 f. (Optional) Interpolate between t and t+1 with a geodesic
 -> outputs in interpolated_dir
@@ -64,6 +65,9 @@ nondegenerate_dir = default_config.nondegenerate_dir
 reparameterized_dir = default_config.reparameterized_dir
 sorted_dir = default_config.sorted_dir
 interpolated_dir = default_config.interpolated_dir
+
+day_range = default_config.day_range
+day_range_index = [day_range[0] - 1, day_range[1] - 1]
 
 
 def run_func_in_parallel_with_queue(func_args_queue):
@@ -157,7 +161,7 @@ if __name__ == "__main__":
             queue.put(gpu_id)
 
         pool = multiprocessing.Pool(processes=default_config.n_gpus)
-        i_paths = list(range(default_config.day_range[0], default_config.day_range[1]))
+        i_paths = list(range(day_range_index[0], day_range_index[1] + 1))
 
         func = geodesics.reparameterize_with_geodesic
         func_args_queue = [
@@ -208,7 +212,7 @@ if __name__ == "__main__":
             queue.put(gpu_id)
 
         pool = multiprocessing.Pool(processes=default_config.n_gpus)
-        i_pairs = list(range(default_config.day_range[0], default_config.day_range[1]))
+        i_pairs = list(range(day_range_index[0], day_range_index[1]))
 
         func = geodesics.interpolate_with_geodesic
         func_args_queue = [

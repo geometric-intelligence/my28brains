@@ -255,7 +255,8 @@ def generate_benchmark_data(space, n_samples=1):
         (named for purpose of regression)
     coef: torch.tensor, shape=[dim]. "coef" of distribution
     """
-    gs.random.seed(0)
+    gs.random.seed(0)  # TODO: make sure this creates same dataset every time
+    # TODO: add this to funciton above
 
     X = gs.random.rand(n_samples)
     X -= gs.mean(X)

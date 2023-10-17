@@ -197,6 +197,7 @@ class GeodesicRegression(BaseEstimator):
         verbose=False,
         tol=1e-5,
         linear_residuals=False,
+        compute_iterations=True,
     ):
         self.space = space
         self.center_X = center_X
@@ -214,6 +215,9 @@ class GeodesicRegression(BaseEstimator):
         self.training_score_ = None
 
         self.linear_residuals = linear_residuals
+        self.compute_iterations = compute_iterations
+        if compute_iterations:
+            self.n_iterations = None
 
         self.mean_estimator = FrechetMean(self.space)
 
@@ -450,10 +454,17 @@ class GeodesicRegression(BaseEstimator):
             X, y, param, weights
         )
 
-        return self.optimizer.minimize(
+        result = self.optimizer.minimize(
             objective_with_grad,
             initial_guess,
         )
+
+        if self.compute_iterations:
+            n_iterations = result.nit
+            # note, if this does not work, try doing result.nit
+            self.n_iterations = n_iterations
+
+        return result
 
     def _fit_riemannian(self, X, y, weights=None):
         """Estimate the parameters using a Riemannian gradient descent.
@@ -483,7 +494,13 @@ class GeodesicRegression(BaseEstimator):
         intercept_init, coef_init = self._initialize_parameters(y)
         x0 = gs.vstack([gs.flatten(intercept_init), gs.flatten(coef_init)])
 
-        return self.optimizer.minimize(self.space, objective_with_grad, x0)
+        result = self.optimizer.minimize(self.space, objective_with_grad, x0)
+
+        if self.compute_iterations:
+            n_iterations = result.nit
+            self.n_iterations = n_iterations
+
+        return result
 
     def predict(self, X):
         """Predict the manifold value for each input.
