@@ -96,7 +96,9 @@ template_day = 2
 # - we have 10 gpus, so we can run 10 interpolations at once
 # - they contain most of the progesterone peak.
 # first menstrual cycle is day 1-30 (pre-pill)
+
 day_range = [2, 11]  # we have parameterized meshes for days 2-11
+
 
 run_interpolate = False
 
@@ -110,7 +112,6 @@ dataset_name = [
 
 geodesic_initialization = [
     "warm_start",
-    "random",
 ]  # "warm_start" or "random" (random on parka server)
 linear_residuals = [
     False,
