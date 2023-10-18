@@ -44,6 +44,59 @@ def load(config):
         true_intercept_path = os.path.join(mesh_dir, "true_intercept.npy")
         true_coef_path = os.path.join(mesh_dir, "true_coef.npy")
 
+        noiseless_mesh_dir = os.path.join(
+            data_dir,
+            f"geodesic_{start_shape}_{end_shape}_{n_X}_subs{n_subdivisions}"
+            f"_ell{ellipsoid_dims}_noise{0}",
+        )
+
+        noiseless_mesh_sequence_vertices_path = os.path.join(
+            noiseless_mesh_dir, "mesh_sequence_vertices.npy"
+        )
+        noiseless_mesh_faces_path = os.path.join(noiseless_mesh_dir, "mesh_faces.npy")
+        noiseless_X_path = os.path.join(noiseless_mesh_dir, "X.npy")
+        noiseless_true_intercept_path = os.path.join(
+            noiseless_mesh_dir, "true_intercept.npy"
+        )
+        noiseless_true_coef_path = os.path.join(noiseless_mesh_dir, "true_coef.npy")
+
+        if os.path.exists(noiseless_mesh_dir):
+            print(f"Noiseless geodesic exists in {mesh_dir}. Loading now.")
+            noiseless_mesh_sequence_vertices = gs.array(
+                np.load(noiseless_mesh_sequence_vertices_path)
+            )
+            mesh_faces = gs.array(np.load(mesh_faces_path))
+            X = gs.array(np.load(X_path))
+            true_intercept = gs.array(np.load(true_intercept_path))
+            true_coef = gs.array(np.load(true_coef_path))
+        else:
+            print(
+                f"Noiseless geodesic does not exist in {noiseless_mesh_dir}. Creating one."
+            )
+            start_mesh = load_mesh(start_shape, n_subdivisions, ellipsoid_dims)
+            end_mesh = load_mesh(end_shape, n_subdivisions, ellipsoid_dims)
+
+            (
+                noiseless_mesh_sequence_vertices,
+                mesh_faces,
+                X,
+                true_intercept,
+                true_coef,
+            ) = synthetic.generate_parameterized_geodesic(
+                start_mesh, end_mesh, n_X, config.n_steps
+            )
+
+            os.makedirs(noiseless_mesh_dir)
+            np.save(
+                noiseless_mesh_sequence_vertices_path, noiseless_mesh_sequence_vertices
+            )
+            np.save(noiseless_mesh_faces_path, mesh_faces)
+            np.save(noiseless_X_path, X)
+            np.save(noiseless_true_intercept_path, true_intercept)
+            np.save(noiseless_true_coef_path, true_coef)
+
+        y_noiseless = noiseless_mesh_sequence_vertices
+
         if os.path.exists(mesh_dir):
             print(f"Synthetic geodesic exists in {mesh_dir}. Loading now.")
             mesh_sequence_vertices = gs.array(np.load(mesh_sequence_vertices_path))
@@ -66,24 +119,12 @@ def load(config):
             space.metric = elastic_metric
 
             y = mesh_sequence_vertices
-            return space, y, X, true_intercept, true_coef
+            return space, y, y_noiseless, X, true_intercept, true_coef
 
-        print(f"No synthetic geodesic found in {mesh_dir}. Creating one.")
-        start_mesh = load_mesh(start_shape, n_subdivisions, ellipsoid_dims)
-        end_mesh = load_mesh(end_shape, n_subdivisions, ellipsoid_dims)
-
-        (
-            mesh_sequence_vertices,
-            mesh_faces,
-            X,
-            true_intercept,
-            true_coef,
-        ) = synthetic.generate_parameterized_geodesic(
-            start_mesh, end_mesh, n_X, config.n_steps
+        print(f"No noisy synthetic geodesic found in {mesh_dir}. Creating one.")
+        mesh_sequence_vertices = add_noise(
+            noiseless_mesh_sequence_vertices, noise_factor
         )
-
-        print(f"\n- Adding noise  with factor: {noise_factor}")
-        mesh_sequence_vertices = add_noise(mesh_sequence_vertices, noise_factor)
 
         print("Original mesh_sequence vertices: ", mesh_sequence_vertices.shape)
         print("Original mesh faces: ", mesh_faces.shape)
@@ -111,7 +152,7 @@ def load(config):
         space.metric = elastic_metric
 
         y = mesh_sequence_vertices
-        return space, y, X, true_intercept, true_coef
+        return space, y, y_noiseless, X, true_intercept, true_coef
 
     elif config.dataset_name == "real_mesh":
         print("Using real mesh data")
@@ -169,7 +210,8 @@ def load(config):
         space.metric = elastic_metric
 
         y = mesh_sequence_vertices
-        return space, y, X, true_intercept, true_coef
+        y_noiseless = None
+        return space, y, y_noiseless, X, true_intercept, true_coef
     elif config.dataset_name in ["hyperboloid", "hypersphere"]:
         print(f"Creating synthetic dataset on {config.dataset_name}")
         if config.dataset_name == "hyperboloid":
@@ -180,7 +222,7 @@ def load(config):
             space = Hypersphere(dim=config.space_dimension)
         (
             X,
-            y,
+            y_noiseless,
             y_noisy,
             true_intercept,
             true_coef,
@@ -188,7 +230,7 @@ def load(config):
         ) = synthetic.generate_noisy_benchmark_data(
             space=space, n_samples=config.n_X, noise_std=config.noise_factor
         )
-        return space, y_noisy, X, true_intercept, true_coef
+        return space, y_noisy, y_noiseless, X, true_intercept, true_coef
     else:
         raise ValueError(f"Unknown dataset name {config.dataset_name}")
 

@@ -105,7 +105,7 @@ run_interpolate = False
 # 2. Regression Parameters
 
 dataset_name = [
-    # "hypersphere",
+    "hypersphere",
     "hyperboloid",
     "synthetic_mesh",
 ]  # "synthetic_mesh" "real_mesh" "hypersphere", or "hyperboloid"
@@ -121,8 +121,8 @@ linear_residuals = [
 ]  # 'True' or 'False' (alternative is geodesic residuals)
 n_steps = [3, 5]  # n steps for the exp solver of geomstats.
 tol_factor = [
-    0.001,
-    0.01,
+    # 0.001,
+    # 0.01,
     0.1,
     0.5,
 ]  # tolerance for geodesic regression. If none logged, value 0.001.

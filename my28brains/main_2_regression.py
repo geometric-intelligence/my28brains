@@ -52,10 +52,27 @@ def main_run(config):
         (
             space,
             y,
+            y_noiseless,
             X,
             true_intercept,
             true_coef,
         ) = data_utils.load(wandb_config)
+
+        euclidean_noise_rmsd = check_euclidean.euclidean_noise_rmsd(
+            space, y, y_noiseless, wandb_config.dataset_name
+        )
+
+        # now, do spread test
+        euclidean_spread_rmsd = check_euclidean.euclidean_spread_rmsd(
+            space, y, wandb_config.dataset_name
+        )
+
+        wandb.log(
+            {
+                "euclidean_noise_rmsd": euclidean_noise_rmsd,
+                "euclidean_spread_rmsd": euclidean_spread_rmsd,
+            }
+        )
 
         if (
             wandb_config.dataset_name == "synthetic_mesh"
@@ -80,23 +97,23 @@ def main_run(config):
 
             logging.info("\n- Testing whether data subspace is euclidean.")
             # TODO: implement this for general data.
-            euclidean_subspace, diff_tolerance = check_euclidean.subspace_test(
-                mesh_sequence_vertices,
-                X,
-                wandb_config.tol_factor,
-            )
-            logging.info(f"\n- Euclidean subspace: {euclidean_subspace}, ")
+            # euclidean_subspace, diff_tolerance = check_euclidean.subspace_test(
+            #     mesh_sequence_vertices,
+            #     X,
+            #     wandb_config.tol_factor,
+            # )
+            # logging.info(f"\n- Euclidean subspace: {euclidean_subspace}, ")
 
             wandb.log(
                 {
                     "mesh_diameter": mesh_diameter,
                     "n_faces": len(mesh_faces),
                     "geodesic_tol": tol,
-                    "euclidean_subspace": euclidean_subspace,
+                    # "euclidean_subspace": euclidean_subspace,
                     "mesh_sequence_vertices": wandb.Object3D(
                         mesh_sequence_vertices.numpy().reshape((-1, 3))
                     ),
-                    "test_diff_tolerance": diff_tolerance,
+                    # "test_diff_tolerance": diff_tolerance,
                 }
             )
         else:
@@ -235,6 +252,7 @@ def main_run(config):
                         y_pred_for_gr.detach().numpy().reshape((-1, 3))
                     ),
                     "n_faces": len(mesh_faces),
+                    "n_vertices": len(mesh_sequence_vertices[0]),
                 }
             )
 
