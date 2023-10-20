@@ -350,7 +350,7 @@ def plotly_mesh_sequence(mesh_sequence_vertices):
     fig.show()
 
 
-def benchmark_data_sequence(space, sequence_1, sequence_2):
+def benchmark_data_sequence(space, sequence_1, sequence_2, sequence_3=None):
     """Compare two benchmark datasets.
 
     Examples
@@ -365,9 +365,16 @@ def benchmark_data_sequence(space, sequence_1, sequence_2):
         for regression: true points sequence
         for line vs geodesic: line
     sequence_2:
-        for regression: modeled points sequence
+        for regression: modeled points sequence (lr)
         for line vs geodesic: geodesic
+    sequence_3:
+        for regression: modeled points sequence (gr)
+        for line vs geodesic: None
     """
+    sequence_1 = gs.array(sequence_1)
+    sequence_2 = gs.array(sequence_2)
+    if sequence_3 is not None:
+        sequence_3 = gs.array(sequence_3)
     # Plot
     fig = plt.figure(figsize=(8, 8))
 
@@ -385,14 +392,25 @@ def benchmark_data_sequence(space, sequence_1, sequence_2):
     projected_intercept_hat = space.projection(sequence_2[0])
     projected_sequence_2 = space.projection(sequence_2)
     projected_sequence_1 = space.projection(sequence_1)
+    if sequence_3 is not None:
+        projected_sequence_3 = space.projection(sequence_3)
     manifold_visu.plot(
         gs.array([projected_intercept_hat]), ax=ax, marker=marker, c="r", s=size
     )
-    manifold_visu.plot(projected_sequence_1, ax=ax, marker=marker, c="b", s=size)
-    manifold_visu.plot(projected_sequence_2, ax=ax, marker=marker, c="g", s=size)
+    manifold_visu.plot(
+        projected_sequence_1, ax=ax, marker=marker, c="b", s=size, label="True"
+    )
+    manifold_visu.plot(
+        projected_sequence_2, ax=ax, marker=marker, c="g", s=size, label="LR"
+    )
+    if sequence_3 is not None:
+        manifold_visu.plot(
+            projected_sequence_3, ax=ax, marker=marker, c="k", s=size, label="GR"
+        )
 
     ax.grid(False)
     plt.axis("off")
+    plt.legend()
 
     return fig
     # plt.show()

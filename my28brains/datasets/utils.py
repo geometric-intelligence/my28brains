@@ -44,6 +44,59 @@ def load(config):
         true_intercept_path = os.path.join(mesh_dir, "true_intercept.npy")
         true_coef_path = os.path.join(mesh_dir, "true_coef.npy")
 
+        noiseless_mesh_dir = os.path.join(
+            data_dir,
+            f"geodesic_{start_shape}_{end_shape}_{n_X}_subs{n_subdivisions}"
+            f"_ell{ellipsoid_dims}_noise{0}",
+        )
+
+        noiseless_mesh_sequence_vertices_path = os.path.join(
+            noiseless_mesh_dir, "mesh_sequence_vertices.npy"
+        )
+        noiseless_mesh_faces_path = os.path.join(noiseless_mesh_dir, "mesh_faces.npy")
+        noiseless_X_path = os.path.join(noiseless_mesh_dir, "X.npy")
+        noiseless_true_intercept_path = os.path.join(
+            noiseless_mesh_dir, "true_intercept.npy"
+        )
+        noiseless_true_coef_path = os.path.join(noiseless_mesh_dir, "true_coef.npy")
+
+        if os.path.exists(noiseless_mesh_dir):
+            print(f"Noiseless geodesic exists in {mesh_dir}. Loading now.")
+            noiseless_mesh_sequence_vertices = gs.array(
+                np.load(noiseless_mesh_sequence_vertices_path)
+            )
+            mesh_faces = gs.array(np.load(mesh_faces_path))
+            X = gs.array(np.load(X_path))
+            true_intercept = gs.array(np.load(true_intercept_path))
+            true_coef = gs.array(np.load(true_coef_path))
+        else:
+            print(
+                f"Noiseless geodesic does not exist in {noiseless_mesh_dir}. Creating one."
+            )
+            start_mesh = load_mesh(start_shape, n_subdivisions, ellipsoid_dims)
+            end_mesh = load_mesh(end_shape, n_subdivisions, ellipsoid_dims)
+
+            (
+                noiseless_mesh_sequence_vertices,
+                mesh_faces,
+                X,
+                true_intercept,
+                true_coef,
+            ) = synthetic.generate_parameterized_geodesic(
+                start_mesh, end_mesh, n_X, config.n_steps
+            )
+
+            os.makedirs(noiseless_mesh_dir)
+            np.save(
+                noiseless_mesh_sequence_vertices_path, noiseless_mesh_sequence_vertices
+            )
+            np.save(noiseless_mesh_faces_path, mesh_faces)
+            np.save(noiseless_X_path, X)
+            np.save(noiseless_true_intercept_path, true_intercept)
+            np.save(noiseless_true_coef_path, true_coef)
+
+        y_noiseless = noiseless_mesh_sequence_vertices
+
         if os.path.exists(mesh_dir):
             print(f"Synthetic geodesic exists in {mesh_dir}. Loading now.")
             mesh_sequence_vertices = gs.array(np.load(mesh_sequence_vertices_path))
@@ -66,24 +119,15 @@ def load(config):
             space.metric = elastic_metric
 
             y = mesh_sequence_vertices
-            return space, y, X, true_intercept, true_coef
+            return space, y, y_noiseless, X, true_intercept, true_coef
 
-        print(f"No synthetic geodesic found in {mesh_dir}. Creating one.")
-        start_mesh = load_mesh(start_shape, n_subdivisions, ellipsoid_dims)
-        end_mesh = load_mesh(end_shape, n_subdivisions, ellipsoid_dims)
-
-        (
-            mesh_sequence_vertices,
-            mesh_faces,
-            X,
-            true_intercept,
-            true_coef,
-        ) = synthetic.generate_parameterized_geodesic(
-            start_mesh, end_mesh, n_X, config.n_steps
+        print(f"No noisy synthetic geodesic found in {mesh_dir}. Creating one.")
+        mesh_sequence_vertices = synthetic.add_linear_noise(
+            space,
+            noiseless_mesh_sequence_vertices,
+            config.dataset_name,
+            noise_factor=noise_factor,
         )
-
-        print(f"\n- Adding noise  with factor: {noise_factor}")
-        mesh_sequence_vertices = add_noise(mesh_sequence_vertices, noise_factor)
 
         print("Original mesh_sequence vertices: ", mesh_sequence_vertices.shape)
         print("Original mesh faces: ", mesh_faces.shape)
@@ -111,7 +155,7 @@ def load(config):
         space.metric = elastic_metric
 
         y = mesh_sequence_vertices
-        return space, y, X, true_intercept, true_coef
+        return space, y, y_noiseless, X, true_intercept, true_coef
 
     elif config.dataset_name == "real_mesh":
         print("Using real mesh data")
@@ -169,24 +213,37 @@ def load(config):
         space.metric = elastic_metric
 
         y = mesh_sequence_vertices
-        return space, y, X, true_intercept, true_coef
+        y_noiseless = None
+        return space, y, y_noiseless, X, true_intercept, true_coef
     elif config.dataset_name in ["hyperboloid", "hypersphere"]:
         print(f"Creating synthetic dataset on {config.dataset_name}")
         if config.dataset_name == "hyperboloid":
-            space = Hyperbolic(dim=2, default_coords_type="extrinsic")
+            space = Hyperbolic(
+                dim=config.space_dimension, default_coords_type="extrinsic"
+            )
         else:
-            space = Hypersphere(dim=2)
-        (
-            X,
-            y,
-            y_noisy,
-            true_intercept,
-            true_coef,
-            _,
-        ) = synthetic.generate_noisy_benchmark_data(
-            space=space, n_samples=50, noise_std=2
+            space = Hypersphere(dim=config.space_dimension)
+
+        # X, y_noiseless, y_noisy, true_intercept, true_coef = synthetic.generate_noisy_benchmark_data(space = space, linear_noise=config.linear_noise, dataset_name=config.dataset_name, n_samples=config.n_X, noise_factor=config.noise_factor)
+        X, y_noiseless, true_intercept, true_coef = synthetic.generate_benchmark_data(
+            space, config.n_X
         )
-        return space, y_noisy, X, true_intercept, true_coef
+        if config.linear_noise:
+            print(f"noise factor: {config.noise_factor}")
+            print(f"dataset name: {config.dataset_name}")
+            print(f"space dimension: {config.space_dimension}")
+            print(f"y noiseless shape: {y_noiseless.shape}")
+            y_noisy = synthetic.add_linear_noise(
+                y_noiseless, config.dataset_name, noise_factor=config.noise_factor
+            )
+        else:
+            y_noisy = synthetic.add_geodesic_noise(
+                space,
+                y_noiseless,
+                config.dataset_name,
+                noise_factor=config.noise_factor,
+            )
+        return space, y_noisy, y_noiseless, X, true_intercept, true_coef
     else:
         raise ValueError(f"Unknown dataset name {config.dataset_name}")
 
@@ -232,23 +289,23 @@ def mesh_diameter(mesh_vertices):
     return max_distance
 
 
-def add_noise(mesh_sequence_vertices, noise_factor):
-    """Add noise to mesh_sequence_vertices.
+# def add_noise(mesh_sequence_vertices, noise_factor):
+#     """Add noise to mesh_sequence_vertices.
 
-    Note that this function modifies the input mesh_sequence_vertices,
-    which is overwritten by its noisy version.
+#     Note that this function modifies the input mesh_sequence_vertices,
+#     which is overwritten by its noisy version.
 
-    For example, after running:
-    noisy_mesh = data_utils.add_noise(
-        mesh_sequence_vertices=[mesh],
-        noise_factor=10
-    )
-    the mesh has become noisy_mesh as well.
-    """
-    diameter = mesh_diameter(mesh_sequence_vertices[0])
-    noise_sd = noise_factor * diameter
-    for i_mesh in range(len(mesh_sequence_vertices)):
-        mesh_sequence_vertices[i_mesh] += gs.random.normal(
-            loc=0.0, scale=noise_sd, size=mesh_sequence_vertices[i_mesh].shape
-        )
-    return mesh_sequence_vertices
+#     For example, after running:
+#     noisy_mesh = data_utils.add_noise(
+#         mesh_sequence_vertices=[mesh],
+#         noise_factor=10
+#     )
+#     the mesh has become noisy_mesh as well.
+#     """
+#     diameter = mesh_diameter(mesh_sequence_vertices[0])
+#     noise_sd = noise_factor * diameter
+#     for i_mesh in range(len(mesh_sequence_vertices)):
+#         mesh_sequence_vertices[i_mesh] += gs.random.normal(
+#             loc=0.0, scale=noise_sd, size=mesh_sequence_vertices[i_mesh].shape
+#         )
+#     return mesh_sequence_vertices

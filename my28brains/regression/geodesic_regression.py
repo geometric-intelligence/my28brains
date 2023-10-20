@@ -217,7 +217,18 @@ class GeodesicRegression(BaseEstimator):
         self.linear_residuals = linear_residuals
         self.compute_iterations = compute_iterations
         if compute_iterations:
-            self.n_iterations = None
+            self.n_iterations = (
+                None  # Number of iterations performed by scipy optimizer.
+            )
+            self.n_fevaluations = (
+                None  # Number of function evaluations performed by scipy optimizer.
+            )
+            self.n_jevaluations = (
+                None  # Number of jacobian evaluations performed by scipy optimizer.
+            )
+            self.n_hevaluations = (
+                None  # Number of hessian evaluations performed by scipy optimizer.
+            )
 
         self.mean_estimator = FrechetMean(self.space)
 
@@ -461,8 +472,11 @@ class GeodesicRegression(BaseEstimator):
 
         if self.compute_iterations:
             n_iterations = result.nit
-            # note, if this does not work, try doing result.nit
             self.n_iterations = n_iterations
+            if result.nfev is not None:
+                self.n_fevaluations = result.nfev
+            if result.njev is not None:
+                self.n_jevaluations = result.njev
 
         return result
 
@@ -499,6 +513,10 @@ class GeodesicRegression(BaseEstimator):
         if self.compute_iterations:
             n_iterations = result.nit
             self.n_iterations = n_iterations
+            if result.nfev is not None:
+                self.n_fevaluations = result.nfev
+            if result.njev is not None:
+                self.n_jevaluations = result.njev
 
         return result
 

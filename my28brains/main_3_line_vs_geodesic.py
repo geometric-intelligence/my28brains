@@ -61,8 +61,9 @@ def load(config):
 
         if config.end_mesh == "noisy":
             noiseless_vertices = gs.copy(reference_vertices)
-            noisy_vertices = data_utils.add_noise(
+            noisy_vertices = synthetic.add_linear_noise(
                 mesh_sequence_vertices=[noiseless_vertices],
+                dataset_name=config.dataset_name,
                 noise_factor=config.noise_factor,
             )
             end_point = noisy_vertices[0]
