@@ -477,8 +477,6 @@ class GeodesicRegression(BaseEstimator):
                 self.n_fevaluations = result.nfev
             if result.njev is not None:
                 self.n_jevaluations = result.njev
-            if result.nhev is not None:
-                self.n_hevaluations = result.nhev
 
         return result
 
@@ -519,8 +517,6 @@ class GeodesicRegression(BaseEstimator):
                 self.n_fevaluations = result.nfev
             if result.njev is not None:
                 self.n_jevaluations = result.njev
-            if result.nhev is not None:
-                self.n_hevaluations = result.nhev
 
         return result
 

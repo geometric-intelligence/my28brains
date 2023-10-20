@@ -122,8 +122,11 @@ def load(config):
             return space, y, y_noiseless, X, true_intercept, true_coef
 
         print(f"No noisy synthetic geodesic found in {mesh_dir}. Creating one.")
-        mesh_sequence_vertices = add_noise(
-            noiseless_mesh_sequence_vertices, noise_factor
+        mesh_sequence_vertices = synthetic.add_linear_noise(
+            space,
+            noiseless_mesh_sequence_vertices,
+            config.dataset_name,
+            noise_factor=noise_factor,
         )
 
         print("Original mesh_sequence vertices: ", mesh_sequence_vertices.shape)
@@ -220,16 +223,26 @@ def load(config):
             )
         else:
             space = Hypersphere(dim=config.space_dimension)
-        (
-            X,
-            y_noiseless,
-            y_noisy,
-            true_intercept,
-            true_coef,
-            _,
-        ) = synthetic.generate_noisy_benchmark_data(
-            space=space, n_samples=config.n_X, noise_std=config.noise_factor
+
+        # X, y_noiseless, y_noisy, true_intercept, true_coef = synthetic.generate_noisy_benchmark_data(space = space, linear_noise=config.linear_noise, dataset_name=config.dataset_name, n_samples=config.n_X, noise_factor=config.noise_factor)
+        X, y_noiseless, true_intercept, true_coef = synthetic.generate_benchmark_data(
+            space, config.n_X
         )
+        if config.linear_noise:
+            print(f"noise factor: {config.noise_factor}")
+            print(f"dataset name: {config.dataset_name}")
+            print(f"space dimension: {config.space_dimension}")
+            print(f"y noiseless shape: {y_noiseless.shape}")
+            y_noisy = synthetic.add_linear_noise(
+                y_noiseless, config.dataset_name, noise_factor=config.noise_factor
+            )
+        else:
+            y_noisy = synthetic.add_geodesic_noise(
+                space,
+                y_noiseless,
+                config.dataset_name,
+                noise_factor=config.noise_factor,
+            )
         return space, y_noisy, y_noiseless, X, true_intercept, true_coef
     else:
         raise ValueError(f"Unknown dataset name {config.dataset_name}")
@@ -276,23 +289,23 @@ def mesh_diameter(mesh_vertices):
     return max_distance
 
 
-def add_noise(mesh_sequence_vertices, noise_factor):
-    """Add noise to mesh_sequence_vertices.
+# def add_noise(mesh_sequence_vertices, noise_factor):
+#     """Add noise to mesh_sequence_vertices.
 
-    Note that this function modifies the input mesh_sequence_vertices,
-    which is overwritten by its noisy version.
+#     Note that this function modifies the input mesh_sequence_vertices,
+#     which is overwritten by its noisy version.
 
-    For example, after running:
-    noisy_mesh = data_utils.add_noise(
-        mesh_sequence_vertices=[mesh],
-        noise_factor=10
-    )
-    the mesh has become noisy_mesh as well.
-    """
-    diameter = mesh_diameter(mesh_sequence_vertices[0])
-    noise_sd = noise_factor * diameter
-    for i_mesh in range(len(mesh_sequence_vertices)):
-        mesh_sequence_vertices[i_mesh] += gs.random.normal(
-            loc=0.0, scale=noise_sd, size=mesh_sequence_vertices[i_mesh].shape
-        )
-    return mesh_sequence_vertices
+#     For example, after running:
+#     noisy_mesh = data_utils.add_noise(
+#         mesh_sequence_vertices=[mesh],
+#         noise_factor=10
+#     )
+#     the mesh has become noisy_mesh as well.
+#     """
+#     diameter = mesh_diameter(mesh_sequence_vertices[0])
+#     noise_sd = noise_factor * diameter
+#     for i_mesh in range(len(mesh_sequence_vertices)):
+#         mesh_sequence_vertices[i_mesh] += gs.random.normal(
+#             loc=0.0, scale=noise_sd, size=mesh_sequence_vertices[i_mesh].shape
+#         )
+#     return mesh_sequence_vertices

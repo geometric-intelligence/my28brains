@@ -107,22 +107,23 @@ run_interpolate = False
 dataset_name = [
     "hypersphere",
     "hyperboloid",
-    "synthetic_mesh",
 ]  # "synthetic_mesh" "real_mesh" "hypersphere", or "hyperboloid"
 
-space_dimension = [3]  # 2 or 3 (only for hypersphere and hyperboloid)
+space_dimension = [2, 3]  # 2 or 3 (only for hypersphere and hyperboloid)
 
 geodesic_initialization = [
     "warm_start",
+    "random",
 ]  # "warm_start" or "random" (random on parka server)
 linear_residuals = [
     False,
     True,
 ]  # 'True' or 'False' (alternative is geodesic residuals)
+linear_noise = [False, True]  # 'True' or 'False'
 n_steps = [3, 5]  # n steps for the exp solver of geomstats.
 tol_factor = [
-    # 0.001,
-    # 0.01,
+    0.001,
+    0.01,
     0.1,
     0.5,
 ]  # tolerance for geodesic regression. If none logged, value 0.001.

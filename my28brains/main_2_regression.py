@@ -58,21 +58,17 @@ def main_run(config):
             true_coef,
         ) = data_utils.load(wandb_config)
 
-        euclidean_noise_rmsd = check_euclidean.euclidean_noise_rmsd(
-            space, y, y_noiseless, wandb_config.dataset_name
-        )
-
-        # now, do spread test
-        euclidean_spread_rmsd = check_euclidean.euclidean_spread_rmsd(
-            space, y, wandb_config.dataset_name
-        )
-
-        wandb.log(
-            {
-                "euclidean_noise_rmsd": euclidean_noise_rmsd,
-                "euclidean_spread_rmsd": euclidean_spread_rmsd,
-            }
-        )
+        if wandb_config.dataset_name in [
+            "synthetic_mesh",
+            "hypersphere",
+            "hyperboloid",
+        ]:
+            wandb.log(
+                {
+                    "noise_factor": wandb_config.noise_factor,
+                    "linear_noise": wandb_config.linear_noise,
+                }
+            )
 
         if (
             wandb_config.dataset_name == "synthetic_mesh"
@@ -94,15 +90,6 @@ def main_run(config):
             logging.info(
                 f"\n- Tolerance calculated for geodesic regression: {tol:.3f}."
             )
-
-            logging.info("\n- Testing whether data subspace is euclidean.")
-            # TODO: implement this for general data.
-            # euclidean_subspace, diff_tolerance = check_euclidean.subspace_test(
-            #     mesh_sequence_vertices,
-            #     X,
-            #     wandb_config.tol_factor,
-            # )
-            # logging.info(f"\n- Euclidean subspace: {euclidean_subspace}, ")
 
             wandb.log(
                 {
@@ -229,14 +216,17 @@ def main_run(config):
         geodesic_coef_err = gs.linalg.norm(geodesic_coef_hat - true_coef)
 
         n_iterations = gr.n_iterations
+        n_function_evaluations = gr.n_fevaluations
+        n_jacobian_evaluations = gr.n_jevaluations
 
         logging.info("Computing meshes along geodesic regression...")
         y_pred_for_gr = gr.predict(X)
         y_pred_for_gr = y_pred_for_gr.reshape(y.shape)
 
-        rmsd_geod = gs.linalg.norm(gs.array(y_pred_for_gr) - gs.array(y)) / gs.sqrt(
-            len(y)
-        )
+        gr_linear_residuals = gs.array(y_pred_for_gr) - gs.array(y)
+        rmsd_geod = gs.linalg.norm(gr_linear_residuals) / gs.sqrt(len(y))
+
+        gr_geod_residuals = space.metric.dist(y_pred_for_gr, y)
 
         if wandb_config.dataset_name in ["synthetic_mesh", "real_mesh"]:
 
@@ -265,8 +255,16 @@ def main_run(config):
                 "geodesic_coef_err": geodesic_coef_err,
                 "geodesic_initialization": wandb_config.geodesic_initialization,
                 "n_geod_iterations": n_iterations,
+                "n_geod_function_evaluations": n_function_evaluations,
+                "n_geod_jacobian_evaluations": n_jacobian_evaluations,
                 "rmsd_geod": rmsd_geod,
                 "nrmsd_geod": nrmsd_geod,
+                "gr_linear_residuals_hist": wandb.Histogram(
+                    gr_linear_residuals.numpy()
+                ),
+                "gr_linear_residuals": gr_linear_residuals.numpy(),
+                "gr_geod_residuals_hist": wandb.Histogram(gr_geod_residuals.numpy()),
+                "gr_geod_residuals": gr_geod_residuals.numpy(),
             }
         )
 
@@ -345,12 +343,14 @@ def main():
             for (
                 n_X,
                 noise_factor,
+                linear_noise,
                 n_subdivisions,
                 ellipsoid_dims,
                 (start_shape, end_shape),
             ) in itertools.product(
                 default_config.n_X,
                 default_config.noise_factor,
+                default_config.linear_noise,
                 default_config.n_subdivisions,
                 default_config.ellipsoid_dims,
                 zip(default_config.start_shape, default_config.end_shape),
@@ -360,6 +360,7 @@ def main():
                     "start_shape": start_shape,
                     "end_shape": end_shape,
                     "noise_factor": noise_factor,
+                    "linear_noise": linear_noise,
                     "n_subdivisions": n_subdivisions,
                     "ellipsoid_dims": ellipsoid_dims,
                     "ellipse_ratio_h_v": ellipsoid_dims[0] / ellipsoid_dims[-1],
@@ -374,15 +375,17 @@ def main():
                 main_run(config)
 
         elif dataset_name == "hypersphere" or dataset_name == "hyperboloid":
-            for (n_X, noise_factor, space_dimension) in itertools.product(
+            for (n_X, noise_factor, linear_noise, space_dimension) in itertools.product(
                 default_config.n_X,
                 default_config.noise_factor,
+                default_config.linear_noise,
                 default_config.space_dimension,
             ):
                 config = {
                     "n_X": n_X,
                     "noise_factor": noise_factor,
                     "space_dimension": space_dimension,
+                    "linear_noise": linear_noise,
                 }
                 config.update(main_config)
                 main_run(config)
