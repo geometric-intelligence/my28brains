@@ -13,10 +13,6 @@ import plotly.graph_objects as go
 import plotly.io as pio
 from matplotlib import animation
 
-#import my28brains.default_config as default_config
-
-# os.environ["GEOMSTATS_BACKEND"] = "pytorch"
-# import geomstats.backend as gs
 import geomstats.visualization as visualization
 
 viz_dict = {
@@ -61,10 +57,7 @@ gitroot_path = subprocess.check_output(
     ["git", "rev-parse", "--show-toplevel"], universal_newlines=True
 )
 os.chdir(gitroot_path[:-1])
-my28brains_dir = os.path.join(os.getcwd(), "my28brains") 
-results_dir = os.path.join(my28brains_dir, "results")
-TMP = tmp_dir = os.path.join(results_dir, "tmp")
-#default_config.tmp_dir
+TMP = os.path.join(os.getcwd(), "my28brains", "results", "tmp")
 FONTSIZE = 18
 
 def init_matplotlib():
@@ -399,10 +392,10 @@ def benchmark_data_sequence(space, sequence_1, sequence_2, sequence_3=None):
         for regression: modeled points sequence (gr)
         for line vs geodesic: None
     """
-    sequence_1 = gs.array(sequence_1)
-    sequence_2 = gs.array(sequence_2)
+    sequence_1 = np.array(sequence_1)
+    sequence_2 = np.array(sequence_2)
     if sequence_3 is not None:
-        sequence_3 = gs.array(sequence_3)
+        sequence_3 = np.array(sequence_3)
     # Plot
     fig = plt.figure(figsize=(8, 8))
 
@@ -423,7 +416,7 @@ def benchmark_data_sequence(space, sequence_1, sequence_2, sequence_3=None):
     if sequence_3 is not None:
         projected_sequence_3 = space.projection(sequence_3)
     manifold_visu.plot(
-        gs.array([projected_intercept_hat]), ax=ax, marker=marker, c="r", s=size
+        np.array([projected_intercept_hat]), ax=ax, marker=marker, c="r", s=size
     )
     manifold_visu.plot(
         projected_sequence_1, ax=ax, marker=marker, c="b", s=size, label="True"
@@ -441,7 +434,6 @@ def benchmark_data_sequence(space, sequence_1, sequence_2, sequence_3=None):
     plt.legend()
 
     return fig
-    # plt.show()
         
     
 def scatterplot_evaluation(
@@ -481,8 +473,7 @@ def scatterplot_evaluation(
         x=x,
         y=y,
         color=colored_values,
-        color_discrete_sequence=color_discrete_sequence,  # px.colors.qualitative.Dark24,  # D3 #Dark24 # Pastel
-        # color_discrete_sequence=px.colors.sequential.Viridis_r, #px.colors.qualitative.Dark24,  # D3 #Dark24 # Pastel
+        color_discrete_sequence=color_discrete_sequence,
         symbol=marked_values,
         symbol_map=value_to_symbol,
     )
@@ -508,6 +499,5 @@ def scatterplot_evaluation(
     )
 
     fig.update_traces(marker=dict(size=9, opacity=0.9))
-    #pio.write_image(fig, f"line_vs_geodesic_colored_by_{colored_by}.svg")
     fig.show()
     return fig
