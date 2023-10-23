@@ -2,6 +2,7 @@
 
 import glob
 import os
+import subprocess
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -12,10 +13,10 @@ import plotly.graph_objects as go
 import plotly.io as pio
 from matplotlib import animation
 
-import my28brains.default_config as default_config
+#import my28brains.default_config as default_config
 
-os.environ["GEOMSTATS_BACKEND"] = "pytorch"
-import geomstats.backend as gs
+# os.environ["GEOMSTATS_BACKEND"] = "pytorch"
+# import geomstats.backend as gs
 import geomstats.visualization as visualization
 
 viz_dict = {
@@ -35,15 +36,42 @@ COLORS = {
     "FSH": "#FADA5E",  # pastel yellow
 }
 
-TMP = default_config.tmp_dir
-
+COL_TO_TEXT = {
+    "diff_seq_per_time_vertex_diameter": "Error per mesh per vertex [% diameter]",
+    "diff_seq_duration_per_time_and_vertex": "Time difference [secs] per mesh and vertex",
+    "relative_diff_seq_duration": "Time difference per vertex [% line]",
+    "n_steps": "Number of steps",
+    "n_vertices": "Number of vertices",
+    "rmsd": "RMSD",
+    "rmsd_diameter": "RMSD, Line vs. Geodesic (per diameter)",
+    "speed": "Speed gain",
+    "accuracy": "Accuracy",
+    "linear_residuals": "Regression",
+    "linear_noise": "Noise",
+    "geodesic_coef_err" : "Geodesic Coef Error",
+    "geodesic_duration_time" : "Geodesic Duration Time",
+    "noise_factor": "Noise Factor",
+    "rmsd_geod": "RMSD, Geodesic Regression",
+    "nrmsd_geod": "Normalized RMSD, Geodesic Regression",
+    "n_X": "Number of Points",
+    "n_geod_iterations": "Number of iterations in GR",
+}
+# build work path from git root path
+gitroot_path = subprocess.check_output(
+    ["git", "rev-parse", "--show-toplevel"], universal_newlines=True
+)
+os.chdir(gitroot_path[:-1])
+my28brains_dir = os.path.join(os.getcwd(), "my28brains") 
+results_dir = os.path.join(my28brains_dir, "results")
+TMP = tmp_dir = os.path.join(results_dir, "tmp")
+#default_config.tmp_dir
+FONTSIZE = 18
 
 def init_matplotlib():
     """Configure style for matplotlib."""
-    fontsize = 18
-    matplotlib.rc("font", size=fontsize)
+    matplotlib.rc("font", size=FONTSIZE)
     matplotlib.rc("text")
-    matplotlib.rc("legend", fontsize=fontsize)
+    matplotlib.rc("legend", fontsize=FONTSIZE)
     matplotlib.rc("axes", titlesize=21, labelsize=14)
     matplotlib.rc(
         "font",
@@ -414,3 +442,72 @@ def benchmark_data_sequence(space, sequence_1, sequence_2, sequence_3=None):
 
     return fig
     # plt.show()
+        
+    
+def scatterplot_evaluation(
+    df,
+    colored_by="noise_factor",
+    marked_by="n_steps",
+    x_label="n_steps",
+    y_label="relative_diff_seq_duration",
+):
+    x = df[x_label]
+    y = df[y_label]
+    value_to_symbol = dict(
+        zip(df[marked_by].unique(), ["square", "x", "cross", "diamond", "star"])
+    )
+    
+    marked_values = [s for s in df[marked_by].values]
+    if marked_by == "linear_noise":
+        symbol_value_to_legend_value = {
+            s: "Linear Noise" if s else "Manifold Noise" for s in df[marked_by].unique()
+        }
+        marked_values = [symbol_value_to_legend_value[s] if ~np.isnan(s) else s for s in df[marked_by].values]
+
+    colored_values = [str(c) for c in df[colored_by].values]
+    if colored_by == "linear_residuals":
+        color_value_to_legend_value = {
+            c: "GRLR" if c else "GR" for c in df[colored_by].unique()
+        }
+        colored_values = [color_value_to_legend_value[c] if ~np.isnan(c) else c for c in df[colored_by].values]
+        
+    if colored_by == "n_steps":
+        color_discrete_sequence = px.colors.sequential.Plasma_r
+    else:
+        color_discrete_sequence = px.colors.sequential.Viridis_r
+
+    fig = px.scatter(
+        df,
+        x=x,
+        y=y,
+        color=colored_values,
+        color_discrete_sequence=color_discrete_sequence,  # px.colors.qualitative.Dark24,  # D3 #Dark24 # Pastel
+        # color_discrete_sequence=px.colors.sequential.Viridis_r, #px.colors.qualitative.Dark24,  # D3 #Dark24 # Pastel
+        symbol=marked_values,
+        symbol_map=value_to_symbol,
+    )
+    
+    legend_title = COL_TO_TEXT[colored_by] + ", " + COL_TO_TEXT[marked_by]
+
+    fig.update_layout(
+        xaxis_title=dict(
+            text=COL_TO_TEXT[x_label],
+            font=dict(family="CMU", size=FONTSIZE),
+        ),
+        yaxis_title=dict(
+            text=COL_TO_TEXT[y_label], font=dict(family="CMU", size=FONTSIZE)
+        ),
+        title_font=dict(family="CMU", size=FONTSIZE),
+        xaxis=dict(tickfont=dict(family="CMU", size=FONTSIZE)),
+        yaxis=dict(tickfont=dict(family="CMU", size=FONTSIZE)),
+        legend=dict(
+            font=dict(family="CMU", size=FONTSIZE), title=legend_title
+        ),
+        width=650,
+        height=370,
+    )
+
+    fig.update_traces(marker=dict(size=9, opacity=0.9))
+    #pio.write_image(fig, f"line_vs_geodesic_colored_by_{colored_by}.svg")
+    fig.show()
+    return fig
