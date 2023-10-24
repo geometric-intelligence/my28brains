@@ -266,6 +266,9 @@ def generate_noisy_benchmark_data(
 
     if linear_noise:
         y_noisy = y + normal_noise
+
+        # project noisy data back to manifold
+        y_noisy = space.projection(gs.array(y_noisy))
     else:
         noise = space.to_tangent(normal_noise, base_point=y) / gs.pi / 2
 
@@ -291,7 +294,9 @@ def add_geodesic_noise(space, y, dataset_name, noise_factor=0.01):
         diameter = data_utils.mesh_diameter(mesh_sequence_vertices[0])
         noise_std = noise_factor * diameter
     else:
-        noise_std = abs(y[0] - y[-1]) * noise_factor
+        noise_std = noise_factor
+        # Note: noise factor is a percentage of the "radius" of the manifold
+        # which is 1 for hypersphere.
 
     # Generate normal noise
     normal_noise = np.random.normal(

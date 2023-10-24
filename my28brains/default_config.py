@@ -113,14 +113,13 @@ space_dimension = [2, 3]  # 2 or 3 (only for hypersphere and hyperboloid)
 
 geodesic_initialization = [
     "warm_start",
-    "random",
-]  # "warm_start" or "random" (random on parka server)
+]  # "warm_start" or "random" (but code not set up well for random)
 linear_residuals = [
     False,
     True,
 ]  # 'True' or 'False' (alternative is geodesic residuals)
-linear_noise = [False, True]  # 'True' or 'False'
-n_steps = [3, 5]  # n steps for the exp solver of geomstats.
+linear_noise = [True, False]  # 'True' or 'False'
+n_steps = [3]  # n steps for the exp solver of geomstats. 3, 5
 tol_factor = [
     0.001,
     0.01,

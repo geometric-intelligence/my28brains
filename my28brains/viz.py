@@ -4,6 +4,7 @@ import glob
 import os
 import subprocess
 
+import geomstats.backend as gs
 import geomstats.visualization as visualization
 import matplotlib
 import matplotlib.pyplot as plt
@@ -393,10 +394,10 @@ def benchmark_data_sequence(space, sequence_1, sequence_2, sequence_3=None):
         for regression: modeled points sequence (gr)
         for line vs geodesic: None
     """
-    sequence_1 = np.array(sequence_1)
-    sequence_2 = np.array(sequence_2)
+    sequence_1 = gs.array(sequence_1)
+    sequence_2 = gs.array(sequence_2)
     if sequence_3 is not None:
-        sequence_3 = np.array(sequence_3)
+        sequence_3 = gs.array(sequence_3)
     # Plot
     fig = plt.figure(figsize=(8, 8))
 
@@ -417,7 +418,7 @@ def benchmark_data_sequence(space, sequence_1, sequence_2, sequence_3=None):
     if sequence_3 is not None:
         projected_sequence_3 = space.projection(sequence_3)
     manifold_visu.plot(
-        np.array([projected_intercept_hat]), ax=ax, marker=marker, c="r", s=size
+        gs.array([projected_intercept_hat]), ax=ax, marker=marker, c="r", s=size
     )
     manifold_visu.plot(
         projected_sequence_1, ax=ax, marker=marker, c="b", s=size, label="True"

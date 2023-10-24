@@ -10,6 +10,8 @@ import logging
 import os
 import time
 
+import numpy as np
+
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"  # noqa: E402
 import geomstats.backend as gs
 
@@ -58,6 +60,15 @@ def main_run(config):
             true_coef,
         ) = data_utils.load(wandb_config)
 
+        wandb.log(
+            {
+                "y": np.array(y),
+                "y_noiseless": np.array(y_noiseless),
+                "true_intercept": np.array(true_intercept),
+                "true_coef": np.array(true_coef),
+            }
+        )
+
         if wandb_config.dataset_name in [
             "synthetic_mesh",
             "hypersphere",
@@ -104,96 +115,20 @@ def main_run(config):
                 }
             )
         else:
-            tol = 1e-3
+            tol = wandb.tol_factor
             wandb.log({"geodesic_tol": tol})
 
-        logging.info("\n- Linear Regression")
+        logging.info("\n- Linear Regression for 'warm-start' initialization")
+
         (
             linear_intercept_hat,
             linear_coef_hat,
             lr,
         ) = training.fit_linear_regression(y, X)
 
-        linear_duration_time = time.time() - start_time
-        linear_intercept_err = gs.linalg.norm(linear_intercept_hat - true_intercept)
-        linear_coef_err = gs.linalg.norm(linear_coef_hat - true_coef)
-
-        logging.info("Computing points along linear regression...")
         X_for_lr = gs.array(X.reshape(len(X), 1))
         y_pred_for_lr = lr.predict(X_for_lr)
         y_pred_for_lr = y_pred_for_lr.reshape(y.shape)
-        print(f"y_pred_for_lr: {y_pred_for_lr.shape}")
-
-        rmsd_linear = gs.linalg.norm(gs.array(y_pred_for_lr) - gs.array(y)) / gs.sqrt(
-            len(y)
-        )
-
-        if wandb_config.dataset_name in ["synthetic_mesh", "real_mesh"]:
-
-            rmsd_linear = rmsd_linear / (len(mesh_sequence_vertices[0]) * mesh_diameter)
-
-            offset_mesh_sequence_vertices = gs.array(
-                viz.offset_mesh_sequence(mesh_sequence_vertices)
-            )[0]
-            print(
-                f"offset_mesh_sequence_vertices: {offset_mesh_sequence_vertices.shape}"
-            )
-            wandb.log(  # TODO: implement a general visualization thing instead of this hack
-                {
-                    "true_intercept": wandb.Object3D(true_intercept.numpy()),
-                    "true_coef": wandb.Object3D(true_coef.numpy()),
-                    "linear_intercept_hat": wandb.Object3D(
-                        linear_intercept_hat.numpy()
-                    ),
-                    "linear_coef_hat": wandb.Object3D(linear_coef_hat.numpy()),
-                    "offset_mesh_sequence_vertices": wandb.Object3D(
-                        offset_mesh_sequence_vertices.numpy()
-                    ),
-                    "y_pred_for_lr": wandb.Object3D(y_pred_for_lr.reshape((-1, 3))),
-                }
-            )
-
-        nrmsd_linear = rmsd_linear / gs.linalg.norm(y[0] - y[-1])
-
-        wandb.log(
-            {
-                "linear_duration_time": linear_duration_time,
-                "linear_intercept_err": linear_intercept_err,
-                "linear_coef_err": linear_coef_err,
-                "rmsd_linear": rmsd_linear,
-                "nrmsd_linear": nrmsd_linear,
-            }
-        )
-
-        logging.info(f">> Duration (linear) = {linear_duration_time:.3f} secs.")
-        logging.info(">> Regression errors (linear):")
-        logging.info(
-            f"On intercept: {linear_intercept_err:.6f}, on coef: {linear_coef_err:.6f}"
-        )
-
-        logging.info("Saving linear results...")
-        training.save_regression_results(
-            dataset_name=wandb_config.dataset_name,
-            y=gs.array(y),
-            space=space,
-            true_coef=gs.array(true_coef),
-            regr_intercept=linear_intercept_hat,
-            regr_coef=linear_coef_hat,
-            duration_time=linear_duration_time,
-            results_dir=linear_regression_dir,
-            model="linear",
-            linear_residuals=wandb_config.linear_residuals,
-            y_hat=y_pred_for_lr,
-        )
-
-        # if (residual magnitude is too big... have max residual as a param):
-        # then do geodesic regression
-
-        print(f"linear_intercept_hat: {linear_intercept_hat.shape}")
-        print(f"linear_coef_hat: {linear_coef_hat.shape}")
-        print(f"y: {y.shape}")
-        if wandb_config.dataset_name in ["synthetic_mesh", "real_mesh"]:
-            print(f"mesh_faces: {mesh_faces.shape}")
 
         logging.info("\n- Geodesic Regression")
         (
@@ -234,11 +169,13 @@ def main_run(config):
 
             wandb.log(
                 {
-                    "geodesic_intercept_hat": wandb.Object3D(
+                    "geodesic_intercept_hat_fig": wandb.Object3D(
                         geodesic_intercept_hat.numpy()
                     ),
-                    "geodesic_coef_hat": wandb.Object3D(geodesic_coef_hat.numpy()),
-                    "y_pred_for_gr": wandb.Object3D(
+                    "geodesic_intercept_hat": np.array(geodesic_intercept_hat),
+                    "geodesic_coef_hat_fig": wandb.Object3D(geodesic_coef_hat.numpy()),
+                    "geodesic_coef_hat": np.array(geodesic_coef_hat),
+                    "y_pred_for_gr_fig": wandb.Object3D(
                         y_pred_for_gr.detach().numpy().reshape((-1, 3))
                     ),
                     "n_faces": len(mesh_faces),
@@ -265,6 +202,7 @@ def main_run(config):
                 "gr_linear_residuals": gr_linear_residuals.numpy(),
                 "gr_geod_residuals_hist": wandb.Histogram(gr_geod_residuals.numpy()),
                 "gr_geod_residuals": gr_geod_residuals.numpy(),
+                "y_pred_for_gr": np.array(y_pred_for_gr),
             }
         )
 
@@ -353,7 +291,6 @@ def main():
                 default_config.ellipsoid_dims,
                 zip(default_config.start_shape, default_config.end_shape),
                 default_config.n_steps,
-
             ):
                 config = {
                     "n_X": n_X,
@@ -370,11 +307,12 @@ def main():
                 main_run(config)
 
         elif dataset_name == "real_mesh":
-            for hemisphere, n_steps in itertools.product(default_config.hemisphere, default_config.n_steps):
+            for hemisphere, n_steps in itertools.product(
+                default_config.hemisphere, default_config.n_steps
+            ):
                 config = {
                     "hemisphere": hemisphere,
                     "n_steps": n_steps,
-                          
                 }
                 config.update(main_config)
                 main_run(config)
