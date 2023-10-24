@@ -324,20 +324,17 @@ def main():
         geodesic_initialization,
         linear_residuals,
         tol_factor,
-        n_steps,
     ) in itertools.product(
         default_config.dataset_name,
         default_config.geodesic_initialization,
         default_config.linear_residuals,
         default_config.tol_factor,
-        default_config.n_steps,
     ):
         main_config = {
             "dataset_name": dataset_name,
             "geodesic_initialization": geodesic_initialization,
             "linear_residuals": linear_residuals,
             "tol_factor": tol_factor,
-            "n_steps": n_steps,
         }
         if dataset_name == "synthetic_mesh":
             for (
@@ -347,6 +344,7 @@ def main():
                 n_subdivisions,
                 ellipsoid_dims,
                 (start_shape, end_shape),
+                n_steps,
             ) in itertools.product(
                 default_config.n_X,
                 default_config.noise_factor,
@@ -354,6 +352,8 @@ def main():
                 default_config.n_subdivisions,
                 default_config.ellipsoid_dims,
                 zip(default_config.start_shape, default_config.end_shape),
+                default_config.n_steps,
+
             ):
                 config = {
                     "n_X": n_X,
@@ -364,13 +364,18 @@ def main():
                     "n_subdivisions": n_subdivisions,
                     "ellipsoid_dims": ellipsoid_dims,
                     "ellipse_ratio_h_v": ellipsoid_dims[0] / ellipsoid_dims[-1],
+                    "n_steps": n_steps,
                 }
                 config.update(main_config)
                 main_run(config)
 
         elif dataset_name == "real_mesh":
-            for hemisphere in default_config.hemisphere:
-                config = {"hemisphere": hemisphere}
+            for hemisphere, n_steps in itertools.product(default_config.hemisphere, default_config.n_steps):
+                config = {
+                    "hemisphere": hemisphere,
+                    "n_steps": n_steps,
+                          
+                }
                 config.update(main_config)
                 main_run(config)
 
