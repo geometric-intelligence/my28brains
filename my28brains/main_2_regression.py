@@ -5,6 +5,7 @@ Returns the slope and intercept of the regression fit.
 
 NOTE: is t = 0 the intercept? let's check this if things aren't working.
 """
+import datetime
 import itertools
 import logging
 import os
@@ -23,6 +24,8 @@ from my28brains.regression import check_euclidean, training
 
 regression_dir = default_config.regression_dir
 
+today = datetime.date.today()
+
 
 def main_run(config):
     """Run the regression.
@@ -36,12 +39,14 @@ def main_run(config):
     """
     full_run = True
     try:
-        wandb.init()
+        print(f"run_start: {today}")
+        wandb.init(tags=[f"{today}"])
         wandb_config = wandb.config
         wandb_config.update(config)
 
         run_name = f"run_{wandb.run.id}"
         wandb.run.name = run_name
+
         logging.info(f"\n\n---> START run: {run_name}.")
 
         linear_regression_dir = os.path.join(regression_dir, f"{run_name}_linear")
