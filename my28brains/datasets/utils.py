@@ -126,6 +126,7 @@ def load(config):
             space,
             noiseless_mesh_sequence_vertices,
             config.dataset_name,
+            config.project_linear_noise,
             noise_factor=noise_factor,
         )
 
@@ -234,7 +235,11 @@ def load(config):
             print(f"space dimension: {config.space_dimension}")
             print(f"y noiseless shape: {y_noiseless.shape}")
             y_noisy = synthetic.add_linear_noise(
-                y_noiseless, config.dataset_name, noise_factor=config.noise_factor
+                space,
+                y_noiseless,
+                config.dataset_name,
+                config.project_linear_noise,
+                noise_factor=config.noise_factor,
             )
         else:
             y_noisy = synthetic.add_geodesic_noise(

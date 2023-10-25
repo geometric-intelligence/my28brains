@@ -109,7 +109,7 @@ dataset_name = [
     "hyperboloid",
 ]  # "synthetic_mesh" "real_mesh" "hypersphere", or "hyperboloid"
 
-space_dimension = [2, 3]  # 2 or 3 (only for hypersphere and hyperboloid)
+space_dimension = [2, 3, 5, 10]  # 2 or 3 (only for hypersphere and hyperboloid)
 
 geodesic_initialization = [
     "warm_start",
@@ -119,6 +119,7 @@ linear_residuals = [
     True,
 ]  # 'True' or 'False' (alternative is geodesic residuals)
 linear_noise = [True, False]  # 'True' or 'False'
+project_linear_noise = [True, False]  # 'True' or 'False'
 n_steps = [3]  # n steps for the exp solver of geomstats. 3, 5
 tol_factor = [
     0.001,
@@ -126,7 +127,14 @@ tol_factor = [
     0.1,
     0.5,
 ]  # tolerance for geodesic regression. If none logged, value 0.001.
-n_X = [5, 10, 15, 20, 30]  # , 10, 15, 20, 30]  # Only for dataset_name == synthetic
+n_X = [
+    5,
+    10,
+    20,
+    30,
+    50,
+    100,
+]  # , 10, 15, 20, 30]  # Only for dataset_name == synthetic
 start_shape = ["sphere"]  # "sphere" or "ellipsoid" for synthetic
 end_shape = ["ellipsoid"]  # "sphere" or "ellipsoid" for synthetic
 noise_factor = [
@@ -134,11 +142,13 @@ noise_factor = [
     0.0001,
     0.001,
     0.01,
+    0.1,
+    0.2,
 ]  # , 0.0001, 0.001, 0.01]  # noise added to the data.
 # Will be multiplied by the size of the mesh to calculate the standard
 # deviation of added noise distribution.
 # only applied to synthetic data.
-n_subdivisions = [1, 2]  # , 1, 2, 3, 4, 5]
+n_subdivisions = [1]  # , 1, 2, 3, 4, 5]
 
 # How many X to subdivide the mesh. Note that the number of faces will grow
 # as function of 4 ** subdivisions, so you probably want to keep this under ~5.

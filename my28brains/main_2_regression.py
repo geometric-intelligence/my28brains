@@ -115,7 +115,7 @@ def main_run(config):
                 }
             )
         else:
-            tol = wandb.tol_factor
+            tol = wandb_config.tol_factor
             wandb.log({"geodesic_tol": tol})
 
         logging.info("\n- Linear Regression for 'warm-start' initialization")
@@ -154,7 +154,7 @@ def main_run(config):
         n_function_evaluations = gr.n_fevaluations
         n_jacobian_evaluations = gr.n_jevaluations
 
-        logging.info("Computing meshes along geodesic regression...")
+        logging.info("Computing points along geodesic regression...")
         y_pred_for_gr = gr.predict(X)
         y_pred_for_gr = y_pred_for_gr.reshape(y.shape)
 
@@ -318,10 +318,17 @@ def main():
                 main_run(config)
 
         elif dataset_name == "hypersphere" or dataset_name == "hyperboloid":
-            for (n_X, noise_factor, linear_noise, space_dimension) in itertools.product(
+            for (
+                n_X,
+                noise_factor,
+                linear_noise,
+                project_linear_noise,
+                space_dimension,
+            ) in itertools.product(
                 default_config.n_X,
                 default_config.noise_factor,
                 default_config.linear_noise,
+                default_config.project_linear_noise,
                 default_config.space_dimension,
             ):
                 config = {
@@ -329,6 +336,7 @@ def main():
                     "noise_factor": noise_factor,
                     "space_dimension": space_dimension,
                     "linear_noise": linear_noise,
+                    "project_linear_noise": project_linear_noise,
                 }
                 config.update(main_config)
                 main_run(config)
