@@ -462,7 +462,7 @@ def scatterplot_evaluation(
     x = df[x_label]
     y = df[y_label]
     value_to_symbol = dict(
-        zip(df[marked_by].unique(), ["square", "x", "cross", "diamond", "star"])
+        zip(df[marked_by].unique(), ["diamond", "x", "cross", "square", "square"])
     )
 
     marked_values = [s for s in df[marked_by].values]
