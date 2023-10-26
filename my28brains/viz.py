@@ -13,6 +13,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
 from matplotlib import animation
+import plotly.express as px
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
 
 viz_dict = {
     "Hypersphere": visualization.Sphere(n_meridians=30),
@@ -521,5 +524,224 @@ def scatterplot_evaluation(
     )
 
     fig.update_traces(marker=dict(size=9, opacity=0.9))
+    fig.show()
+    return fig
+
+
+def violinplot_evaluation(
+    df,
+    colored_by="noise_factor",
+    marked_by="n_steps",
+    x_label="n_steps",
+    y_label="relative_diff_seq_duration",
+):
+    """Violin plot of results.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe made from wandb with config and results.
+    colored_by : string
+        Column name to color the violins by.
+    marked_by : string
+        Column name to mark the violins by.
+    x_label : string
+        Column name to plot on the x-axis.
+    y_label : string
+        Column name to plot on the y-axis.
+    """
+    fig = px.violin(
+        df,
+        x=x_label,
+        y=y_label,
+        color=colored_by,
+        facet_col=marked_by,
+        color_discrete_sequence=px.colors.sequential.Plasma_r if colored_by == "n_steps" else px.colors.sequential.Viridis_r
+    )
+
+    fig.update_layout(
+        xaxis_title=dict(
+            text=COL_TO_TEXT[x_label],
+            font=dict(family="CMU", size=FONTSIZE),
+        ),
+        yaxis_title=dict(
+            text=COL_TO_TEXT[y_label], font=dict(family="CMU", size=FONTSIZE)
+        ),
+        title_font=dict(family="CMU", size=FONTSIZE),
+        xaxis=dict(tickfont=dict(family="CMU", size=FONTSIZE)),
+        yaxis=dict(tickfont=dict(family="CMU", size=FONTSIZE)),
+        width=1000,
+        height=500,
+    )
+
+    fig.update_traces(marker=dict(size=9, opacity=0.9))
+    fig.show()
+    return fig
+
+
+def boxplot_evaluation(
+    df,
+    colored_by="noise_factor",
+    marked_by="n_steps",
+    x_label="n_steps",
+    y_label="relative_diff_seq_duration",
+):
+    """Box plot of results.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe made from wandb with config and results.
+    colored_by : string
+        Column name to color the boxes by.
+    marked_by : string
+        Column name to mark the boxes by.
+    x_label : string
+        Column name to plot on the x-axis.
+    y_label : string
+        Column name to plot on the y-axis.
+    """
+    fig = px.box(
+        df,
+        x=x_label,
+        y=y_label,
+        color=colored_by,
+        facet_col=marked_by,  # Use facet_col to create separate boxes for each marked category.
+        color_discrete_sequence=px.colors.sequential.Plasma_r if colored_by == "n_steps" else px.colors.sequential.Viridis_r,
+    )
+
+    fig.update_layout(
+        xaxis_title=dict(
+            text=COL_TO_TEXT[x_label],
+            font=dict(family="CMU", size=FONTSIZE),
+        ),
+        yaxis_title=dict(
+            text=COL_TO_TEXT[y_label], font=dict(family="CMU", size=FONTSIZE)
+        ),
+        title_font=dict(family="CMU", size=FONTSIZE),
+        xaxis=dict(tickfont=dict(family="CMU", size=FONTSIZE)),
+        yaxis=dict(tickfont=dict(family="CMU", size=FONTSIZE)),
+        width=650,
+        height=370,
+    )
+
+    fig.update_traces(marker=dict(size=9, opacity=0.9))
+    fig.show()
+    return fig
+
+
+def modified_boxplot_evaluation(
+    df,
+    colored_by="noise_factor",
+    marked_by="n_steps",
+    x_label="n_steps",
+    y_label="relative_diff_seq_duration",
+):
+    """Box plot of results with a single y-axis and x-axis label for the entire figure.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe made from wandb with config and results.
+    colored_by : string
+        Column name to color the boxes by.
+    marked_by : string
+        Column name to mark the boxes by.
+    x_label : string
+        Column name to plot on the x-axis.
+    y_label : string
+        Column name to plot on the y-axis.
+    """
+    num_categories = len(df[marked_by].unique())
+    
+    # Create subplots in a single row with separate x-axes
+    fig = make_subplots(rows=1, cols=num_categories, shared_xaxes=False, shared_yaxes=True)
+
+    for i, category in enumerate(df[marked_by].unique()):
+        data = df[df[marked_by] == category]
+        box = px.box(
+            data,
+            x=x_label,
+            y=y_label,
+            color=colored_by,
+            color_discrete_sequence=(
+                px.colors.sequential.Plasma_r if colored_by == "n_steps" else px.colors.sequential.Viridis_r
+            ),
+        )
+        
+        col_index = i + 1
+        
+        for trace in box.data:
+            fig.add_trace(trace, row=1, col=col_index)
+
+        fig.update_xaxes(title_text=COL_TO_TEXT[x_label], row=1, col=col_index)
+        if i == 0:
+            fig.update_yaxes(title_text=COL_TO_TEXT[y_label], row=1, col=col_index)
+
+    fig.update_layout(title_text=f"Box Plots by {marked_by}")
+
+    fig.update_layout(
+        width=900,
+        height=370,
+    )
+
+    fig.show()
+    return fig
+
+def modified_violinplot_evaluation(
+    df,
+    colored_by="noise_factor",
+    marked_by="n_steps",
+    x_label="n_steps",
+    y_label="relative_diff_seq_duration",
+):
+    """Box plot of results with a single y-axis and x-axis label for the entire figure.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe made from wandb with config and results.
+    colored_by : string
+        Column name to color the boxes by.
+    marked_by : string
+        Column name to mark the boxes by.
+    x_label : string
+        Column name to plot on the x-axis.
+    y_label : string
+        Column name to plot on the y-axis.
+    """
+    num_categories = len(df[marked_by].unique())
+    
+    # Create subplots in a single row with separate x-axes
+    fig = make_subplots(rows=1, cols=num_categories, shared_xaxes=False, shared_yaxes=True)
+
+    for i, category in enumerate(df[marked_by].unique()):
+        data = df[df[marked_by] == category]
+        box = px.violin(
+            data,
+            x=x_label,
+            y=y_label,
+            color=colored_by,
+            color_discrete_sequence=(
+                px.colors.sequential.Plasma_r if colored_by == "n_steps" else px.colors.sequential.Viridis_r
+            ),
+        )
+        
+        col_index = i + 1
+        
+        for trace in box.data:
+            fig.add_trace(trace, row=1, col=col_index)
+
+        fig.update_xaxes(title_text=COL_TO_TEXT[x_label], row=1, col=col_index)
+        if i == 0:
+            fig.update_yaxes(title_text=COL_TO_TEXT[y_label], row=1, col=col_index)
+
+    fig.update_layout(title_text=f"Box Plots by {marked_by}")
+
+    fig.update_layout(
+        width=1500,
+        height=370,
+    )
+
     fig.show()
     return fig
