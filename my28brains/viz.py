@@ -51,6 +51,8 @@ COL_TO_TEXT = {
     "nrmsd_geod": "Normalized RMSD, Geodesic Regression",
     "n_X": "Number of Points",
     "n_geod_iterations": "Number of iterations in GR",
+    "n_geod_function_evaluations": "Number of function evaluations in GR",
+    "n_geod_jacobian_evaluations": "Number of jacobian evaluations in GR",
 }
 # build work path from git root path
 gitroot_path = subprocess.check_output(
@@ -462,7 +464,7 @@ def scatterplot_evaluation(
     x = df[x_label]
     y = df[y_label]
     value_to_symbol = dict(
-        zip(df[marked_by].unique(), ["diamond", "x", "cross", "square", "square"])
+        zip(df[marked_by].unique(), ["square", "x", "cross", "diamond", "square"])
     )
 
     marked_values = [s for s in df[marked_by].values]
