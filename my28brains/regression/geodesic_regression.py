@@ -322,6 +322,8 @@ class GeodesicRegression(BaseEstimator):
         intercept, coef = gs.split(param, 2)
         intercept = gs.reshape(intercept, self.space.shape)
         coef = gs.reshape(coef, self.space.shape)
+        coef_norm = gs.linalg.norm(coef)  # prevent tangent_vec w 0 norm
+        coef = coef / coef_norm  # [..., None]
 
         if self.method == "extrinsic":
             base_point = self.space.projection(intercept)
@@ -335,7 +337,11 @@ class GeodesicRegression(BaseEstimator):
         if self.linear_residuals:
             distances = gs.linalg.norm(self._model(X, tangent_vec, base_point) - y) ** 2
         else:
-
+            print("Geodesic Regression Loss Readout")
+            print("X.shape: ", X.shape)
+            print("y.shape: ", y.shape)
+            print("tangent_vec.shape: ", tangent_vec.shape)
+            print("base_point.shape: ", base_point.shape)
             distances = self.space.metric.squared_dist(
                 self._model(X, tangent_vec, base_point), y
             )

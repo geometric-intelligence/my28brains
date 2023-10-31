@@ -6,17 +6,19 @@ import default_config
 import geomstats.backend as gs
 import numpy as np
 import trimesh
-from geomstats.geometry.discrete_surfaces import (
-    DiscreteSurfaces,
-    ElasticMetric,
-    _ExpSolver,
-)
 from geomstats.geometry.hyperbolic import Hyperbolic
 from geomstats.geometry.hypersphere import Hypersphere
 from geomstats.learning.frechet_mean import FrechetMean, variance
 
 import H2_SurfaceMatch.utils.input_output as h2_io
 import my28brains.datasets.synthetic as synthetic
+
+# from geomstats.geometry.discrete_surfaces import (
+from my28brains.regression.discrete_surfaces import (
+    DiscreteSurfaces,
+    ElasticMetric,
+    _ExpSolver,
+)
 
 
 def load(config):

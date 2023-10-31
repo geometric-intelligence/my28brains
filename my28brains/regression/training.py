@@ -157,6 +157,9 @@ def fit_geodesic_regression(
     print("Intercept guess: ", gr.intercept_.shape)
     print("Coef guess: ", gr.coef_.shape)
 
+    print("y.shape: ", y.shape)
+    print("X.shape: ", X.shape)
+
     gr.fit(gs.array(X), gs.array(y))
 
     intercept_hat, coef_hat = gr.intercept_, gr.coef_

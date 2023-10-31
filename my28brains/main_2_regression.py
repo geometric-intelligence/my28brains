@@ -201,11 +201,7 @@ def main_run(config):
                 "n_geod_jacobian_evaluations": n_jacobian_evaluations,
                 "rmsd_geod": rmsd_geod,
                 "nrmsd_geod": nrmsd_geod,
-                "gr_linear_residuals_hist": wandb.Histogram(
-                    gr_linear_residuals.numpy()
-                ),
                 "gr_linear_residuals": gr_linear_residuals.numpy(),
-                "gr_geod_residuals_hist": wandb.Histogram(gr_geod_residuals.numpy()),
                 "gr_geod_residuals": gr_geod_residuals.numpy(),
                 "y_pred_for_gr": np.array(y_pred_for_gr),
             }
