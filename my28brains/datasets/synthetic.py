@@ -123,6 +123,41 @@ def generate_cube_mesh():
     return trimesh.Trimesh(vertices=vertices, faces=faces)
 
 
+def generate_distorted_cube_mesh():
+    """Generate a distorted cube mesh."""
+    vertices = np.array(
+        [
+            [0, 0, 0],
+            [1, -1, 1],
+            [2, -2, -2],
+            [1, 1, -1],
+            [-2, 2, 2],
+            [-1, -1, 1],
+            [-1, -1, -1],
+            [-1, 1, -1],
+        ]
+    )
+
+    faces = np.array(
+        [
+            [0, 1, 4],
+            [1, 4, 5],
+            [0, 3, 4],
+            [3, 4, 7],
+            [1, 2, 3],
+            [0, 1, 3],
+            [1, 2, 5],
+            [2, 5, 6],
+            [5, 6, 7],
+            [4, 5, 7],
+            [2, 6, 7],
+            [2, 3, 7],
+        ]
+    )
+
+    return trimesh.Trimesh(vertices=vertices, faces=faces)
+
+
 def generate_parameterized_geodesic(start_mesh, end_mesh, n_X=5, n_steps=3):
     """Generate a synthetic geodesic between two parameterized meshes.
 

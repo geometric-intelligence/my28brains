@@ -68,6 +68,7 @@ def main_run(config):
         wandb.log(
             {
                 "y": np.array(y),
+                "X": np.array(X),
                 "y_noiseless": np.array(y_noiseless),
                 "true_intercept": np.array(true_intercept),
                 "true_coef": np.array(true_coef),
@@ -164,22 +165,24 @@ def main_run(config):
         y_pred_for_gr = y_pred_for_gr.reshape(y.shape)
 
         gr_linear_residuals = gs.array(y_pred_for_gr) - gs.array(y)
-        rmsd_geod = gs.linalg.norm(gr_linear_residuals) / gs.sqrt(len(y))
+        rmsd_linear = gs.linalg.norm(gr_linear_residuals) / gs.sqrt(len(y))
 
         gr_geod_residuals = space.metric.dist(y_pred_for_gr, y)
+        rmsd_geodesic = gs.linalg.norm(gr_geod_residuals) / gs.sqrt(len(y))
 
         if wandb_config.dataset_name in ["synthetic_mesh", "real_mesh"]:
 
-            rmsd_geod = rmsd_geod / (len(mesh_sequence_vertices[0]) * mesh_diameter)
+            rmsd_linear = rmsd_linear / (len(mesh_sequence_vertices[0]) * mesh_diameter)
+            rmsd_geodesic = rmsd_geodesic / (
+                len(mesh_sequence_vertices[0]) * mesh_diameter
+            )
 
             wandb.log(
                 {
                     "geodesic_intercept_hat_fig": wandb.Object3D(
                         geodesic_intercept_hat.numpy()
                     ),
-                    "geodesic_intercept_hat": np.array(geodesic_intercept_hat),
                     "geodesic_coef_hat_fig": wandb.Object3D(geodesic_coef_hat.numpy()),
-                    "geodesic_coef_hat": np.array(geodesic_coef_hat),
                     "y_pred_for_gr_fig": wandb.Object3D(
                         y_pred_for_gr.detach().numpy().reshape((-1, 3))
                     ),
@@ -188,7 +191,8 @@ def main_run(config):
                 }
             )
 
-        nrmsd_geod = rmsd_geod / gs.linalg.norm(y[0] - y[-1])
+        nrmsd_linear = rmsd_linear / gs.linalg.norm(y[0] - y[-1])
+        nrmsd_geodesic = rmsd_geodesic / gs.linalg.norm(y[0] - y[-1])
 
         wandb.log(
             {
@@ -199,11 +203,15 @@ def main_run(config):
                 "n_geod_iterations": n_iterations,
                 "n_geod_function_evaluations": n_function_evaluations,
                 "n_geod_jacobian_evaluations": n_jacobian_evaluations,
-                "rmsd_geod": rmsd_geod,
-                "nrmsd_geod": nrmsd_geod,
-                "gr_linear_residuals": gr_linear_residuals.numpy(),
-                "gr_geod_residuals": gr_geod_residuals.numpy(),
-                "y_pred_for_gr": np.array(y_pred_for_gr),
+                "rmsd_linear": rmsd_linear,
+                "nrmsd_linear": nrmsd_linear,
+                "rmsd_geodesic": rmsd_geodesic,
+                "nrmsd_geodesic": nrmsd_geodesic,
+                "gr_intercept_hat": np.array(geodesic_intercept_hat),
+                "gr_coef_hat": np.array(geodesic_coef_hat),
+                # "gr_linear_residuals": gr_linear_residuals.numpy(),
+                # "gr_geod_residuals": gr_geod_residuals.numpy(),
+                # "y_pred_for_gr": np.array(y_pred_for_gr),
             }
         )
 

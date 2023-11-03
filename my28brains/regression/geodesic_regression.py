@@ -296,6 +296,16 @@ class GeodesicRegression(BaseEstimator):
         _ : array-like, shape=[..., {dim, [n,n]}]
             Value on the manifold output by the generative model.
         """
+        print("intercept belongs to space:", self.space.belongs(intercept))
+        print(intercept)
+        print(
+            "coef belongs to tangent space:",
+            self.space.is_tangent(coef, base_point=intercept),
+        )
+        print(coef)
+        print("X", X)
+        print
+
         return self.space.metric.exp(gs.einsum("n,...->n...", X, coef), intercept)
 
     def _loss(self, X, y, param, weights=None):
@@ -337,11 +347,9 @@ class GeodesicRegression(BaseEstimator):
         if self.linear_residuals:
             distances = gs.linalg.norm(self._model(X, tangent_vec, base_point) - y) ** 2
         else:
-            print("Geodesic Regression Loss Readout")
-            print("X.shape: ", X.shape)
-            print("y.shape: ", y.shape)
-            print("tangent_vec.shape: ", tangent_vec.shape)
-            print("base_point.shape: ", base_point.shape)
+            print("in loss function")
+            print("tangent_vec", tangent_vec)
+            print("base_point", base_point)
             distances = self.space.metric.squared_dist(
                 self._model(X, tangent_vec, base_point), y
             )

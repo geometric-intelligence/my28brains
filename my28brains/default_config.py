@@ -105,8 +105,9 @@ run_interpolate = False
 # 2. Regression Parameters
 
 dataset_name = [
-    "synthetic_mesh"
-    # "hyperboloid",
+    # "synthetic_mesh"
+    "hyperboloid",
+    "hypersphere",
 ]  # "synthetic_mesh" "real_mesh" "hypersphere", or "hyperboloid"
 
 space_dimension = [2, 3, 5, 10]  # 2 or 3 (only for hypersphere and hyperboloid)
@@ -133,7 +134,6 @@ n_X = [
     20,
     30,
     50,
-    100,
 ]  # , 10, 15, 20, 30]  # Only for dataset_name == synthetic
 start_shape = ["sphere"]  # "sphere" or "ellipsoid" for synthetic
 end_shape = ["ellipsoid"]  # "sphere" or "ellipsoid" for synthetic
