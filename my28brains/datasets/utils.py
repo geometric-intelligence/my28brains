@@ -48,7 +48,7 @@ def load(config):
         noiseless_mesh_dir = os.path.join(
             data_dir,
             f"geodesic_{start_shape}_{end_shape}_{n_X}_subs{n_subdivisions}"
-            f"_noise{0}",
+            f"_noise{0.0}",
         )
 
         noiseless_mesh_sequence_vertices_path = os.path.join(
