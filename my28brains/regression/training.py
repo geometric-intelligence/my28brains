@@ -127,8 +127,8 @@ def fit_geodesic_regression(
     intercept_hat: intercept of regression fit
     coef_hat: slope of regression fit
     """
-    print(f"initialization: {initialization}")
-    print(f"linear_residuals: {linear_residuals}")
+    # print(f"initialization: {initialization}")
+    # print(f"linear_residuals: {linear_residuals}")
 
     # maxiter was 100
     # method was riemannian
@@ -154,11 +154,11 @@ def fit_geodesic_regression(
     gr.intercept_ = intercept_hat_guess
     gr.coef_ = coef_hat_guess
 
-    print("Intercept guess: ", gr.intercept_.shape)
-    print("Coef guess: ", gr.coef_.shape)
+    # print("Intercept guess: ", gr.intercept_.shape)
+    # print("Coef guess: ", gr.coef_.shape)
 
-    print("y.shape: ", y.shape)
-    print("X.shape: ", X.shape)
+    # print("y.shape: ", y.shape)
+    # print("X.shape: ", X.shape)
 
     gr.fit(gs.array(X), gs.array(y))
 

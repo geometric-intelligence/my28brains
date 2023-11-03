@@ -67,9 +67,7 @@ def main_run(config):
 
         wandb.log(
             {
-                "y": np.array(y),
                 "X": np.array(X),
-                "y_noiseless": np.array(y_noiseless),
                 "true_intercept": np.array(true_intercept),
                 "true_coef": np.array(true_coef),
             }
@@ -118,6 +116,8 @@ def main_run(config):
                         mesh_sequence_vertices.numpy().reshape((-1, 3))
                     ),
                     # "test_diff_tolerance": diff_tolerance,
+                    "true_intercept_fig": wandb.Object3D(true_intercept.numpy()),
+                    "true_coef_fig": wandb.Object3D(true_coef.numpy()),
                 }
             )
         else:
@@ -291,7 +291,6 @@ def main():
                 n_subdivisions,
                 (start_shape, end_shape),
                 n_steps,
-                project_linear_noise,
             ) in itertools.product(
                 default_config.n_X,
                 default_config.noise_factor,
@@ -299,7 +298,6 @@ def main():
                 default_config.n_subdivisions,
                 zip(default_config.start_shape, default_config.end_shape),
                 default_config.n_steps,
-                default_config.project_linear_noise,
             ):
                 config = {
                     "n_X": n_X,
@@ -309,7 +307,6 @@ def main():
                     "linear_noise": linear_noise,
                     "n_subdivisions": n_subdivisions,
                     "n_steps": n_steps,
-                    "project_linear_noise": project_linear_noise,
                 }
                 config.update(main_config)
                 main_run(config)

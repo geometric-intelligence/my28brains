@@ -296,15 +296,18 @@ class GeodesicRegression(BaseEstimator):
         _ : array-like, shape=[..., {dim, [n,n]}]
             Value on the manifold output by the generative model.
         """
+        print("\n > In _model():")
         print("intercept belongs to space:", self.space.belongs(intercept))
         print(intercept)
+        print(intercept.dtype)
         print(
             "coef belongs to tangent space:",
             self.space.is_tangent(coef, base_point=intercept),
         )
         print(coef)
+        print(coef.dtype)
         print("X", X)
-        print
+        print("X.dtype", X.dtype)
 
         return self.space.metric.exp(gs.einsum("n,...->n...", X, coef), intercept)
 

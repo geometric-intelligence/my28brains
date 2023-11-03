@@ -123,11 +123,13 @@ def load(config):
             return space, y, y_noiseless, X, true_intercept, true_coef
 
         print(f"No noisy synthetic geodesic found in {mesh_dir}. Creating one.")
+        # projecting linear noise does not apply to meshes
+        project_linear_noise = False
         mesh_sequence_vertices = synthetic.add_linear_noise(
             space,
             noiseless_mesh_sequence_vertices,
             config.dataset_name,
-            config.project_linear_noise,
+            project_linear_noise,
             noise_factor=noise_factor,
         )
 

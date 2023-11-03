@@ -116,11 +116,14 @@ geodesic_initialization = [
     "warm_start",
 ]  # "warm_start" or "random" (but code not set up well for random)
 linear_residuals = [
-    False,
     True,
+    False,
 ]  # 'True' or 'False' (alternative is geodesic residuals)
-linear_noise = [True, False]  # 'True' or 'False'
-project_linear_noise = [True, False]  # 'True' or 'False'
+linear_noise = [True]  # , False]  # 'True' or 'False'
+project_linear_noise = [
+    True,
+    False,
+]  # 'True' or 'False'. only applies to hyperboloid/hypersphere.
 n_steps = [3]  # n steps for the exp solver of geomstats. 3, 5
 tol_factor = [
     # 0.001,
@@ -140,9 +143,9 @@ end_shape = ["distorted_cube"]
 noise_factor = [
     # 0.0001,
     # 0.001,
-    0.01,
     0.0,
     0.1,
+    0.01,
     # 0.2,
 ]  # , 0.0001, 0.001, 0.01]  # noise added to the data.
 # Will be multiplied by the size of the mesh to calculate the standard
