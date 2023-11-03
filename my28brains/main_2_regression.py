@@ -289,7 +289,6 @@ def main():
                 noise_factor,
                 linear_noise,
                 n_subdivisions,
-                ellipsoid_dims,
                 (start_shape, end_shape),
                 n_steps,
             ) in itertools.product(
@@ -297,7 +296,6 @@ def main():
                 default_config.noise_factor,
                 default_config.linear_noise,
                 default_config.n_subdivisions,
-                default_config.ellipsoid_dims,
                 zip(default_config.start_shape, default_config.end_shape),
                 default_config.n_steps,
             ):
@@ -308,8 +306,6 @@ def main():
                     "noise_factor": noise_factor,
                     "linear_noise": linear_noise,
                     "n_subdivisions": n_subdivisions,
-                    "ellipsoid_dims": ellipsoid_dims,
-                    "ellipse_ratio_h_v": ellipsoid_dims[0] / ellipsoid_dims[-1],
                     "n_steps": n_steps,
                 }
                 config.update(main_config)

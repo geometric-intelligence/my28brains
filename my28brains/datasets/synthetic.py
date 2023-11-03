@@ -27,7 +27,7 @@ import my28brains.datasets.utils as data_utils
 import my28brains.default_config as default_config
 
 
-def generate_mesh(mesh_type, n_subdivisions=None, ellipsoid_dims=[2, 2, 3]):
+def generate_mesh(mesh_type, n_subdivisions=None):
     """Generate a synthetic mesh.
 
     Parameters
@@ -50,6 +50,7 @@ def generate_mesh(mesh_type, n_subdivisions=None, ellipsoid_dims=[2, 2, 3]):
     if mesh_type == "sphere":
         return generate_sphere_mesh(subdivisions=n_subdivisions)
     if mesh_type == "ellipsoid":
+        ellipsoid_dims = [2, 2, 3]
         return generate_ellipsoid_mesh(
             subdivisions=n_subdivisions, ellipsoid_dims=ellipsoid_dims
         )
@@ -57,6 +58,8 @@ def generate_mesh(mesh_type, n_subdivisions=None, ellipsoid_dims=[2, 2, 3]):
         return trimesh.creation.capsule(height=1.0, radius=1.0, count=None)
     if mesh_type == "cube":
         return generate_cube_mesh()
+    if mesh_type == "distorted_cube":
+        return generate_distorted_cube_mesh()
     raise ValueError(f"mesh_type {mesh_type} not recognized")
 
 

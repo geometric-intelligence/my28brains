@@ -29,13 +29,12 @@ def load(config):
         start_shape, end_shape = config.start_shape, config.end_shape
         n_X = config.n_X
         n_subdivisions = config.n_subdivisions
-        ellipsoid_dims = config.ellipsoid_dims
         noise_factor = config.noise_factor
 
         mesh_dir = os.path.join(
             data_dir,
             f"geodesic_{start_shape}_{end_shape}_{n_X}_subs{n_subdivisions}"
-            f"_ell{ellipsoid_dims}_noise{noise_factor}",
+            f"_noise{noise_factor}",
         )
 
         mesh_sequence_vertices_path = os.path.join(
@@ -49,7 +48,7 @@ def load(config):
         noiseless_mesh_dir = os.path.join(
             data_dir,
             f"geodesic_{start_shape}_{end_shape}_{n_X}_subs{n_subdivisions}"
-            f"_ell{ellipsoid_dims}_noise{0}",
+            f"_noise{0}",
         )
 
         noiseless_mesh_sequence_vertices_path = os.path.join(
@@ -75,8 +74,8 @@ def load(config):
             print(
                 f"Noiseless geodesic does not exist in {noiseless_mesh_dir}. Creating one."
             )
-            start_mesh = load_mesh(start_shape, n_subdivisions, ellipsoid_dims)
-            end_mesh = load_mesh(end_shape, n_subdivisions, ellipsoid_dims)
+            start_mesh = load_mesh(start_shape, n_subdivisions)
+            end_mesh = load_mesh(end_shape, n_subdivisions)
 
             (
                 noiseless_mesh_sequence_vertices,
@@ -99,6 +98,19 @@ def load(config):
 
         y_noiseless = noiseless_mesh_sequence_vertices
 
+        space = DiscreteSurfaces(faces=gs.array(mesh_faces))
+        elastic_metric = ElasticMetric(
+            space=space,
+            a0=default_config.a0,
+            a1=default_config.a1,
+            b1=default_config.b1,
+            c1=default_config.c1,
+            d1=default_config.d1,
+            a2=default_config.a2,
+        )
+        elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
+        space.metric = elastic_metric
+
         if os.path.exists(mesh_dir):
             print(f"Synthetic geodesic exists in {mesh_dir}. Loading now.")
             mesh_sequence_vertices = gs.array(np.load(mesh_sequence_vertices_path))
@@ -106,19 +118,6 @@ def load(config):
             X = gs.array(np.load(X_path))
             true_intercept = gs.array(np.load(true_intercept_path))
             true_coef = gs.array(np.load(true_coef_path))
-
-            space = DiscreteSurfaces(faces=gs.array(mesh_faces))
-            elastic_metric = ElasticMetric(
-                space=space,
-                a0=default_config.a0,
-                a1=default_config.a1,
-                b1=default_config.b1,
-                c1=default_config.c1,
-                d1=default_config.d1,
-                a2=default_config.a2,
-            )
-            elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
-            space.metric = elastic_metric
 
             y = mesh_sequence_vertices
             return space, y, y_noiseless, X, true_intercept, true_coef
@@ -255,7 +254,7 @@ def load(config):
         raise ValueError(f"Unknown dataset name {config.dataset_name}")
 
 
-def load_mesh(mesh_type, n_subdivisions, ellipsoid_dims):
+def load_mesh(mesh_type, n_subdivisions):
     """Load a mesh from the synthetic dataset.
 
     If the mesh does not exist, create it.
@@ -265,9 +264,7 @@ def load_mesh(mesh_type, n_subdivisions, ellipsoid_dims):
     mesh_type : str, {"sphere", "ellipsoid", "pill", "cube"}
     """
     data_dir = default_config.synthetic_data_dir
-    shape_dir = os.path.join(
-        data_dir, f"{mesh_type}_subs{n_subdivisions}_ell{ellipsoid_dims}"
-    )
+    shape_dir = os.path.join(data_dir, f"{mesh_type}_subs{n_subdivisions}")
     vertices_path = os.path.join(shape_dir, "vertices.npy")
     faces_path = os.path.join(shape_dir, "faces.npy")
 
@@ -278,7 +275,7 @@ def load_mesh(mesh_type, n_subdivisions, ellipsoid_dims):
         return trimesh.Trimesh(vertices=vertices, faces=faces)
 
     print(f"Creating {mesh_type} mesh in {shape_dir}")
-    mesh = synthetic.generate_mesh(mesh_type, n_subdivisions, ellipsoid_dims)
+    mesh = synthetic.generate_mesh(mesh_type, n_subdivisions)
     os.makedirs(shape_dir)
     np.save(vertices_path, mesh.vertices)
     np.save(faces_path, mesh.faces)
