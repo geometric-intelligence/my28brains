@@ -66,10 +66,10 @@ def load(config):
             noiseless_mesh_sequence_vertices = gs.array(
                 np.load(noiseless_mesh_sequence_vertices_path)
             )
-            mesh_faces = gs.array(np.load(mesh_faces_path))
-            X = gs.array(np.load(X_path))
-            true_intercept = gs.array(np.load(true_intercept_path))
-            true_coef = gs.array(np.load(true_coef_path))
+            mesh_faces = gs.array(np.load(noiseless_mesh_faces_path))
+            X = gs.array(np.load(noiseless_X_path))
+            true_intercept = gs.array(np.load(noiseless_true_intercept_path))
+            true_coef = gs.array(np.load(noiseless_true_coef_path))
         else:
             print(
                 f"Noiseless geodesic does not exist in {noiseless_mesh_dir}. Creating one."

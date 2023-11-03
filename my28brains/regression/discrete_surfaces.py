@@ -779,8 +779,6 @@ class ElasticMetric(RiemannianMetric):
             Sobolev metrics: a comprehensive numerical framework".
             arXiv:2204.04238 [cs.CV], 25 Sep 2022.
         """
-        print("before squeeze")
-        print("vertex_areas_bp shape", vertex_areas_bp.shape)
         # need_squeeze = False
         if base_point.ndim == 2:
             base_point = gs.expand_dims(base_point, axis=0)
@@ -792,21 +790,11 @@ class ElasticMetric(RiemannianMetric):
         if tangent_vec_b.ndim == 2:
             tangent_vec_b = gs.expand_dims(tangent_vec_b, axis=0)
 
-        print("in inner_product_a2")
-        print("tangent_vec_a shape", tangent_vec_a.shape)
-        print("tangent_vec_b shape", tangent_vec_b.shape)
-        print("base_point shape", base_point.shape)
-        print("vertex_areas_bp shape", vertex_areas_bp.shape)
-
         einsum = []
         for base_point_i, vertex_areas_bp_i, tangent_vec_a_i, tangent_vec_b_i in zip(
             base_point, vertex_areas_bp, tangent_vec_a, tangent_vec_b
         ):
             laplacian_at_base_point = self._space.laplacian(base_point_i)
-            print("tangent_vec_a_i shape", tangent_vec_a_i.shape)
-            print("tangent_vec_b_i shape", tangent_vec_b_i.shape)
-            print("base_point_i shape", base_point_i.shape)
-            print("vertex_areas_bp_i shape", vertex_areas_bp_i.shape)
             einsum_i = gs.sum(
                 gs.einsum(
                     "...bi,...bi->...b",
@@ -817,9 +805,7 @@ class ElasticMetric(RiemannianMetric):
                 axis=-1,
             )
             einsum.append(einsum_i)
-            print("einsum_i", einsum_i)
         einsum = gs.array(einsum)
-        print("einsum shape", einsum.shape)
 
         inner_prod_a2 = self.a2 * einsum
 
@@ -869,7 +855,6 @@ class ElasticMetric(RiemannianMetric):
             Sobolev metrics: a comprehensive numerical framework".
             arXiv:2204.04238 [cs.CV], 25 Sep 2022.
         """
-        print("before squeeze", tangent_vec_a.shape, tangent_vec_b.shape)
         to_squeeze = False
         if tangent_vec_a.ndim == 2 and tangent_vec_b.ndim == 2:
             to_squeeze = True
@@ -877,7 +862,6 @@ class ElasticMetric(RiemannianMetric):
             tangent_vec_a = gs.expand_dims(tangent_vec_a, axis=0)
         if tangent_vec_b.ndim == 2:
             tangent_vec_b = gs.expand_dims(tangent_vec_b, axis=0)
-        print("after squeeze", tangent_vec_a.shape, tangent_vec_b.shape)
 
         # NOTE: if tangent_vec_a is multiple vectors, then point_a is multiple points.
         point_a = base_point + tangent_vec_a
@@ -888,13 +872,7 @@ class ElasticMetric(RiemannianMetric):
         )  # CHANGE ALERT: gs.zeros((gs.maximum(len(tangent_vec_a), len(tangent_vec_b)), 1))
         if self.a0 > 0 or self.a2 > 0:
             vertex_areas_bp = self._space.vertex_areas(base_point)
-            print("inner product vertex areas shape", vertex_areas_bp.shape)
             if self.a0 > 0:
-                print("inner product shape", inner_prod.shape)
-                a0_term = self._inner_product_a0(
-                    tangent_vec_a, tangent_vec_b, vertex_areas_bp=vertex_areas_bp
-                )
-                print("a0 term shape", a0_term.shape)
                 inner_prod += self._inner_product_a0(
                     tangent_vec_a, tangent_vec_b, vertex_areas_bp=vertex_areas_bp
                 )
@@ -905,7 +883,6 @@ class ElasticMetric(RiemannianMetric):
                     base_point=base_point,
                     vertex_areas_bp=vertex_areas_bp,
                 )
-                print("a2 shape", a_2_term.shape)
                 inner_prod += a_2_term
         if self.a1 > 0 or self.b1 > 0 or self.c1 > 0 or self.b1 > 0:
             one_forms_bp = self._space.surface_one_forms(base_point)

@@ -138,12 +138,12 @@ n_X = [
 start_shape = ["cube"]  # "sphere", "ellipsoid", "cube", "distorted_cube"
 end_shape = ["distorted_cube"]
 noise_factor = [
-    0.0,
     # 0.0001,
-    0.001,
+    # 0.001,
     0.01,
+    0.0,
     0.1,
-    0.2,
+    # 0.2,
 ]  # , 0.0001, 0.001, 0.01]  # noise added to the data.
 # Will be multiplied by the size of the mesh to calculate the standard
 # deviation of added noise distribution.

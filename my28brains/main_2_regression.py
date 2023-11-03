@@ -291,6 +291,7 @@ def main():
                 n_subdivisions,
                 (start_shape, end_shape),
                 n_steps,
+                project_linear_noise,
             ) in itertools.product(
                 default_config.n_X,
                 default_config.noise_factor,
@@ -298,6 +299,7 @@ def main():
                 default_config.n_subdivisions,
                 zip(default_config.start_shape, default_config.end_shape),
                 default_config.n_steps,
+                default_config.project_linear_noise,
             ):
                 config = {
                     "n_X": n_X,
@@ -307,6 +309,7 @@ def main():
                     "linear_noise": linear_noise,
                     "n_subdivisions": n_subdivisions,
                     "n_steps": n_steps,
+                    "project_linear_noise": project_linear_noise,
                 }
                 config.update(main_config)
                 main_run(config)
