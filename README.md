@@ -37,7 +37,7 @@ If this code is useful to your research, please cite:
 
 ```
 @misc{myers2023geodesic,
-      title={Geodesic Regression Characterizes 3D Shape Changes in the Female Brain During Menstruation}, 
+      title={Geodesic Regression Characterizes 3D Shape Changes in the Female Brain During Menstruation},
       author={Adele Myers and Caitlin Taylor and Emily Jacobs and Nina Miolane},
       year={2023},
       eprint={2309.16662},

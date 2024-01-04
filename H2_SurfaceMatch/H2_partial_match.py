@@ -1,5 +1,4 @@
 # Load Packages
-import default_config
 import numpy as np
 import scipy
 import torch
@@ -9,6 +8,8 @@ from H2_match import H2Midpoint, SymmetricH2Matching
 from scipy.optimize import fmin_l_bfgs_b, minimize
 from SRNF_match import computeBoundary
 from torch.autograd import grad
+
+import default_config
 
 use_cuda = default_config.use_cuda
 torchdeviceId = torch.device("cuda:0") if use_cuda else "cpu"

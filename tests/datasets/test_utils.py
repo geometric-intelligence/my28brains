@@ -2,7 +2,7 @@
 
 import geomstats.backend as gs
 
-import my28brains.datasets.utils as data_utils
+import src.datasets.utils as data_utils
 
 
 def test_add_noise():

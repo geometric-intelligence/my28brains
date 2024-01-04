@@ -39,3 +39,5 @@ repos:
     -   id: flake8
         args: ["--ignore=E402,W503"]
         additional_dependencies: [flake8-docstrings, Flake8-pyproject]
+
+exclude: ^.*H2_SurfaceMatch/.*$

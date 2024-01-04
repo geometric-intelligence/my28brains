@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from pykeops.torch import Genred  # kernel_product,
 
-import my28brains.default_config as default_config
+import src.default_config as default_config
 
 # from pykeops.torch.kernel_product.formula import *
 

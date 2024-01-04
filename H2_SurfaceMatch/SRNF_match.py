@@ -1,5 +1,4 @@
 # Load Packages
-import default_config
 import numpy as np
 import scipy
 import utils.utils as io
@@ -7,6 +6,8 @@ from enr.DDG import computeBoundary
 from enr.SRNF import *
 from scipy.optimize import fmin_l_bfgs_b, minimize
 from torch.autograd import grad
+
+import default_config
 
 use_cuda = default_config.use_cuda  # was 1
 torchdeviceId = torch.device("cuda:0") if use_cuda else "cpu"
