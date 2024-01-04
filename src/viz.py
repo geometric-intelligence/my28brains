@@ -22,7 +22,9 @@ viz_dict = {
     "Hyperboloid": visualization.PoincareDisk(),
 }
 
-IMG_DIR = "/home/data/28andme/"
+MENSTRUAL_DIR = "/home/data/28andme/"
+PREGNANCY_DIR = "/home/data/pregnancy/"
+
 HORMONES = {"Estro": "Estrogen", "Prog": "Progesterone", "LH": "LH", "FSH": "FSH"}
 
 # Colors follow the color scheme from Taylor et al. 2020
@@ -75,7 +77,26 @@ def init_matplotlib():
     )
 
 
-def animate(img_suffix="ashs/right_lfseg_corr_usegray_CT_LQ.nii.gz", slice_z=16):
+def show_slices(slices, cmap="gray"):
+    """Display row of image slices.
+
+    Parameters
+    ----------
+    slices : list
+        List of integers that represent the indexes of the slices to plot.
+    """
+    fig, axes = plt.subplots(1, len(slices))
+    for i_slice, one_slice in enumerate(slices):
+        im = axes[i_slice].imshow(one_slice.T, cmap=cmap, origin="lower")
+    return fig, axes, im
+
+
+def animate(
+    img_suffix="ashs/right_lfseg_corr_usegray_CT_LQ.nii.gz",
+    img_dir=MENSTRUAL_DIR,
+    slice_y=None,
+    slice_z=None,
+):
     """Produce temporal animation of anatomical images.
 
     This is a time-series of images during 25 days corresponding to 25 sessions.
@@ -96,7 +117,16 @@ def animate(img_suffix="ashs/right_lfseg_corr_usegray_CT_LQ.nii.gz", slice_z=16)
     anima : Animation
         Animation. Display with HTML(anima.to_html5_video())
     """
-    string_base = os.path.join(IMG_DIR, f"sub-01/ses-**/{img_suffix}")
+    if img_dir == MENSTRUAL_DIR:
+        string_base = os.path.join(img_dir, f"sub-01/ses-**/{img_suffix}")
+        # HACK ALERT: Session ID is at the 30, 31st chars in path:
+        ses_id_loc = 30
+    elif img_dir == os.path.join(PREGNANCY_DIR, "folder1"):
+        string_base = os.path.join(img_dir, f"ses-**/{img_suffix}")
+        # HACK ALERT: Session ID is at the 34 chars in path:
+        ses_id_loc = 33
+    else:
+        raise ValueError(f"Unknown img_dir: {img_dir}.")
     paths = sorted(glob.glob(string_base))
 
     print(f"Found {len(paths)} image paths. Creating video.")
@@ -105,8 +135,13 @@ def animate(img_suffix="ashs/right_lfseg_corr_usegray_CT_LQ.nii.gz", slice_z=16)
     arrays = []
     ses_ids = []
     for path in paths:
-        # HACK ALERT: Session ID is at the 30, 31st chars in path:
-        ses_ids.append(path[30:32])
+        ses_id = path[ses_id_loc : (ses_id_loc + 2)]
+        if int(ses_id) == 26:
+            print(
+                f"Skipping session {ses_id} because the np.array has a different dimension"
+            )
+            continue
+        ses_ids.append(ses_id)
         img = nibabel.load(path)
         arrays.append(img.get_fdata())
 
@@ -128,15 +163,24 @@ def animate(img_suffix="ashs/right_lfseg_corr_usegray_CT_LQ.nii.gz", slice_z=16)
 
     def quick_play(dT=50):
         fig, ax = plt.subplots()
-        im = ax.imshow(array_4d[:, :, slice_z, 0], cmap=cmap)
+        if slice_y is not None:
+            im = ax.imshow(array_4d[:, slice_y, :, 0], cmap=cmap)
+        if slice_z is not None:
+            im = ax.imshow(array_4d[:, :, slice_z, 0], cmap=cmap)
         ax.set_title(f"{img_suffix}\n Session: {ses_ids[0]}")
 
         def init():
-            im.set_data(array_4d[:, :, slice_z, 0])
+            if slice_y is not None:
+                im.set_data(array_4d[:, slice_y, :, 0])
+            if slice_z is not None:
+                im.set_data(array_4d[:, :, slice_z, 0])
             return (im,)
 
         def animate(i):
-            im.set_data(array_4d[:, :, slice_z, i])
+            if slice_y is not None:
+                im.set_data(array_4d[:, slice_y, :, i])
+            if slice_z is not None:
+                im.set_data(array_4d[:, :, slice_z, i])
             ax.set_title(f"{img_suffix}\n Session: {ses_ids[i]}")
             return (im,)
 
