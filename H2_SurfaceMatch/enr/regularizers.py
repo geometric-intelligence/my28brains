@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from enr.DDG import getVertAreas
 
-import my28brains.default_config as default_config
+import src.default_config as default_config
 
 use_cuda = default_config.use_cuda
 torchdeviceId = torch.device("cuda:0") if use_cuda else "cpu"

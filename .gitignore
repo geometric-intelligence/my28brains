@@ -1,22 +1,22 @@
 # Brain data
 data/
-my28brains/results/*
-my28brains/results/tmp/
-my28brains/results/anims/
-my28brains/results/blends/
-my28brains/results/figs/
-my28brains/results/regression/
+src/results/*
+src/results/tmp/
+src/results/anims/
+src/results/blends/
+src/results/figs/
+src/results/regression/
 wandb/*
 H2_Surface_Match/*
-my28brains/blender/blends/*
-my28brains/notebooks/csv/*
-my28brains/notebooks/viz_plys/*
+src/blender/blends/*
+src/notebooks/csv/*
+src/notebooks/viz_plys/*
 
 # anaconda stuff
 Anaconda3-2021.11-Linux-x86_64.sh
 
 # wandb api key
-my28brains/api_key.txt
+src/api_key.txt
 
 # Test npy
 tests/*.npy
@@ -109,11 +109,8 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
-my28brains/__pycache__/**
-my28brains/**/ipynb_checkpoints
-
-# Old decimation files
-my28brains/old_decimation_files
+src/__pycache__/**
+src/**/ipynb_checkpoints
 
 # IPython
 profile_default/

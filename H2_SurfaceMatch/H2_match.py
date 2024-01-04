@@ -9,7 +9,7 @@ from H2_param import H2Midpoint
 from scipy.optimize import fmin_l_bfgs_b, minimize
 from torch.autograd import grad
 
-import my28brains.default_config as default_config
+import src.default_config as default_config
 
 torch_dtype = torch.float64
 

@@ -1,8 +1,9 @@
-import default_config
 import numpy as np
 import torch
 from enr.DDG import getNormal
 from enr.varifold import *
+
+import default_config
 
 use_cuda = default_config.use_cuda
 torchdeviceId = torch.device("cuda:0") if use_cuda else "cpu"

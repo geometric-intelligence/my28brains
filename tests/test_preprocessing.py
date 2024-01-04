@@ -11,7 +11,7 @@ import os
 import numpy as np
 from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 
-import my28brains.my28brains.preprocessing as preprocessing
+import my28brains.src.preprocessing as preprocessing
 
 TESTS_DIR = os.path.join(os.getcwd(), "tests")
 test_vertices_path = os.path.join(TESTS_DIR, "test_vertices.npy")
