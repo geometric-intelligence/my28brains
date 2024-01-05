@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from enr.DDG import getVertAreas
+from H2_SurfaceMatch.enr.DDG import getVertAreas
 
 use_cuda = 1
 torchdeviceId = torch.device("cuda:0") if use_cuda else "cpu"
