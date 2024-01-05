@@ -2,12 +2,10 @@ import numpy as np
 import torch
 from pykeops.torch import Genred  # kernel_product,
 
-import src.default_config as default_config
-
 # from pykeops.torch.kernel_product.formula import *
 
 
-use_cuda = default_config.use_cuda  # was 1
+use_cuda = 1  # was 1
 torchdeviceId = torch.device("cuda:0") if use_cuda else "cpu"
 torch_dtype = torch.float64
 

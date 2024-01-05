@@ -49,7 +49,7 @@ import multiprocessing
 import os
 import warnings
 
-import src.default_config as default_config
+import project_regression.default_config as default_config
 import src.preprocessing.centering as centering
 import src.preprocessing.extraction as extraction
 import src.preprocessing.geodesics as geodesics

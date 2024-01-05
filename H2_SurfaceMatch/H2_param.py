@@ -8,8 +8,6 @@ from enr.H2 import *
 from scipy.optimize import fmin_l_bfgs_b, minimize
 from torch.autograd import grad
 
-import src.default_config as default_config
-
 torch_dtype = torch.float64
 
 

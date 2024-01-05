@@ -45,7 +45,10 @@ os.chdir(gitroot_path[:-1])
 work_dir = os.getcwd()  # code/my28brains/
 code_dir = os.path.dirname(work_dir)  # code/
 raw_dir = "/home/data/28andMeOC_correct"
-src_dir = os.path.join(os.getcwd(), "src")  # code/my28brains/src/
+project_dir = os.path.join(
+    os.getcwd(), "project_regression"
+)  # code/my28brains/project_regression/
+src_dir = os.path.join(os.getcwd(), "src")
 h2_dir = os.path.join(os.getcwd(), "H2_SurfaceMatch")
 sys.path.append(code_dir)
 sys.path.append(h2_dir)
@@ -170,12 +173,12 @@ ellipsoid_dims = [[2, 2, 3]]
 
 # Build Paths
 
-# Data (inside src_dir : my28brains/src/)
-data_dir = os.path.join(src_dir, "data")
+# Data (inside project_dir : my28brains/project_regression/)
+data_dir = os.path.join(project_dir, "data")
 synthetic_data_dir = os.path.join(data_dir, "synthetic_mesh")
 
-# Results (inside src_dir : my28brains/src/)
-results_dir = os.path.join(src_dir, "results")
+# Results (inside project_dir : my28brains/project_regression/)
+results_dir = os.path.join(project_dir, "results")
 tmp_dir = os.path.join(results_dir, "tmp")
 
 preprocess_dir = os.path.join(results_dir, "1_preprocess")
