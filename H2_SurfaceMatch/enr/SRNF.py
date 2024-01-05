@@ -3,9 +3,7 @@ import torch
 from enr.DDG import getNormal
 from enr.varifold import *
 
-import default_config
-
-use_cuda = default_config.use_cuda
+use_cuda = 1
 torchdeviceId = torch.device("cuda:0") if use_cuda else "cpu"
 torch_dtype = torch.float64
 

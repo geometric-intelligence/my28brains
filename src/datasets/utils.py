@@ -1,5 +1,6 @@
 """Utils to import data."""
 
+import inspect
 import os
 
 import geomstats.backend as gs
@@ -9,19 +10,22 @@ from geomstats.geometry.hyperbolic import Hyperbolic
 from geomstats.geometry.hypersphere import Hypersphere
 from geomstats.learning.frechet_mean import FrechetMean, variance
 
-import default_config
 import H2_SurfaceMatch.utils.input_output as h2_io
 import src.datasets.synthetic as synthetic
+import src.import_project_config as pc
 
 # from geomstats.geometry.discrete_surfaces import (
 from src.regression.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
 
 
-def load(config):
+def load(config, project_config=None):
     """Load data according to values in config file."""
+    if project_config is None:
+        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
+        project_config = pc.import_default_config(calling_script_path)
     if config.dataset_name == "synthetic_mesh":
         print("Using synthetic mesh data")
-        data_dir = default_config.synthetic_data_dir
+        data_dir = project_config.synthetic_data_dir
         start_shape, end_shape = config.start_shape, config.end_shape
         n_X = config.n_X
         n_subdivisions = config.n_subdivisions
@@ -97,12 +101,12 @@ def load(config):
         space = DiscreteSurfaces(faces=gs.array(mesh_faces))
         elastic_metric = ElasticMetric(
             space=space,
-            a0=default_config.a0,
-            a1=default_config.a1,
-            b1=default_config.b1,
-            c1=default_config.c1,
-            d1=default_config.d1,
-            a2=default_config.a2,
+            a0=project_config.a0,
+            a1=project_config.a1,
+            b1=project_config.b1,
+            c1=project_config.c1,
+            d1=project_config.d1,
+            a2=project_config.a2,
         )
         elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
         space.metric = elastic_metric
@@ -144,12 +148,12 @@ def load(config):
         print(f"space faces: {space.faces.shape}")
         elastic_metric = ElasticMetric(
             space=space,
-            a0=default_config.a0,
-            a1=default_config.a1,
-            b1=default_config.b1,
-            c1=default_config.c1,
-            d1=default_config.d1,
-            a2=default_config.a2,
+            a0=project_config.a0,
+            a1=project_config.a1,
+            b1=project_config.b1,
+            c1=project_config.c1,
+            d1=project_config.d1,
+            a2=project_config.a2,
         )
         elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
         space.metric = elastic_metric
@@ -159,15 +163,15 @@ def load(config):
 
     elif config.dataset_name == "real_mesh":
         print("Using real mesh data")
-        mesh_dir = default_config.sorted_dir
+        mesh_dir = project_config.sorted_dir
         mesh_sequence_vertices = []
         mesh_sequence_faces = []
-        first_day = int(default_config.day_range[0])
-        last_day = int(default_config.day_range[1])
+        first_day = int(project_config.day_range[0])
+        last_day = int(project_config.day_range[1])
         # X = gs.arange(0, 1, 1/(last_day - first_day + 1))
 
         hormone_levels_path = os.path.join(
-            default_config.sorted_dir, "sorted_hormone_levels.npy"
+            project_config.sorted_dir, "sorted_hormone_levels.npy"
         )
         hormone_levels = np.loadtxt(hormone_levels_path, delimiter=",")
         X = gs.array(hormone_levels)
@@ -176,13 +180,13 @@ def load(config):
         # for i_mesh in range(first_day, last_day + 1):
         for i_mesh in range(last_day - first_day + 1):
             # mesh_path = os.path.join(
-            #     default_config.sorted_dir,
+            #     project_config.sorted_dir,
             #     f"{config.hemisphere}_structure_-1_day{i_mesh:02d}_at_0.0_parameterized.ply",
             # )
             # file_name = f"parameterized_mesh{i_mesh:02d}_hormone_level****.ply"
             file_name = f"parameterized_mesh{i_mesh:02d}.ply"
 
-            mesh_path = os.path.join(default_config.sorted_dir, file_name)
+            mesh_path = os.path.join(project_config.sorted_dir, file_name)
             vertices, faces, _ = h2_io.loadData(mesh_path)
             mesh_sequence_vertices.append(vertices)
             mesh_sequence_faces.append(faces)
@@ -202,12 +206,12 @@ def load(config):
         space = DiscreteSurfaces(faces=mesh_faces)
         elastic_metric = ElasticMetric(
             space=space,
-            a0=default_config.a0,
-            a1=default_config.a1,
-            b1=default_config.b1,
-            c1=default_config.c1,
-            d1=default_config.d1,
-            a2=default_config.a2,
+            a0=project_config.a0,
+            a1=project_config.a1,
+            b1=project_config.b1,
+            c1=project_config.c1,
+            d1=project_config.d1,
+            a2=project_config.a2,
         )
         elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
         space.metric = elastic_metric
@@ -252,7 +256,7 @@ def load(config):
         raise ValueError(f"Unknown dataset name {config.dataset_name}")
 
 
-def load_mesh(mesh_type, n_subdivisions):
+def load_mesh(mesh_type, n_subdivisions, project_config=None):
     """Load a mesh from the synthetic dataset.
 
     If the mesh does not exist, create it.
@@ -261,7 +265,10 @@ def load_mesh(mesh_type, n_subdivisions):
     ----------
     mesh_type : str, {"sphere", "ellipsoid", "pill", "cube"}
     """
-    data_dir = default_config.synthetic_data_dir
+    if project_config is None:
+        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
+        project_config = pc.import_default_config(calling_script_path)
+    data_dir = project_config.synthetic_data_dir
     shape_dir = os.path.join(data_dir, f"{mesh_type}_subs{n_subdivisions}")
     vertices_path = os.path.join(shape_dir, "vertices.npy")
     faces_path = os.path.join(shape_dir, "faces.npy")
