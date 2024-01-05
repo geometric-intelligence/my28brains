@@ -1,6 +1,7 @@
 """Computation of unparameterized geodesics."""
 
 import glob
+import inspect
 import os
 import time
 
@@ -13,7 +14,7 @@ from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 import H2_SurfaceMatch.H2_match  # noqa: E402
 import H2_SurfaceMatch.utils.input_output as h2_io  # noqa: E402
 import H2_SurfaceMatch.utils.utils  # noqa: E402
-import src.default_config as default_config
+import src.import_project_config as pc
 import src.preprocessing.writing as write
 
 
@@ -105,6 +106,9 @@ def scale_decimate(path, config=None):
         - faces: np.ndarray
             Faces of the mesh.
     """
+    if config is None:
+        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
+        config = pc.import_default_config(calling_script_path)
     vertices, faces, _ = h2_io.loadData(path)
     vertices = vertices / config.scaling_factor  # was / 10
     n_faces_after_decimation = int(faces.shape[0] / config.initial_decimation_fact)
@@ -133,7 +137,8 @@ def scale_decimate_and_compute_geodesic(
         Config object containing parameters of the experiment.
     """
     if config is None:
-        config = default_config
+        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
+        config = pc.import_default_config(calling_script_path)
     device = torch.device(f"cuda:{gpu_id}" if torch.cuda.is_available() else "cpu")
     start_time = time.time()
 
@@ -164,7 +169,7 @@ def scale_decimate_and_compute_geodesic(
     return geod, F0
 
 
-def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id):
+def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id, config=None):
     """Auxiliary function that will be run in parallel on different GPUs.
 
     This creates a geodesic with n_geodesic_time between a pair (start, end) of meshes.
@@ -188,6 +193,9 @@ def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id):
     gpu_id : int
         ID of the GPU to use.
     """
+    if config is None:
+        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
+        config = pc.import_default_config(calling_script_path)
     start_path, end_path = input_paths[i_pair], input_paths[i_pair + 1]
 
     basename = os.path.splitext(os.path.basename(start_path))[0]
@@ -199,16 +207,14 @@ def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id):
         return
 
     geod, F0 = scale_decimate_and_compute_geodesic(
-        start_path=start_path,
-        end_path=end_path,
-        gpu_id=gpu_id,
+        start_path=start_path, end_path=end_path, gpu_id=gpu_id, config=config
     )
 
     for i_geodesic_time in range(geod.shape[0]):
         h2_io.plotGeodesic(
             [geod[i_geodesic_time]],
             F0,
-            stepsize=default_config.stepsize,  # open3d plotting parameter - unused
+            stepsize=config.stepsize,  # open3d plotting parameter - unused
             file_name=f"{ply_prefix}{i_geodesic_time}",
             axis=[0, 1, 0],
             angle=-1 * np.pi / 2,
@@ -216,7 +222,7 @@ def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id):
     print(f"\tGeodesic interpolation {i_pair} saved to: " f"{output_dir}.")
 
 
-def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id):
+def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id, config=None):
     """Auxiliary function that will be run in parallel on different GPUs.
 
     The start path is the path whose parameterization is used as reference.
@@ -240,7 +246,10 @@ def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id):
     gpu_id : int
         ID of the GPU to use.
     """
-    start_path = input_paths[default_config.template_day]
+    if config is None:
+        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
+        config = pc.import_default_config(calling_script_path)
+    start_path = input_paths[config.template_day]
     end_path = input_paths[i_path]
     ply_path = os.path.join(output_dir, os.path.basename(end_path))
 
@@ -249,17 +258,13 @@ def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id):
         return
 
     geod, F0 = scale_decimate_and_compute_geodesic(
-        start_path=start_path,
-        end_path=end_path,
-        gpu_id=gpu_id,
+        start_path=start_path, end_path=end_path, gpu_id=gpu_id, config=config
     )
 
     h2_io.plotGeodesic(
         [geod[-1]],
         F0,
-        stepsize=default_config.stepsize[
-            "real_mesh"
-        ],  # open3d plotting parameter - unused
+        stepsize=config.stepsize["real_mesh"],  # open3d plotting parameter - unused
         file_name=os.path.splitext(ply_path)[0],  # remove .ply extension
         axis=[0, 1, 0],
         angle=-1 * np.pi / 2,

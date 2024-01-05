@@ -2,13 +2,11 @@
 import numpy as np
 import scipy
 import torch
-import utils.utils as io
-from enr.DDG import computeBoundary
-from enr.H2 import *
+import H2_SurfaceMatch.utils.utils as io
+from H2_SurfaceMatch.enr.DDG import computeBoundary
+from H2_SurfaceMatch.enr.H2 import *
 from scipy.optimize import fmin_l_bfgs_b, minimize
 from torch.autograd import grad
-
-import src.default_config as default_config
 
 torch_dtype = torch.float64
 

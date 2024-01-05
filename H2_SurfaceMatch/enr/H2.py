@@ -1,8 +1,8 @@
 import numpy as np
 import torch
-from enr.DDG import *
-from enr.regularizers import *
-from enr.varifold import *
+from H2_SurfaceMatch.enr.DDG import *
+from H2_SurfaceMatch.enr.regularizers import *
+from H2_SurfaceMatch.enr.varifold import *
 from torch.autograd import grad
 
 ##############################################################################################################################

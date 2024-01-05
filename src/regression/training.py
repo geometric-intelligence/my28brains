@@ -5,12 +5,14 @@ import os
 import numpy as np
 
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"  # noqa: E402
+import inspect
+
 import geomstats.backend as gs
 from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 from sklearn.linear_model import LinearRegression
 
 import H2_SurfaceMatch.utils.input_output as h2_io  # noqa: E402
-import src.default_config as default_config
+import src.import_project_config as pc
 from src.regression.geodesic_regression import GeodesicRegression
 
 
@@ -26,6 +28,7 @@ def save_regression_results(
     model,
     linear_residuals,
     y_hat=None,
+    config=None,
 ):
     """Save regression results to files.
 
@@ -44,6 +47,9 @@ def save_regression_results(
     results_directory: string, the directory in which to save the results
     y_hat: numpy array, the y values predicted by the regression model.
     """
+    if config is None:
+        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
+        config = pc.import_default_config(calling_script_path)
     if model == "linear":
         suffix = f"{dataset_name}_lr"
     if linear_residuals:
@@ -80,7 +86,7 @@ def save_regression_results(
         h2_io.plotGeodesic(
             geod=gs.array(mesh_sequence_vertices).detach().numpy(),
             F=faces,
-            stepsize=default_config.stepsize[dataset_name],
+            stepsize=config.stepsize[dataset_name],
             file_name=y_path,
         )
 
@@ -88,7 +94,7 @@ def save_regression_results(
             h2_io.plotGeodesic(
                 geod=gs.array(y_hat).detach().numpy(),
                 F=faces,
-                stepsize=default_config.stepsize[dataset_name],
+                stepsize=config.stepsize[dataset_name],
                 file_name=y_hat_path,
             )
 

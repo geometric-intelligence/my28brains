@@ -3,7 +3,7 @@ import os
 import numpy as np
 import open3d as o3d
 from scipy.io import loadmat, savemat
-from utils.utils import *
+from H2_SurfaceMatch.utils.utils import *
 
 ##############################################################################################################################
 # Input-Output (IO) and Plotting Functions

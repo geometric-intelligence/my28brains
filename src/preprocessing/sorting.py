@@ -4,6 +4,7 @@ It outputs to meshes_parameterized_sorted_by_hormone
 """
 
 import glob
+import inspect
 import os
 
 import geomstats.backend as gs
@@ -11,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 import H2_SurfaceMatch.utils.input_output as h2_io  # noqa: E402
-import src.default_config as default_config
+import src.import_project_config as pc
 
 
 def sort_meshes_by_hormones_and_write(
@@ -33,11 +34,12 @@ def sort_meshes_by_hormones_and_write(
         Structure ID to process.
     area_threshold : float
         Area threshold to process.
-    config : src.default_config
+    config : project config.
         Config object.
     """
     if config is None:
-        config = default_config
+        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
+        config = pc.import_default_config(calling_script_path)
 
     string_base = os.path.join(
         input_dir, f"{hemisphere}_structure_{structure_id}**.ply"
