@@ -161,13 +161,13 @@ def load(config, project_config=None):
         y = mesh_sequence_vertices
         return space, y, y_noiseless, X, true_intercept, true_coef
 
-    elif config.dataset_name == "real_mesh":
-        print("Using real mesh data")
+    elif config.dataset_name == "menstrual_mesh":
+        print("Using menstrual mesh data")
         mesh_dir = project_config.sorted_dir
         mesh_sequence_vertices = []
         mesh_sequence_faces = []
-        first_day = int(project_config.day_range[0])
-        last_day = int(project_config.day_range[1])
+        # first_day = int(project_config.day_range[0])
+        # last_day = int(project_config.day_range[1])
         # X = gs.arange(0, 1, 1/(last_day - first_day + 1))
 
         hormone_levels_path = os.path.join(
@@ -178,13 +178,13 @@ def load(config, project_config=None):
         print("X: ", X)
 
         # for i_mesh in range(first_day, last_day + 1):
-        for i_mesh in range(last_day - first_day + 1):
+        for hormone_level in enumerate(hormone_levels):
             # mesh_path = os.path.join(
             #     project_config.sorted_dir,
             #     f"{config.hemisphere}_structure_-1_day{i_mesh:02d}_at_0.0_parameterized.ply",
             # )
             # file_name = f"parameterized_mesh{i_mesh:02d}_hormone_level****.ply"
-            file_name = f"parameterized_mesh{i_mesh:02d}.ply"
+            file_name = f"*_hormone_level{hormone_level}.ply"
 
             mesh_path = os.path.join(project_config.sorted_dir, file_name)
             vertices, faces, _ = h2_io.loadData(mesh_path)

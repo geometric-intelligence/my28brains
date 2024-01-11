@@ -35,7 +35,6 @@ To fix this, run the following commands:
 - remove: rm -rf ~/.cache/keops*/build
 - rebuild from python console.
     >>> import pykeops
-(P.S. could help fix other pykeops issues too.)
 
 Meshed surfaces are stored into .ply files.
 
@@ -50,7 +49,7 @@ import multiprocessing
 import os
 import warnings
 
-import project_regression.default_config as default_config
+import project_menstrual.default_config as default_config
 import src.preprocessing.centering as centering
 import src.preprocessing.extraction as extraction
 import src.preprocessing.geodesics as geodesics

@@ -19,11 +19,11 @@ from src.regression.geodesic_regression import GeodesicRegression
 def save_regression_results(
     dataset_name,
     y,
+    X,
     space,
     true_coef,
     regr_intercept,
     regr_coef,
-    duration_time,
     results_dir,
     model,
     linear_residuals,
@@ -34,13 +34,12 @@ def save_regression_results(
 
     Parameters
     ----------
-    dataset_name: string, either "synthetic_mesh" or "real_mesh"
+    dataset_name: string, either "synthetic_mesh" or "menstrual_mesh"
     y: input data given to regression (points on manifold)
     true_intercept: numpy array, the true intercept
     true_coef: numpy array, the true slope
     regr_intercept: numpy array, the intercept calculated via regression
     regr_coef: numpy array, the slope calculated via regression
-    duration_time: float, the duration of the regression
     model: linear regression or geodesic regression
     linear_residuals: boolean, whether geodesic regression was performed
         with linear residuals
@@ -58,14 +57,13 @@ def save_regression_results(
         suffix = f"{dataset_name}_gr_geodesic_residuals"
     true_intercept_path = os.path.join(results_dir, f"true_intercept_{suffix}")
     true_coef_path = os.path.join(results_dir, f"true_coef_{suffix}")
-    regr_intercept_path = os.path.join(
-        results_dir, f"regr_intercept_{suffix}_{duration_time}"
-    )
-    regr_coef_path = os.path.join(results_dir, f"regr_coef_{suffix}_{duration_time}")
+    regr_intercept_path = os.path.join(results_dir, f"regr_intercept_{suffix}")
+    regr_coef_path = os.path.join(results_dir, f"regr_coef_{suffix}")
     y_path = os.path.join(results_dir, f"y_{suffix}")
+    X_path = os.path.join(results_dir, f"X_{suffix}")
     y_hat_path = os.path.join(results_dir, f"y_hat_{suffix}")
 
-    if dataset_name == "synthetic_mesh" or dataset_name == "real_mesh":
+    if dataset_name == "synthetic_mesh" or dataset_name == "menstrual_mesh":
         faces = gs.array(space.faces).numpy()
         mesh_sequence_vertices = y
         h2_io.save_data(
@@ -81,25 +79,49 @@ def save_regression_results(
             faces,
         )
 
+        if not os.path.exists(y_path):
+            os.makedirs(y_path)
+
+        for i, mesh in enumerate(mesh_sequence_vertices):
+            mesh_path = os.path.join(y_path, f"mesh_{i}")
+            h2_io.save_data(
+                mesh_path,
+                ".ply",
+                gs.array(mesh).numpy(),
+                faces,
+            )
+
         # HACK ALERT: uses the plotGeodesic function to plot
         # the original mesh sequence, which is not a geodesic
-        h2_io.plotGeodesic(
-            geod=gs.array(mesh_sequence_vertices).detach().numpy(),
-            F=faces,
-            stepsize=config.stepsize[dataset_name],
-            file_name=y_path,
-        )
+        # h2_io.plotGeodesic( # plots and saves
+        #     geod=gs.array(mesh_sequence_vertices).detach().numpy(),
+        #     F=faces,
+        #     stepsize=config.stepsize[dataset_name],
+        #     file_name=y_path,
+        # )
 
         if y_hat is not None:
-            h2_io.plotGeodesic(
-                geod=gs.array(y_hat).detach().numpy(),
-                F=faces,
-                stepsize=config.stepsize[dataset_name],
-                file_name=y_hat_path,
-            )
+            if not os.path.exists(y_hat_path):
+                os.makedirs(y_hat_path)
+
+            for i, mesh in enumerate(y_hat):
+                mesh_path = os.path.join(y_hat_path, f"mesh_{i}")
+                h2_io.save_data(
+                    mesh_path,
+                    ".ply",
+                    gs.array(mesh).numpy(),
+                    faces,
+                )
+            # h2_io.plotGeodesic( # plots and saves
+            #     geod=gs.array(y_hat).detach().numpy(),
+            #     F=faces,
+            #     stepsize=config.stepsize[dataset_name],
+            #     file_name=y_hat_path,
+            # )
 
     np.savetxt(true_coef_path, true_coef)
     np.savetxt(regr_coef_path, regr_coef)
+    np.savetxt(X_path, X)
 
 
 def fit_geodesic_regression(

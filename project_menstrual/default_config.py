@@ -46,7 +46,7 @@ work_dir = os.getcwd()  # code/my28brains/
 code_dir = os.path.dirname(work_dir)  # code/
 raw_dir = "/home/data/28andMeOC_correct"
 project_dir = os.path.join(
-    os.getcwd(), "project_regression"
+    os.getcwd(), "project_menstrual"
 )  # code/my28brains/project_regression/
 src_dir = os.path.join(os.getcwd(), "src")
 h2_dir = os.path.join(os.getcwd(), "H2_SurfaceMatch")
@@ -67,7 +67,7 @@ torch_dtype = torch.float64
 # Saving geodesics using plotGeodesic
 stepsize = {
     "synthetic_mesh": 55,
-    "real_mesh": 6,
+    "menstrual_mesh": 6,
 }
 
 # 1. Preprocessing Parameters
@@ -81,18 +81,15 @@ structure_ids = [-1]
 # thus the thresholt needs to be higher
 area_thresholds = [0.00]  # 0.0001, 0.001, 0.01, 0.1, 1.0]
 
-# WORKING
-initial_decimation_fact = 10
-scaling_factor = 2 * initial_decimation_fact
-# NOT WORKING
-# initial_decimation_fact = 4
-# scaling_factor = 10
-
 # Define template structure of the mesh that will be used
 # for all mesh in the interpolation
 # Every mesh will have the same number of vertices and faces.
 i_template = 0
 template_day = 2
+
+# WORKING
+initial_decimation_fact = 10  # was 10
+scaling_factor = 2 * initial_decimation_fact
 
 # range of days to interpolate in between
 # Looking at the first 10 days is interesting because:
@@ -102,76 +99,31 @@ template_day = 2
 
 day_range = [2, 11]  # we have parameterized meshes for days 2-11
 
-
 run_interpolate = False
 
 # 2. Regression Parameters
 
-dataset_name = [
-    "synthetic_mesh"
-    # "hyperboloid",
-    # "hypersphere",
-]  # "synthetic_mesh" "real_mesh" "hypersphere", or "hyperboloid"
-
-space_dimension = [2, 3, 5, 10]  # 2 or 3 (only for hypersphere and hyperboloid)
+dataset_name = ["menstrual_mesh"]
 
 geodesic_initialization = [
     "warm_start",
-]  # "warm_start" or "random" (but code not set up well for random)
+]
 linear_residuals = [
     True,
-    # False,
-]  # 'True' or 'False' (alternative is geodesic residuals)
-linear_noise = [True]  # , False]  # 'True' or 'False'
-project_linear_noise = [
-    True,
-    False,
-]  # 'True' or 'False'.
+]
+
 n_steps = [3]  # n steps for the exp solver of geomstats. 3, 5
 tol_factor = [
     # 0.001,
     0.01,
-    0.1,
+    # 0.1,
     # 0.5,
 ]  # tolerance for geodesic regression. If none logged, value 0.001.
-n_X = [
-    # 5,
-    10,
-    20,
-    30,
-    # 50,
-]  # , 10, 15, 20, 30]  # Only for dataset_name == synthetic
-start_shape = [
-    "cube"
-]  # "cube", "distorted_cube", 'twisted_cube', "sphere", "ellipsoid",
-end_shape = ["twisted_cube"]  # note, must have same number of shapes as start_shape
-noise_factor = [
-    0.0,
-    0.01,
-    0.1,
-    0.2,
-]  # , 0.0001, 0.001, 0.01]  # noise added to the data.
-# Will be multiplied by the size of the mesh to calculate the standard
-# deviation of added noise distribution.
-# only applied to synthetic data.
-if start_shape == ["sphere"] or start_shape == ["ellipsoid"]:
-    n_subdivisions = [1]  # , 1, 2, 3, 4, 5]
-elif (
-    start_shape == ["cube"]
-    or start_shape == ["distorted_cube"]
-    or start_shape == ["twisted_cube"]
-):
-    n_subdivisions = ["None"]
 
-# How many X to subdivide the mesh. Note that the number of faces will grow
-# as function of 4 ** subdivisions, so you probably want to keep this under ~5.
-# if nothing recorded, value 3.
-ellipsoid_dims = [[2, 2, 3]]
-# [2, 2, 10],
-# [10, 10, 2],
-# [2, 2, 6],]  # if nothing recorded, [2, 2, 3]
+n_subdivisions = ["None"]
 
-# Build Paths
+
+# 3. Build Paths
 
 # Data (inside project_dir : my28brains/project_regression/)
 data_dir = os.path.join(project_dir, "data")
@@ -206,7 +158,7 @@ for mesh_dir in [
         os.makedirs(mesh_dir)
 
 
-# Elastic Metric Parameters
+# 4. Elastic Metric Parameters
 
 a0 = 0.01  # was 0.1
 a1 = 10  # (was 10)
@@ -215,7 +167,7 @@ c1 = 1  # (was 1)
 d1 = 0
 a2 = 1  # (was 1)
 
-# Unparameterized Geodesic Parameters
+# 5. Unparameterized Geodesic Parameters
 
 # NOTE: "time_steps" is the number of time points that
 #  we will have in the interpolated geodesic

@@ -16,7 +16,7 @@ import numpy as np
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"  # noqa: E402
 import geomstats.backend as gs
 
-import project_regression.default_config as default_config
+import project_menstrual.default_config as default_config
 import src.datasets.utils as data_utils
 import src.viz as viz
 import wandb
@@ -75,8 +75,6 @@ def main_run(config):
 
         if wandb_config.dataset_name in [
             "synthetic_mesh",
-            "hypersphere",
-            "hyperboloid",
         ]:
             wandb.log(
                 {
@@ -132,9 +130,32 @@ def main_run(config):
             lr,
         ) = training.fit_linear_regression(y, X)
 
+        wandb.log(
+            {
+                "linear_intercept_hat": linear_intercept_hat,
+                "linear_coef_hat": linear_coef_hat,
+            }
+        )
+
         X_for_lr = gs.array(X.reshape(len(X), 1))
         y_pred_for_lr = lr.predict(X_for_lr)
         y_pred_for_lr = y_pred_for_lr.reshape(y.shape)
+
+        # Save linear_intercept_hat, linear_coef_hat, X_for_lr, y_pred_for_lr in linear_regression_dir
+        logging.info("Saving linear regression results...")
+        training.save_regression_results(
+            dataset_name=wandb_config.dataset_name,
+            y=y,
+            X=X_for_lr,
+            space=space,
+            true_coef=true_coef,
+            regr_intercept=linear_intercept_hat,
+            regr_coef=linear_coef_hat,
+            results_dir=linear_regression_dir,
+            model="linear",
+            linear_residuals=wandb_config.linear_residuals,
+            y_hat=y_pred_for_lr,
+        )
 
         logging.info("\n- Geodesic Regression")
         (
@@ -165,17 +186,11 @@ def main_run(config):
         y_pred_for_gr = y_pred_for_gr.reshape(y.shape)
 
         gr_linear_residuals = gs.array(y_pred_for_gr) - gs.array(y)
-        rmsd_linear = gs.linalg.norm(gr_linear_residuals) / gs.sqrt(len(y))
-
-        gr_geod_residuals = space.metric.dist(y_pred_for_gr, y)
-        rmsd_geodesic = gs.linalg.norm(gr_geod_residuals) / gs.sqrt(len(y))
+        rmsd = gs.linalg.norm(gr_linear_residuals) / gs.sqrt(len(y))
 
         if wandb_config.dataset_name in ["synthetic_mesh", "menstrual_mesh"]:
 
-            rmsd_linear = rmsd_linear / (len(mesh_sequence_vertices[0]) * mesh_diameter)
-            rmsd_geodesic = rmsd_geodesic / (
-                len(mesh_sequence_vertices[0]) * mesh_diameter
-            )
+            rmsd = rmsd / (len(mesh_sequence_vertices[0]) * mesh_diameter)
 
             wandb.log(
                 {
@@ -191,8 +206,7 @@ def main_run(config):
                 }
             )
 
-        nrmsd_linear = rmsd_linear / gs.linalg.norm(y[0] - y[-1])
-        nrmsd_geodesic = rmsd_geodesic / gs.linalg.norm(y[0] - y[-1])
+        nrmsd = rmsd / gs.linalg.norm(y[0] - y[-1])
 
         wandb.log(
             {
@@ -203,15 +217,10 @@ def main_run(config):
                 "n_geod_iterations": n_iterations,
                 "n_geod_function_evaluations": n_function_evaluations,
                 "n_geod_jacobian_evaluations": n_jacobian_evaluations,
-                "rmsd_linear": rmsd_linear,
-                "nrmsd_linear": nrmsd_linear,
-                "rmsd_geodesic": rmsd_geodesic,
-                "nrmsd_geodesic": nrmsd_geodesic,
+                "rmsd": rmsd,
+                "nrmsd": nrmsd,
                 "gr_intercept_hat": np.array(geodesic_intercept_hat),
                 "gr_coef_hat": np.array(geodesic_coef_hat),
-                # "gr_linear_residuals": gr_linear_residuals.numpy(),
-                # "gr_geod_residuals": gr_geod_residuals.numpy(),
-                # "y_pred_for_gr": np.array(y_pred_for_gr),
             }
         )
 
@@ -228,29 +237,16 @@ def main_run(config):
         training.save_regression_results(
             dataset_name=wandb_config.dataset_name,
             y=y,
+            X=X,
             space=space,
             true_coef=true_coef,
             regr_intercept=geodesic_intercept_hat,
             regr_coef=geodesic_coef_hat,
-            duration_time=geodesic_duration_time,
             results_dir=geodesic_regression_dir,
             model="geodesic",
             linear_residuals=wandb_config.linear_residuals,
             y_hat=y_pred_for_gr,
         )
-
-        if (
-            wandb_config.dataset_name in ["hypersphere", "hyperboloid"]
-            and space.dim == 2
-        ):
-            fig = viz.benchmark_data_sequence(space, y, y_pred_for_lr, y_pred_for_gr)
-            plt = wandb.Image(fig)
-
-            wandb.log(
-                {
-                    "line vs geodesic": plt,
-                }
-            )
 
         wandb_config.update({"full_run": full_run})
         wandb.finish()
@@ -283,38 +279,8 @@ def main():
             "linear_residuals": linear_residuals,
             "tol_factor": tol_factor,
         }
-        if dataset_name == "synthetic_mesh":
-            for (
-                n_X,
-                noise_factor,
-                linear_noise,
-                project_linear_noise,
-                n_subdivisions,
-                (start_shape, end_shape),
-                n_steps,
-            ) in itertools.product(
-                default_config.n_X,
-                default_config.noise_factor,
-                default_config.linear_noise,
-                default_config.project_linear_noise,
-                default_config.n_subdivisions,
-                zip(default_config.start_shape, default_config.end_shape),
-                default_config.n_steps,
-            ):
-                config = {
-                    "n_X": n_X,
-                    "start_shape": start_shape,
-                    "end_shape": end_shape,
-                    "noise_factor": noise_factor,
-                    "linear_noise": linear_noise,
-                    "project_linear_noise": project_linear_noise,
-                    "n_subdivisions": n_subdivisions,
-                    "n_steps": n_steps,
-                }
-                config.update(main_config)
-                main_run(config)
 
-        elif dataset_name == "menstrual_mesh":
+        if dataset_name == "menstrual_mesh":
             for hemisphere, n_steps in itertools.product(
                 default_config.hemisphere, default_config.n_steps
             ):
@@ -324,30 +290,8 @@ def main():
                 }
                 config.update(main_config)
                 main_run(config)
-
-        elif dataset_name == "hypersphere" or dataset_name == "hyperboloid":
-            for (
-                n_X,
-                noise_factor,
-                linear_noise,
-                project_linear_noise,
-                space_dimension,
-            ) in itertools.product(
-                default_config.n_X,
-                default_config.noise_factor,
-                default_config.linear_noise,
-                default_config.project_linear_noise,
-                default_config.space_dimension,
-            ):
-                config = {
-                    "n_X": n_X,
-                    "noise_factor": noise_factor,
-                    "space_dimension": space_dimension,
-                    "linear_noise": linear_noise,
-                    "project_linear_noise": project_linear_noise,
-                }
-                config.update(main_config)
-                main_run(config)
+        else:
+            print("Please choose valid dataset for this project")
 
 
 main()

@@ -67,7 +67,7 @@ torch_dtype = torch.float64
 # Saving geodesics using plotGeodesic
 stepsize = {
     "synthetic_mesh": 55,
-    "real_mesh": 6,
+    "menstrual_mesh": 6,
 }
 
 # 1. Preprocessing Parameters
@@ -111,7 +111,7 @@ dataset_name = [
     "synthetic_mesh"
     # "hyperboloid",
     # "hypersphere",
-]  # "synthetic_mesh" "real_mesh" "hypersphere", or "hyperboloid"
+]  # "synthetic_mesh" "menstrual_mesh" "hypersphere", or "hyperboloid"
 
 space_dimension = [2, 3, 5, 10]  # 2 or 3 (only for hypersphere and hyperboloid)
 
