@@ -72,6 +72,8 @@ stepsize = {
 
 # 1. Preprocessing Parameters
 
+run_type = "base"  # can either be "base" for base result or "exp" for testing.
+
 # Brain hemispheres and anatomical structures
 hemisphere = ["left"]  # , "right"]
 structure_ids = [-1]
@@ -111,6 +113,8 @@ geodesic_initialization = [
 linear_residuals = [
     True,
 ]
+
+n_predicted_points = 30
 
 n_steps = [3]  # n steps for the exp solver of geomstats. 3, 5
 tol_factor = [

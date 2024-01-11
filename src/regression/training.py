@@ -51,7 +51,7 @@ def save_regression_results(
         config = pc.import_default_config(calling_script_path)
     if model == "linear":
         suffix = f"{dataset_name}_lr"
-    if linear_residuals:
+    if model == "geodesic" and linear_residuals:
         suffix = f"{dataset_name}_gr_linear_residuals"
     else:
         suffix = f"{dataset_name}_gr_geodesic_residuals"

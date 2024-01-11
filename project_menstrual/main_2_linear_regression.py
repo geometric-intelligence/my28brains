@@ -49,8 +49,10 @@ def main_run(config):
 
         logging.info(f"\n\n---> START run: {run_name}.")
 
-        linear_regression_dir = os.path.join(regression_dir, f"{run_name}_linear")
-        geodesic_regression_dir = os.path.join(regression_dir, f"{run_name}_geodesic")
+        run_type = default_config.run_type
+
+        linear_regression_dir = os.path.join(regression_dir, f"{run_type}_linear")
+        geodesic_regression_dir = os.path.join(regression_dir, f"{run_type}_geodesic")
         for one_regress_dir in [linear_regression_dir, geodesic_regression_dir]:
             if not os.path.exists(one_regress_dir):
                 os.makedirs(one_regress_dir)
@@ -137,16 +139,19 @@ def main_run(config):
             }
         )
 
-        X_for_lr = gs.array(X.reshape(len(X), 1))
-        y_pred_for_lr = lr.predict(X_for_lr)
-        y_pred_for_lr = y_pred_for_lr.reshape(y.shape)
+        X_pred = gs.linspace(
+            0, default_config.n_predicted_points, default_config.n_predicted_points + 1
+        )
+        X_pred_lr = gs.array(X_pred.reshape(len(X_pred), 1))
+        y_pred_for_lr = lr.predict(X_pred_lr)
+        y_pred_for_lr = y_pred_for_lr.reshape([len(X_pred_lr), len(y[0]), 3])
 
         # Save linear_intercept_hat, linear_coef_hat, X_for_lr, y_pred_for_lr in linear_regression_dir
         logging.info("Saving linear regression results...")
         training.save_regression_results(
             dataset_name=wandb_config.dataset_name,
             y=y,
-            X=X_for_lr,
+            X=X_pred,
             space=space,
             true_coef=true_coef,
             regr_intercept=linear_intercept_hat,
@@ -182,7 +187,7 @@ def main_run(config):
         n_jacobian_evaluations = gr.n_jevaluations
 
         logging.info("Computing points along geodesic regression...")
-        y_pred_for_gr = gr.predict(X)
+        y_pred_for_gr = gr.predict(X_pred)
         y_pred_for_gr = y_pred_for_gr.reshape(y.shape)
 
         gr_linear_residuals = gs.array(y_pred_for_gr) - gs.array(y)

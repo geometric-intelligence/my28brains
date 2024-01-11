@@ -177,19 +177,28 @@ def load(config, project_config=None):
         X = gs.array(hormone_levels)
         print("X: ", X)
 
-        # for i_mesh in range(first_day, last_day + 1):
-        for hormone_level in enumerate(hormone_levels):
-            # mesh_path = os.path.join(
-            #     project_config.sorted_dir,
-            #     f"{config.hemisphere}_structure_-1_day{i_mesh:02d}_at_0.0_parameterized.ply",
-            # )
-            # file_name = f"parameterized_mesh{i_mesh:02d}_hormone_level****.ply"
-            file_name = f"*_hormone_level{hormone_level}.ply"
+        for i, hormone_level in enumerate(hormone_levels):
+            file_suffix = f"hormone_level{hormone_level}.ply"
 
-            mesh_path = os.path.join(project_config.sorted_dir, file_name)
-            vertices, faces, _ = h2_io.loadData(mesh_path)
-            mesh_sequence_vertices.append(vertices)
-            mesh_sequence_faces.append(faces)
+            # List all files in the directory
+            files_in_directory = os.listdir(project_config.sorted_dir)
+
+            # Filter files that end with the specified format
+            matching_files = [
+                file for file in files_in_directory if file.endswith(file_suffix)
+            ]
+
+            # Construct the full file paths using os.path.join
+            mesh_paths = [
+                os.path.join(project_config.sorted_dir, file) for file in matching_files
+            ]
+
+            # Print the result
+            for mesh_path in mesh_paths:
+                print(f"Mesh Path {i + 1}: {mesh_path}")
+                vertices, faces, _ = h2_io.loadData(mesh_path)
+                mesh_sequence_vertices.append(vertices)
+                mesh_sequence_faces.append(faces)
         mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
 
         # parameterized = all(
