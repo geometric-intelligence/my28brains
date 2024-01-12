@@ -61,6 +61,7 @@ COL_TO_TEXT = {
     "n_geod_iterations": "Number of iterations in GR",
     "n_geod_function_evaluations": "Number of function evaluations in GR",
     "n_geod_jacobian_evaluations": "Number of jacobian evaluations in GR",
+    "project_linear_noise": "Project Linear Noise",
 }
 # build work path from git root path
 gitroot_path = subprocess.check_output(
@@ -68,7 +69,7 @@ gitroot_path = subprocess.check_output(
 )
 os.chdir(gitroot_path[:-1])
 TMP = os.path.join(os.getcwd(), "my28brains", "results", "tmp")
-FONTSIZE = 18
+FONTSIZE = 30
 
 
 def init_matplotlib():
@@ -453,6 +454,7 @@ def scatterplot_evaluation(
     marked_by="n_steps",
     x_label="n_steps",
     y_label="relative_diff_seq_duration",
+    path = None,
 ):
     """Scatterplot of results.
 
@@ -469,10 +471,11 @@ def scatterplot_evaluation(
     y_label : string
         Column name to plot on the y-axis.
     """
+    df = df.sort_values(by=[marked_by], ascending = False)
     x = df[x_label]
     y = df[y_label]
     value_to_symbol = dict(
-        zip(df[marked_by].unique(), ["square", "x", "cross", "diamond", "square"])
+        zip(df[marked_by].unique(), ["arrow-left", "arrow-right", ])#"circle", "x-thin", "cross-open", "diamond-tall-open", "square-open"])
     )
 
     marked_values = [s for s in df[marked_by].values]
@@ -485,15 +488,27 @@ def scatterplot_evaluation(
             for s in df[marked_by].values
         ]
 
+    # colored_values = [str(c) for c in df[colored_by].values]
+    # if colored_by == "linear_residuals":
+    #     color_value_to_legend_value = {
+    #         c: "GRLR" if c else "GRGR" for c in df[colored_by].unique()
+    #     }
+    #     colored_values = [
+    #         color_value_to_legend_value[c] if ~np.isnan(c) else c
+    #         for c in df[colored_by].values
+    #     ]
+
     colored_values = [str(c) for c in df[colored_by].values]
     if colored_by == "linear_residuals":
+        df = df.sort_values(by=[colored_by], ascending = False)
         color_value_to_legend_value = {
-            c: "GRLR" if c else "GR" for c in df[colored_by].unique()
+            c: "GRLR" if c else "GRGR" for c in df[colored_by].unique()
         }
         colored_values = [
             color_value_to_legend_value[c] if ~np.isnan(c) else c
             for c in df[colored_by].values
         ]
+
 
     if colored_by == "n_steps":
         color_discrete_sequence = px.colors.sequential.Plasma_r
@@ -524,11 +539,15 @@ def scatterplot_evaluation(
         xaxis=dict(tickfont=dict(family="CMU", size=FONTSIZE)),
         yaxis=dict(tickfont=dict(family="CMU", size=FONTSIZE)),
         legend=dict(font=dict(family="CMU", size=FONTSIZE), title=legend_title),
-        width=650,
-        height=370,
+        width=1.3*900,
+        height=1.5*370,
     )
 
-    fig.update_traces(marker=dict(size=9, opacity=0.9))
+    fig.update_traces(marker=dict(size=20, opacity=0.5))
+
+    if path is  not None:
+        pio.write_image(fig, path, format="svg")
+
     fig.show()
     return fig
 
@@ -563,14 +582,15 @@ def boxplot_evaluation(
     df = df.sort_values(by=[marked_by])
     
     # Create subplots in a single row with separate x-axes
-    fig = make_subplots(rows=1, cols=num_categories, shared_xaxes=False, shared_yaxes=True)
+    fig = make_subplots(rows=1, cols=num_categories, shared_xaxes=False, shared_yaxes=False)
 
     custom_colors = ['#FF1493', '#3300FF']   # Pink and Dark Blue. Green: (90EE90) (you can use other colors)
 
     for i, category in enumerate(df[marked_by].unique()):
-        df = df.sort_values(by=[colored_by])
+        # df = df.sort_values(by=[colored_by])
 
         data = df[df[marked_by] == category]
+        data = data.sort_values(by=[colored_by])
         box = px.box(
             data,
             x=x_label,
@@ -604,11 +624,12 @@ def boxplot_evaluation(
                 fig.update_yaxes(title_text=COL_TO_TEXT[y_label], row=1, col=col_index)
             else:
                 fig.update_yaxes(title_text=y_title, row=1, col=col_index)
-    fig.update_layout(title_text=fig_title)
+    fig.update_layout(title_text=fig_title, title_x=0.5)
 
     fig.update_layout(
-        width=900,
-        height=370,
+        width=1.3*900,
+        height=1.5*370,
+        font=dict(size=20),
     )
 
     fig.show()

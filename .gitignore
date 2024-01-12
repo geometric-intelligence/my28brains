@@ -1,6 +1,7 @@
 # Brain data
 data/
 my28brains/results/*
+my28brains/results/*
 my28brains/results/tmp/
 my28brains/results/anims/
 my28brains/results/blends/
@@ -9,6 +10,7 @@ my28brains/results/regression/
 wandb/*
 H2_Surface_Match/*
 my28brains/blender/blends/*
+my28brains/notebooks/figs/*
 my28brains/notebooks/csv/*
 my28brains/notebooks/viz_plys/*
 
