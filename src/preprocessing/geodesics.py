@@ -264,7 +264,9 @@ def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id, config
     h2_io.plotGeodesic(
         [geod[-1]],
         F0,
-        stepsize=config.stepsize["real_mesh"],  # open3d plotting parameter - unused
+        stepsize=config.stepsize[
+            "menstrual_mesh"
+        ],  # open3d plotting parameter - unused
         file_name=os.path.splitext(ply_path)[0],  # remove .ply extension
         axis=[0, 1, 0],
         angle=-1 * np.pi / 2,

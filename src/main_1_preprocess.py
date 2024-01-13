@@ -1,4 +1,4 @@
-"""Preprocessing of the my28brains dataset.
+"""Preprocess menstrual or pregnancy data.
 
 The processing is done:
 - with the `src.preprocessing` module.
@@ -35,7 +35,6 @@ To fix this, run the following commands:
 - remove: rm -rf ~/.cache/keops*/build
 - rebuild from python console.
     >>> import pykeops
-(P.S. could help fix other pykeops issues too.)
 
 Meshed surfaces are stored into .ply files.
 
@@ -50,25 +49,17 @@ import multiprocessing
 import os
 import warnings
 
-import project_regression.default_config as default_config
+import project_menstrual.default_config as menstrual_default_config
+import project_pregnancy.default_config as pregnancy_default_config
 import src.preprocessing.centering as centering
 import src.preprocessing.extraction as extraction
 import src.preprocessing.geodesics as geodesics
 import src.preprocessing.sorting as sorting
 
 warnings.filterwarnings("ignore")
-raw_dir = default_config.raw_dir
-day_dirs = [os.path.join(raw_dir, f"Day{i:02d}") for i in range(1, 61)]
 
-meshed_dir = default_config.meshed_dir
-centered_dir = default_config.centered_dir
-nondegenerate_dir = default_config.nondegenerate_dir
-reparameterized_dir = default_config.reparameterized_dir
-sorted_dir = default_config.sorted_dir
-interpolated_dir = default_config.interpolated_dir
-
-day_range = default_config.day_range
-day_range_index = [day_range[0] - 1, day_range[1] - 1]
+# PARAMETERS TO CHANGE
+dataset = "menstrual"  # "menstural" or "pregnancy"
 
 
 def run_func_in_parallel_with_queue(func_args_queue):
@@ -98,6 +89,25 @@ def run_func_in_parallel_with_queue(func_args_queue):
 
 
 if __name__ == "__main__":
+    if dataset == "menstrual":
+        default_config = menstrual_default_config
+
+        raw_dir = default_config.raw_dir
+        day_dirs = [os.path.join(raw_dir, f"Day{i:02d}") for i in range(1, 61)]
+
+        meshed_dir = default_config.meshed_dir
+        centered_dir = default_config.centered_dir
+        nondegenerate_dir = default_config.nondegenerate_dir
+        reparameterized_dir = default_config.reparameterized_dir
+        sorted_dir = default_config.sorted_dir
+        interpolated_dir = default_config.interpolated_dir
+
+        day_range = default_config.day_range
+        day_range_index = [day_range[0] - 1, day_range[1] - 1]
+
+    if dataset == "pregnancy":
+        default_config = pregnancy_default_config
+
     # a. Mesh by segmenting surfaces of the hippocampus and its substructures.
     for hemisphere, structure_id in itertools.product(
         default_config.hemisphere, set(default_config.structure_ids + [-1])
