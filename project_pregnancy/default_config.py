@@ -100,7 +100,9 @@ scaling_factor = 2 * initial_decimation_fact
 # first menstrual cycle is day 1-30 (pre-pill)
 
 
-day_range = [1, 30]  # 2-11 for progesterone, 1-30
+day_range = [2, 11]  # TODO: CHANGE. this is for menstrual
+
+# NOTE: hormone file is "28Baby_Hormones.csv"
 
 run_interpolate = False
 
