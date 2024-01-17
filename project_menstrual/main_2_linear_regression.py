@@ -52,12 +52,18 @@ def main_run(config):
         run_type = default_config.run_type
 
         linear_regression_dir = os.path.join(regression_dir, f"{run_type}_linear")
-        geodesic_regression_dir = os.path.join(regression_dir, f"{run_type}_geodesic")
-        for one_regress_dir in [linear_regression_dir, geodesic_regression_dir]:
+        polynomial_regression_dir = os.path.join(
+            regression_dir, f"{run_type}_polynomial"
+        )
+        multiple_regression_dir = os.path.join(regression_dir, f"{run_type}_multiple")
+        for one_regress_dir in [
+            linear_regression_dir,
+            polynomial_regression_dir,
+            multiple_regression_dir,
+        ]:
             if not os.path.exists(one_regress_dir):
                 os.makedirs(one_regress_dir)
 
-        start_time = time.time()
         (
             space,
             y,
@@ -124,18 +130,20 @@ def main_run(config):
             tol = wandb_config.tol_factor
             wandb.log({"geodesic_tol": tol})
 
-        logging.info("\n- Linear Regression for 'warm-start' initialization")
+        logging.info("\n- Normal Linear Regression")
 
         (
             linear_intercept_hat,
             linear_coef_hat,
             lr,
+            lr_score_array,
         ) = training.fit_linear_regression(y, X)
 
         wandb.log(
             {
                 "linear_intercept_hat": linear_intercept_hat,
                 "linear_coef_hat": linear_coef_hat,
+                "lr_score_array (adj, normal)": lr_score_array,
             }
         )
 
@@ -160,98 +168,10 @@ def main_run(config):
             model="linear",
             linear_residuals=wandb_config.linear_residuals,
             y_hat=y_pred_for_lr,
+            lr_score_array=lr_score_array,
         )
 
-        logging.info("\n- Geodesic Regression")
-        (
-            geodesic_intercept_hat,
-            geodesic_coef_hat,
-            gr,
-        ) = training.fit_geodesic_regression(
-            y,
-            space,
-            X,
-            tol=tol,
-            intercept_hat_guess=linear_intercept_hat,
-            coef_hat_guess=linear_coef_hat,
-            initialization=wandb_config.geodesic_initialization,
-            linear_residuals=wandb_config.linear_residuals,
-        )
-
-        geodesic_duration_time = time.time() - start_time
-        geodesic_intercept_err = gs.linalg.norm(geodesic_intercept_hat - true_intercept)
-        geodesic_coef_err = gs.linalg.norm(geodesic_coef_hat - true_coef)
-
-        n_iterations = gr.n_iterations
-        n_function_evaluations = gr.n_fevaluations
-        n_jacobian_evaluations = gr.n_jevaluations
-
-        logging.info("Computing points along geodesic regression...")
-        y_pred_for_gr = gr.predict(X_pred)
-        y_pred_for_gr = y_pred_for_gr.reshape(y.shape)
-
-        gr_linear_residuals = gs.array(y_pred_for_gr) - gs.array(y)
-        rmsd = gs.linalg.norm(gr_linear_residuals) / gs.sqrt(len(y))
-
-        if wandb_config.dataset_name in ["synthetic_mesh", "menstrual_mesh"]:
-
-            rmsd = rmsd / (len(mesh_sequence_vertices[0]) * mesh_diameter)
-
-            wandb.log(
-                {
-                    "geodesic_intercept_hat_fig": wandb.Object3D(
-                        geodesic_intercept_hat.numpy()
-                    ),
-                    "geodesic_coef_hat_fig": wandb.Object3D(geodesic_coef_hat.numpy()),
-                    "y_pred_for_gr_fig": wandb.Object3D(
-                        y_pred_for_gr.detach().numpy().reshape((-1, 3))
-                    ),
-                    "n_faces": len(mesh_faces),
-                    "n_vertices": len(mesh_sequence_vertices[0]),
-                }
-            )
-
-        nrmsd = rmsd / gs.linalg.norm(y[0] - y[-1])
-
-        wandb.log(
-            {
-                "geodesic_duration_time": geodesic_duration_time,
-                "geodesic_intercept_err": geodesic_intercept_err,
-                "geodesic_coef_err": geodesic_coef_err,
-                "geodesic_initialization": wandb_config.geodesic_initialization,
-                "n_geod_iterations": n_iterations,
-                "n_geod_function_evaluations": n_function_evaluations,
-                "n_geod_jacobian_evaluations": n_jacobian_evaluations,
-                "rmsd": rmsd,
-                "nrmsd": nrmsd,
-                "gr_intercept_hat": np.array(geodesic_intercept_hat),
-                "gr_coef_hat": np.array(geodesic_coef_hat),
-            }
-        )
-
-        logging.info(f">> Duration (geodesic): {geodesic_duration_time:.3f} secs.")
-        logging.info(">> Regression errors (geodesic):")
-        logging.info(
-            f"On intercept: {geodesic_intercept_err:.6f}, on coef: "
-            f"{geodesic_coef_err:.6f}"
-        )
-
-        print(f"y_pred_for_gr: " f"{y_pred_for_gr.shape}")
-
-        logging.info("Saving geodesic results...")
-        training.save_regression_results(
-            dataset_name=wandb_config.dataset_name,
-            y=y,
-            X=X,
-            space=space,
-            true_coef=true_coef,
-            regr_intercept=geodesic_intercept_hat,
-            regr_coef=geodesic_coef_hat,
-            results_dir=geodesic_regression_dir,
-            model="geodesic",
-            linear_residuals=wandb_config.linear_residuals,
-            y_hat=y_pred_for_gr,
-        )
+        logging.info("\n- Polynomial Regression")
 
         wandb_config.update({"full_run": full_run})
         wandb.finish()

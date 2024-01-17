@@ -10,6 +10,8 @@ import inspect
 import geomstats.backend as gs
 from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+from sklearn.preprocessing import PolynomialFeatures
 
 import H2_SurfaceMatch.utils.input_output as h2_io  # noqa: E402
 import src.import_project_config as pc
@@ -29,6 +31,7 @@ def save_regression_results(
     linear_residuals,
     y_hat=None,
     config=None,
+    lr_score_array=None,
 ):
     """Save regression results to files.
 
@@ -112,12 +115,10 @@ def save_regression_results(
                     gs.array(mesh).numpy(),
                     faces,
                 )
-            # h2_io.plotGeodesic( # plots and saves
-            #     geod=gs.array(y_hat).detach().numpy(),
-            #     F=faces,
-            #     stepsize=config.stepsize[dataset_name],
-            #     file_name=y_hat_path,
-            # )
+
+            if lr_score_array is not None:
+                score_path = os.path.join(y_hat_path, f"R2_score_{suffix}")
+                np.savetxt(score_path, lr_score_array)
 
     np.savetxt(true_coef_path, true_coef)
     np.savetxt(regr_coef_path, regr_coef)
@@ -182,12 +183,6 @@ def fit_geodesic_regression(
     gr.intercept_ = intercept_hat_guess
     gr.coef_ = coef_hat_guess
 
-    # print("Intercept guess: ", gr.intercept_.shape)
-    # print("Coef guess: ", gr.coef_.shape)
-
-    # print("y.shape: ", y.shape)
-    # print("X.shape: ", X.shape)
-
     gr.fit(gs.array(X), gs.array(y))
 
     intercept_hat, coef_hat = gr.intercept_, gr.coef_
@@ -223,6 +218,59 @@ def fit_linear_regression(y, X):  # , device = "cuda:0"):
     lr = LinearRegression()
 
     lr.fit(X, y)
+
+    intercept_hat, coef_hat = lr.intercept_, lr.coef_
+
+    intercept_hat = intercept_hat.reshape(original_y_shape)
+    coef_hat = coef_hat.reshape(original_y_shape)
+
+    intercept_hat = gs.array(intercept_hat)
+    coef_hat = gs.array(coef_hat)
+
+    # compute R2 score
+    X_pred = X
+    X_pred_lr = gs.array(X_pred.reshape(len(X_pred), 1))
+    y_pred_for_lr = lr.predict(X_pred_lr)
+    y_pred_for_lr = y_pred_for_lr.reshape(y.shape)
+
+    normal_r2_score = r2_score(y, y_pred_for_lr)
+
+    Adj_r2 = 1 - (1 - normal_r2_score) * (len(y) - 1) / (len(y) - X.shape[1] - 1)
+
+    print("Adjusted R2 score: ", Adj_r2)
+    print("R2 score: ", normal_r2_score)
+    score_array = np.array([Adj_r2, normal_r2_score])
+
+    return intercept_hat, coef_hat, lr, score_array
+
+
+def fit_polynomial_regression(y, X, degree=2):
+    """Perform polynomial regression on parameterized meshes.
+
+    Also used to perform multiple linear regression.
+
+    Parameters
+    ----------
+    y: vertices of mesh sequence to be fit
+    X: list of X corresponding to y
+
+    Returns
+    -------
+    intercept_hat: intercept of regression fit
+    coef_hat: slope of regression fit
+    """
+    original_y_shape = y[0].shape
+
+    y = gs.array(y.reshape((len(X), -1)))
+    X = gs.array(X.reshape(len(X), 1))
+
+    poly = PolynomialFeatures(degree=degree)
+
+    # TODO: is that really what we want?
+    X_poly = poly.fit_transform(X)
+    lr = LinearRegression()
+
+    lr.fit(X_poly, y)
 
     intercept_hat, coef_hat = lr.intercept_, lr.coef_
 
