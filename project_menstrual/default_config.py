@@ -108,6 +108,8 @@ run_interpolate = False
 
 dataset_name = ["menstrual_mesh"]
 
+poly_degree = 2
+
 geodesic_initialization = [
     "warm_start",
 ]

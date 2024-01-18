@@ -15,6 +15,7 @@ import numpy as np
 
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"  # noqa: E402
 import geomstats.backend as gs
+from sklearn.preprocessing import PolynomialFeatures
 
 import project_menstrual.default_config as default_config
 import src.datasets.utils as data_utils
@@ -78,6 +79,8 @@ def main_run(config):
                 "X": np.array(X),
                 "true_intercept": np.array(true_intercept),
                 "true_coef": np.array(true_coef),
+                "true_intercept_fig": wandb.Object3D(true_intercept.numpy()),
+                "true_coef_fig": wandb.Object3D(true_coef.numpy()),
             }
         )
 
@@ -90,45 +93,6 @@ def main_run(config):
                     "linear_noise": wandb_config.linear_noise,
                 }
             )
-
-        if (
-            wandb_config.dataset_name == "synthetic_mesh"
-            or wandb_config.dataset_name == "menstrual_mesh"
-        ):
-            mesh_sequence_vertices = y
-            mesh_faces = space.faces
-            logging.info(
-                "\n- Calculating tolerance for geodesic regression."
-                "Based on: size of shape, number of time points, number of vertices."
-            )
-            mesh_diameter = data_utils.mesh_diameter(mesh_sequence_vertices[0])
-            tol = (
-                wandb_config.tol_factor
-                * mesh_diameter
-                * len(mesh_sequence_vertices[0])
-                * len(mesh_sequence_vertices)
-            ) ** 2
-            logging.info(
-                f"\n- Tolerance calculated for geodesic regression: {tol:.3f}."
-            )
-
-            wandb.log(
-                {
-                    "mesh_diameter": mesh_diameter,
-                    "n_faces": len(mesh_faces),
-                    "geodesic_tol": tol,
-                    # "euclidean_subspace": euclidean_subspace,
-                    "mesh_sequence_vertices": wandb.Object3D(
-                        mesh_sequence_vertices.numpy().reshape((-1, 3))
-                    ),
-                    # "test_diff_tolerance": diff_tolerance,
-                    "true_intercept_fig": wandb.Object3D(true_intercept.numpy()),
-                    "true_coef_fig": wandb.Object3D(true_coef.numpy()),
-                }
-            )
-        else:
-            tol = wandb_config.tol_factor
-            wandb.log({"geodesic_tol": tol})
 
         logging.info("\n- Normal Linear Regression")
 
@@ -165,13 +129,49 @@ def main_run(config):
             regr_intercept=linear_intercept_hat,
             regr_coef=linear_coef_hat,
             results_dir=linear_regression_dir,
-            model="linear",
-            linear_residuals=wandb_config.linear_residuals,
             y_hat=y_pred_for_lr,
             lr_score_array=lr_score_array,
         )
 
         logging.info("\n- Polynomial Regression")
+
+        (
+            poly_intercept_hat,
+            poly_coef_hat_linear,
+            poly_coef_hat_quadratic,
+            pr,
+            pr_score_array,
+        ) = training.fit_polynomial_regression(y, X, degree=default_config.poly_degree)
+
+        wandb.log(
+            {
+                "poly_intercept_hat": poly_intercept_hat,
+                "poly_coef_hat_linear": poly_coef_hat_linear,
+                "poly_coef_hat_quadratic": poly_coef_hat_quadratic,
+                "pr_score_array (adj, normal)": pr_score_array,
+            }
+        )
+
+        # predictions for polynomial regression
+        # TODO: have to make X_poly to do this.
+        poly = PolynomialFeatures(degree=default_config.poly_degree, include_bias=False)
+        X_poly = poly.fit_transform(X_pred_lr)
+        y_pred_for_pr = pr.predict(X_poly)
+        y_pred_for_pr = y_pred_for_pr.reshape([len(X_pred_lr), len(y[0]), 3])
+
+        logging.info("Saving polynomial regression results...")
+        training.save_regression_results(
+            dataset_name=wandb_config.dataset_name,
+            y=y,
+            X=X_pred,
+            space=space,
+            true_coef=true_coef,
+            regr_intercept=linear_intercept_hat,
+            regr_coef=linear_coef_hat,
+            results_dir=polynomial_regression_dir,
+            y_hat=y_pred_for_lr,
+            lr_score_array=lr_score_array,
+        )
 
         wandb_config.update({"full_run": full_run})
         wandb.finish()

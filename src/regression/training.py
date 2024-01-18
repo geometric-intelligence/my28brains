@@ -27,8 +27,8 @@ def save_regression_results(
     regr_intercept,
     regr_coef,
     results_dir,
-    model,
-    linear_residuals,
+    linear_residuals=None,
+    model=None,
     y_hat=None,
     config=None,
     lr_score_array=None,
@@ -52,9 +52,12 @@ def save_regression_results(
     if config is None:
         calling_script_path = os.path.abspath(inspect.stack()[1].filename)
         config = pc.import_default_config(calling_script_path)
-    if model == "linear":
+
+    if model is None:
+        suffix = f"{dataset_name}"
+    elif model == "linear":
         suffix = f"{dataset_name}_lr"
-    if model == "geodesic" and linear_residuals:
+    elif model == "geodesic" and linear_residuals:
         suffix = f"{dataset_name}_gr_linear_residuals"
     else:
         suffix = f"{dataset_name}_gr_geodesic_residuals"
@@ -205,7 +208,7 @@ def fit_linear_regression(y, X):  # , device = "cuda:0"):
     intercept_hat: intercept of regression fit
     coef_hat: slope of regression fit
     """
-    original_y_shape = y[0].shape
+    original_point_shape = y[0].shape
 
     print("y.shape: ", y.shape)
     print("X.shape: ", X.shape)
@@ -221,25 +224,13 @@ def fit_linear_regression(y, X):  # , device = "cuda:0"):
 
     intercept_hat, coef_hat = lr.intercept_, lr.coef_
 
-    intercept_hat = intercept_hat.reshape(original_y_shape)
-    coef_hat = coef_hat.reshape(original_y_shape)
+    intercept_hat = intercept_hat.reshape(original_point_shape)
+    coef_hat = coef_hat.reshape(original_point_shape)
 
     intercept_hat = gs.array(intercept_hat)
     coef_hat = gs.array(coef_hat)
 
-    # compute R2 score
-    X_pred = X
-    X_pred_lr = gs.array(X_pred.reshape(len(X_pred), 1))
-    y_pred_for_lr = lr.predict(X_pred_lr)
-    y_pred_for_lr = y_pred_for_lr.reshape(y.shape)
-
-    normal_r2_score = r2_score(y, y_pred_for_lr)
-
-    Adj_r2 = 1 - (1 - normal_r2_score) * (len(y) - 1) / (len(y) - X.shape[1] - 1)
-
-    print("Adjusted R2 score: ", Adj_r2)
-    print("R2 score: ", normal_r2_score)
-    score_array = np.array([Adj_r2, normal_r2_score])
+    score_array = compute_R2(X, y, lr)
 
     return intercept_hat, coef_hat, lr, score_array
 
@@ -259,25 +250,76 @@ def fit_polynomial_regression(y, X, degree=2):
     intercept_hat: intercept of regression fit
     coef_hat: slope of regression fit
     """
-    original_y_shape = y[0].shape
+    original_point_shape = y[0].shape
 
     y = gs.array(y.reshape((len(X), -1)))
     X = gs.array(X.reshape(len(X), 1))
 
-    poly = PolynomialFeatures(degree=degree)
+    poly = PolynomialFeatures(degree=degree, include_bias=False)
+    X_poly = poly.fit_transform(X)  # X_poly is a matrix of shape (len(X), degree + 1)
+    # The extra row is filled with 1's, which is the "intercept" term.
 
-    # TODO: is that really what we want?
-    X_poly = poly.fit_transform(X)
+    print("X_poly.shape: ", X_poly.shape)
+    print("X_poly: ", X_poly)
+
     lr = LinearRegression()
-
     lr.fit(X_poly, y)
 
-    intercept_hat, coef_hat = lr.intercept_, lr.coef_
+    intercept_hat, coef_hats = lr.intercept_, lr.coef_
 
-    intercept_hat = intercept_hat.reshape(original_y_shape)
-    coef_hat = coef_hat.reshape(original_y_shape)
+    print("coef_hat.shape: ", coef_hats.shape)
 
+    coef_hats = coef_hats.reshape(
+        degree, original_point_shape[0] * original_point_shape[1]
+    )
+    print("reshaped coef_hats.shape:", coef_hats.shape)
+
+    # intercept_term = coef_hats[0] # note: this is essentially zero. ignore.
+    coef_hat_linear = coef_hats[0]
+    coef_hat_quadratic = coef_hats[1]
+
+    coef_hat_linear = coef_hat_linear.reshape(original_point_shape)
+    coef_hat_quadratic = coef_hat_quadratic.reshape(original_point_shape)
+    intercept_hat = intercept_hat.reshape(original_point_shape)
+
+    coef_hat_linear = gs.array(coef_hat_linear)
+    coef_hat_quadratic = gs.array(coef_hat_quadratic)
     intercept_hat = gs.array(intercept_hat)
-    coef_hat = gs.array(coef_hat)
 
-    return intercept_hat, coef_hat, lr
+    score_array = compute_R2(X_poly, y, lr)
+
+    return intercept_hat, coef_hat_linear, coef_hat_quadratic, lr, score_array
+
+
+def compute_R2(X_pred, y, lr):
+    """Compute R2 score for linear regression.
+
+    Parameters
+    ----------
+    X: list of X corresponding to y
+    y: vertices of mesh sequence to be fit
+        (flattened s.t. array dimension <= 2)
+    lr: linear regression model
+
+    Returns
+    -------
+    score_array: [adjusted R2 score, normal R2 score]
+    """
+    y_pred_for_lr = lr.predict(X_pred)
+
+    normal_r2_score = r2_score(y, y_pred_for_lr)
+
+    sample_size = len(y)
+    n_independent_variables = X_pred.shape[1]
+    print("sample_size: ", sample_size)
+    print("n_independent_variables: ", n_independent_variables)
+
+    Adj_r2 = 1 - (1 - normal_r2_score) * (sample_size - 1) / (
+        sample_size - n_independent_variables - 1
+    )
+
+    print("Adjusted R2 score: ", Adj_r2)
+    print("R2 score: ", normal_r2_score)
+    score_array = np.array([Adj_r2, normal_r2_score])
+
+    return score_array
