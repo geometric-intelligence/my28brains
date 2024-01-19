@@ -1,10 +1,12 @@
 """Utils to import data."""
 
+import glob
 import inspect
 import os
 
 import geomstats.backend as gs
 import numpy as np
+import pandas as pd
 import trimesh
 from geomstats.geometry.hyperbolic import Hyperbolic
 from geomstats.geometry.hypersphere import Hypersphere
@@ -18,8 +20,8 @@ import src.import_project_config as pc
 from src.regression.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
 
 
-def load(config, project_config=None):
-    """Load data according to values in config file."""
+def load_synthetic_data(config, project_config=None):
+    """Load synthetic data according to values in config file."""
     if project_config is None:
         calling_script_path = os.path.abspath(inspect.stack()[1].filename)
         project_config = pc.import_default_config(calling_script_path)
@@ -161,73 +163,6 @@ def load(config, project_config=None):
         y = mesh_sequence_vertices
         return space, y, y_noiseless, X, true_intercept, true_coef
 
-    elif config.dataset_name == "menstrual_mesh":
-        print("Using menstrual mesh data")
-        mesh_dir = project_config.sorted_dir
-        mesh_sequence_vertices = []
-        mesh_sequence_faces = []
-        # first_day = int(project_config.day_range[0])
-        # last_day = int(project_config.day_range[1])
-        # X = gs.arange(0, 1, 1/(last_day - first_day + 1))
-
-        hormone_levels_path = os.path.join(
-            project_config.sorted_dir, "sorted_hormone_levels.npy"
-        )
-        hormone_levels = np.loadtxt(hormone_levels_path, delimiter=",")
-        X = gs.array(hormone_levels)
-        print("X: ", X)
-
-        for i, hormone_level in enumerate(hormone_levels):
-            file_suffix = f"hormone_level{hormone_level}.ply"
-
-            # List all files in the directory
-            files_in_directory = os.listdir(project_config.sorted_dir)
-
-            # Filter files that end with the specified format
-            matching_files = [
-                file for file in files_in_directory if file.endswith(file_suffix)
-            ]
-
-            # Construct the full file paths using os.path.join
-            mesh_paths = [
-                os.path.join(project_config.sorted_dir, file) for file in matching_files
-            ]
-
-            # Print the result
-            for mesh_path in mesh_paths:
-                print(f"Mesh Path {i + 1}: {mesh_path}")
-                vertices, faces, _ = h2_io.loadData(mesh_path)
-                mesh_sequence_vertices.append(vertices)
-                mesh_sequence_faces.append(faces)
-        mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
-
-        # parameterized = all(
-        # faces == mesh_sequence_faces[0] for faces in mesh_sequence_faces)
-        for faces in mesh_sequence_faces:
-            if (faces != mesh_sequence_faces[0]).all():
-                raise ValueError("Meshes are not parameterized")
-
-        mesh_faces = gs.array(mesh_sequence_faces[0])
-        true_intercept = gs.array(mesh_sequence_vertices[0])
-        true_coef = gs.array(mesh_sequence_vertices[1] - mesh_sequence_vertices[0])
-        print(mesh_dir)
-
-        space = DiscreteSurfaces(faces=mesh_faces)
-        elastic_metric = ElasticMetric(
-            space=space,
-            a0=project_config.a0,
-            a1=project_config.a1,
-            b1=project_config.b1,
-            c1=project_config.c1,
-            d1=project_config.d1,
-            a2=project_config.a2,
-        )
-        elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
-        space.metric = elastic_metric
-
-        y = mesh_sequence_vertices
-        y_noiseless = None
-        return space, y, y_noiseless, X, true_intercept, true_coef
     elif config.dataset_name in ["hyperboloid", "hypersphere"]:
         print(f"Creating synthetic dataset on {config.dataset_name}")
         if config.dataset_name == "hyperboloid":
@@ -261,6 +196,143 @@ def load(config, project_config=None):
                 noise_factor=config.noise_factor,
             )
         return space, y_noisy, y_noiseless, X, true_intercept, true_coef
+    else:
+        raise ValueError(f"Unknown dataset name {config.dataset_name}")
+
+
+def load_real_data(config, project_config=None):
+    """Load real brain meshes according to values in config file."""
+    if project_config is None:
+        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
+        project_config = pc.import_default_config(calling_script_path)
+    if config.dataset_name == "menstrual_mesh":
+
+        # hormone_labels = ["Prog", "Estro", "DHEAS", "LH", "FSH", "SHBG", "EthinylEstradiol", "Levonorgestrel"]
+
+        # all_hormone_levels_array = []
+        # for hormone in hormone_labels:
+        #     all_hormone_levels_array.append(days_used[hormone])
+        # all_hormone_levels = gs.array(all_hormone_levels_array)
+
+        # load meshes
+        mesh_sequence_vertices = []
+        mesh_sequence_faces = []
+        if project_config.sort:
+            days_to_ignore = None
+            print("Using menstrual mesh data (from progesterone sorted directory)")
+            mesh_dir = project_config.sorted_dir
+
+            sorted_hormone_levels_path = os.path.join(
+                mesh_dir, "sorted_hormone_levels.npy"
+            )
+            sorted_hormone_levels = np.loadtxt(
+                sorted_hormone_levels_path, delimiter=","
+            )
+
+            for i, hormone_level in enumerate(sorted_hormone_levels):
+                file_suffix = f"hormone_level{hormone_level}.ply"
+
+                # List all files in the directory
+                files_in_directory = os.listdir(mesh_dir)
+
+                # Filter files that end with the specified format
+                matching_files = [
+                    file for file in files_in_directory if file.endswith(file_suffix)
+                ]
+
+                # Construct the full file paths using os.path.join
+                mesh_paths = [os.path.join(mesh_dir, file) for file in matching_files]
+
+                # Print the result
+                for mesh_path in mesh_paths:
+                    print(f"Mesh Path {i + 1}: {mesh_path}")
+                    vertices, faces, _ = h2_io.loadData(mesh_path)
+                    mesh_sequence_vertices.append(vertices)
+                    mesh_sequence_faces.append(faces)
+        else:
+            print("Using menstrual mesh data (from reparameterized directory)")
+            mesh_dir = project_config.reparameterized_dir
+
+            # make sure there are meshes in the directory
+            mesh_string_base = os.path.join(
+                mesh_dir, f"{config.hemisphere}_structure_{config.structure_id}**.ply"
+            )
+            mesh_paths = sorted(glob.glob(mesh_string_base))
+            print(
+                f"\ne. (Sort) Found {len(mesh_paths)} .plys for ({config.hemisphere}, {config.structure_id}) in {mesh_dir}"
+            )
+
+            # load meshes
+            mesh_sequence_vertices, mesh_sequence_faces = [], []
+            first_day = int(project_config.day_range[0])
+            last_day = int(project_config.day_range[1])
+
+            days_to_ignore = []
+            for day in range(first_day, last_day + 1):
+                mesh_path = os.path.join(
+                    mesh_dir,
+                    f"{config.hemisphere}_structure_{config.structure_id}_day{day:02d}"
+                    f"_at_{config.area_threshold}.ply",
+                )
+                vertices, faces, _ = h2_io.loadData(mesh_path)
+                if vertices.shape[0] == 0:
+                    print(f"Day {day} has no data. Skipping.")
+                    print(f"DayID not to use: {day}")
+                    days_to_ignore.append(day)
+                    continue
+                mesh_sequence_vertices.append(vertices)
+                print("vertices.shape ", vertices.shape)
+                mesh_sequence_faces.append(faces)
+            days_to_ignore = gs.array(days_to_ignore)
+
+        mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
+
+        # parameterized = all(
+        # faces == mesh_sequence_faces[0] for faces in mesh_sequence_faces)
+        for faces in mesh_sequence_faces:
+            if (faces != mesh_sequence_faces[0]).all():
+                raise ValueError("Meshes are not parameterized")
+
+        mesh_faces = gs.array(mesh_sequence_faces[0])
+        true_intercept = gs.array(mesh_sequence_vertices[0])
+        true_coef = gs.array(mesh_sequence_vertices[1] - mesh_sequence_vertices[0])
+        print(mesh_dir)
+
+        space = DiscreteSurfaces(faces=mesh_faces)
+        elastic_metric = ElasticMetric(
+            space=space,
+            a0=project_config.a0,
+            a1=project_config.a1,
+            b1=project_config.b1,
+            c1=project_config.c1,
+            d1=project_config.d1,
+            a2=project_config.a2,
+        )
+        elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
+        space.metric = elastic_metric
+
+        y = mesh_sequence_vertices
+
+        # load all hormones
+        hormones_path = os.path.join(project_config.data_dir, "hormones.csv")
+        df = pd.read_csv(hormones_path, delimiter=",")
+        days_used = df[df["dayID"] < project_config.day_range[1] + 1]
+        days_used = days_used[days_used["dayID"] > project_config.day_range[0] - 1]
+        if days_to_ignore is not None:
+            for day in days_to_ignore:
+                day = int(day)
+                days_used = days_used[days_used["dayID"] != day]
+                print("Hormones excluded from day: ", day)
+        print(days_used)
+        all_hormone_levels = days_used
+
+        print(f"space faces: {space.faces.shape}")
+        print(f"y shape: {y.shape}")
+        print(f"X shape: {all_hormone_levels.shape}")
+        print(f"true intercept shape: {true_intercept.shape}")
+        print(f"true coef shape: {true_coef.shape}")
+
+        return space, y, all_hormone_levels, true_intercept, true_coef
     else:
         raise ValueError(f"Unknown dataset name {config.dataset_name}")
 

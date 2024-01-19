@@ -211,12 +211,11 @@ def fit_linear_regression(y, X):  # , device = "cuda:0"):
     original_point_shape = y[0].shape
 
     print("y.shape: ", y.shape)
+    print("original_point_shape: ", original_point_shape)
     print("X.shape: ", X.shape)
 
     y = gs.array(y.reshape((len(X), -1)))
-    print("y.shape: ", y.shape)
-
-    X = gs.array(X.reshape(len(X), 1))
+    print("regression reshaped y.shape: ", y.shape)
 
     lr = LinearRegression()
 
@@ -224,8 +223,17 @@ def fit_linear_regression(y, X):  # , device = "cuda:0"):
 
     intercept_hat, coef_hat = lr.intercept_, lr.coef_
 
+    if X.shape[1] > 1:
+        coef_hat = coef_hat.reshape(
+            X.shape[1], original_point_shape[0], original_point_shape[1]
+        )
+
+    else:
+        coef_hat = coef_hat.reshape(original_point_shape)
+
+    print("coef_hat.shape: ", coef_hat.shape)
+
     intercept_hat = intercept_hat.reshape(original_point_shape)
-    coef_hat = coef_hat.reshape(original_point_shape)
 
     intercept_hat = gs.array(intercept_hat)
     coef_hat = gs.array(coef_hat)

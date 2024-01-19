@@ -107,8 +107,10 @@ run_interpolate = False
 # 2. Regression Parameters
 
 dataset_name = ["menstrual_mesh"]
+hormone_name = "Prog"  # hormone to use for lr and poly regression
+sort = False
 
-poly_degree = 2
+poly_degree = 3
 
 geodesic_initialization = [
     "warm_start",

@@ -63,7 +63,7 @@ def main_run(config):
             X,
             true_intercept,
             true_coef,
-        ) = data_utils.load(wandb_config)
+        ) = data_utils.load_synthetic_data(wandb_config)
 
         wandb.log(
             {

@@ -173,6 +173,10 @@ if __name__ == "__main__":
         pool.close()
         pool.join()
 
+    if not default_config.sort:
+        print("\ne. Skipping sorting. Preprocessing done!")
+        exit()
+
     # e. Sort meshes by hormone levels
     for hemisphere, structure_id, area_threshold in itertools.product(
         default_config.hemisphere,

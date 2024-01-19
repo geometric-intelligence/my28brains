@@ -54,7 +54,7 @@ def main_run(config):
 
         linear_regression_dir = os.path.join(regression_dir, f"{run_type}_linear")
         polynomial_regression_dir = os.path.join(
-            regression_dir, f"{run_type}_polynomial"
+            regression_dir, f"{run_type}_polynomial_degree{default_config.poly_degree}"
         )
         multiple_regression_dir = os.path.join(regression_dir, f"{run_type}_multiple")
         for one_regress_dir in [
@@ -68,11 +68,17 @@ def main_run(config):
         (
             space,
             y,
-            y_noiseless,
-            X,
+            all_hormone_levels,
             true_intercept,
             true_coef,
-        ) = data_utils.load(wandb_config)
+        ) = data_utils.load_real_data(wandb_config)
+
+        X = all_hormone_levels[default_config.hormone_name].values
+        print(X)
+        print("X.shape, ", X.shape)
+
+        X_for_lr = gs.array(X.reshape(len(X), 1))
+        print("regression reshaped X_for_lr.shape: ", X_for_lr.shape)
 
         wandb.log(
             {
@@ -101,7 +107,7 @@ def main_run(config):
             linear_coef_hat,
             lr,
             lr_score_array,
-        ) = training.fit_linear_regression(y, X)
+        ) = training.fit_linear_regression(y, X_for_lr)
 
         wandb.log(
             {
@@ -173,6 +179,33 @@ def main_run(config):
             lr_score_array=lr_score_array,
         )
 
+        logging.info("\n- Multi-variable Regression")
+
+        progesterone_levels = gs.array(all_hormone_levels["Prog"].values)
+        estrogen_levels = gs.array(all_hormone_levels["Estro"].values)
+        dheas_levels = gs.array(all_hormone_levels["DHEAS"].values)
+        lh_levels = gs.array(all_hormone_levels["LH"].values)
+        fsh_levels = gs.array(all_hormone_levels["FSH"].values)
+        shbg_levels = gs.array(all_hormone_levels["SHBG"].values)
+
+        X_multiple = gs.vstack(
+            (
+                progesterone_levels,
+                estrogen_levels,
+                dheas_levels,
+                lh_levels,
+                fsh_levels,
+                shbg_levels,
+            )
+        ).T  # NOTE: copilot thinks this should be transposed.
+
+        (
+            multiple_intercept_hat,
+            multiple_coef_hat,
+            mr,
+            mr_score_array,
+        ) = training.fit_linear_regression(y, X_multiple)
+
         wandb_config.update({"full_run": full_run})
         wandb.finish()
     except Exception as e:
@@ -206,12 +239,17 @@ def main():
         }
 
         if dataset_name == "menstrual_mesh":
-            for hemisphere, n_steps in itertools.product(
-                default_config.hemisphere, default_config.n_steps
+            for hemisphere, n_steps, structure_id, area_threshold in itertools.product(
+                default_config.hemisphere,
+                default_config.n_steps,
+                default_config.structure_ids,
+                default_config.area_thresholds,
             ):
                 config = {
                     "hemisphere": hemisphere,
                     "n_steps": n_steps,
+                    "structure_id": structure_id,
+                    "area_threshold": area_threshold,
                 }
                 config.update(main_config)
                 main_run(config)
