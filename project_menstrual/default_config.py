@@ -109,6 +109,7 @@ run_interpolate = False
 dataset_name = ["menstrual_mesh"]
 hormone_name = "Prog"  # hormone to use for lr and poly regression
 sort = False
+train_test_split = 0.8
 
 poly_degree = 3
 

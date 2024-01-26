@@ -64,7 +64,6 @@ def save_regression_results(
     true_intercept_path = os.path.join(results_dir, f"true_intercept_{suffix}")
     true_coef_path = os.path.join(results_dir, f"true_coef_{suffix}")
     regr_intercept_path = os.path.join(results_dir, f"regr_intercept_{suffix}")
-    regr_coef_path = os.path.join(results_dir, f"regr_coef_{suffix}")
     y_path = os.path.join(results_dir, f"y_{suffix}")
     X_path = os.path.join(results_dir, f"X_{suffix}")
     y_hat_path = os.path.join(results_dir, f"y_hat_{suffix}")
@@ -97,15 +96,6 @@ def save_regression_results(
                 faces,
             )
 
-        # HACK ALERT: uses the plotGeodesic function to plot
-        # the original mesh sequence, which is not a geodesic
-        # h2_io.plotGeodesic( # plots and saves
-        #     geod=gs.array(mesh_sequence_vertices).detach().numpy(),
-        #     F=faces,
-        #     stepsize=config.stepsize[dataset_name],
-        #     file_name=y_path,
-        # )
-
         if y_hat is not None:
             if not os.path.exists(y_hat_path):
                 os.makedirs(y_hat_path)
@@ -124,8 +114,13 @@ def save_regression_results(
                 np.savetxt(score_path, lr_score_array)
 
     np.savetxt(true_coef_path, true_coef)
-    np.savetxt(regr_coef_path, regr_coef)
     np.savetxt(X_path, X)
+
+    print("regr_coef.shape: ", regr_coef.shape)
+    if len(regr_coef.shape) > 2:
+        for i, coef in enumerate(regr_coef):
+            regr_coef_path = os.path.join(results_dir, f"regr_coef_{suffix}_degree_{i}")
+            np.savetxt(regr_coef_path, coef)
 
 
 def fit_geodesic_regression(
@@ -215,6 +210,7 @@ def fit_linear_regression(y, X):  # , device = "cuda:0"):
     print("X.shape: ", X.shape)
 
     y = gs.array(y.reshape((len(X), -1)))
+    X = gs.array(X.reshape(len(X), -1))
     print("regression reshaped y.shape: ", y.shape)
 
     lr = LinearRegression()
@@ -238,9 +234,7 @@ def fit_linear_regression(y, X):  # , device = "cuda:0"):
     intercept_hat = gs.array(intercept_hat)
     coef_hat = gs.array(coef_hat)
 
-    score_array = compute_R2(X, y, lr)
-
-    return intercept_hat, coef_hat, lr, score_array
+    return intercept_hat, coef_hat, lr
 
 
 def fit_polynomial_regression(y, X, degree=2):
@@ -278,28 +272,30 @@ def fit_polynomial_regression(y, X, degree=2):
     print("coef_hat.shape: ", coef_hats.shape)
 
     coef_hats = coef_hats.reshape(
-        degree, original_point_shape[0] * original_point_shape[1]
+        degree, original_point_shape[0], original_point_shape[1]
     )
     print("reshaped coef_hats.shape:", coef_hats.shape)
 
     # intercept_term = coef_hats[0] # note: this is essentially zero. ignore.
-    coef_hat_linear = coef_hats[0]
-    coef_hat_quadratic = coef_hats[1]
+    # coef_hat_linear = coef_hats[0]
+    # coef_hat_quadratic = coef_hats[1]
 
-    coef_hat_linear = coef_hat_linear.reshape(original_point_shape)
-    coef_hat_quadratic = coef_hat_quadratic.reshape(original_point_shape)
+    # coef_hat_linear = coef_hat_linear.reshape(original_point_shape)
+    # coef_hat_quadratic = coef_hat_quadratic.reshape(original_point_shape)
     intercept_hat = intercept_hat.reshape(original_point_shape)
 
-    coef_hat_linear = gs.array(coef_hat_linear)
-    coef_hat_quadratic = gs.array(coef_hat_quadratic)
+    # coef_hat_linear = gs.array(coef_hat_linear)
+    # coef_hat_quadratic = gs.array(coef_hat_quadratic)
+    coef_hats = gs.array(coef_hats)
     intercept_hat = gs.array(intercept_hat)
 
-    score_array = compute_R2(X_poly, y, lr)
+    print("original_point_shape: ", original_point_shape)
+    print("coef_hats.shape: ", coef_hats.shape)
 
-    return intercept_hat, coef_hat_linear, coef_hat_quadratic, lr, score_array
+    return intercept_hat, coef_hats, lr
 
 
-def compute_R2(X_pred, y, lr):
+def compute_R2(y, X, test_indices, train_indices):
     """Compute R2 score for linear regression.
 
     Parameters
@@ -313,17 +309,36 @@ def compute_R2(X_pred, y, lr):
     -------
     score_array: [adjusted R2 score, normal R2 score]
     """
-    y_pred_for_lr = lr.predict(X_pred)
+    X_train = gs.array(X[train_indices])
+    X_test = gs.array(X[test_indices])
+    y_train = gs.array(y[train_indices])
+    y_test = gs.array(y[test_indices])
 
-    normal_r2_score = r2_score(y, y_pred_for_lr)
+    print("X_pred: ", X)
+    print("X_train: ", X_train)
+    print("X_test: ", X_test)
 
-    sample_size = len(y)
-    n_independent_variables = X_pred.shape[1]
-    print("sample_size: ", sample_size)
-    print("n_independent_variables: ", n_independent_variables)
+    # X_train = gs.array(X_train.reshape(len(X_train), len(X_train[0])))
+    # X_test = gs.array(X_test.reshape(len(X_test), len(X_test[0])))
+    X_train = gs.array(X_train.reshape(len(X_train), -1))
+    X_test = gs.array(X_test.reshape(len(X_test), -1))
+    y_train = gs.array(y_train.reshape((len(X_train), -1)))
+    y_test = gs.array(y_test.reshape((len(X_test), -1)))
 
-    Adj_r2 = 1 - (1 - normal_r2_score) * (sample_size - 1) / (
-        sample_size - n_independent_variables - 1
+    lr = LinearRegression()
+    lr.fit(X_train, y_train)
+
+    y_pred_for_lr = lr.predict(X_test)
+
+    normal_r2_score = r2_score(y_test, y_pred_for_lr)
+
+    train_sample_size = len(y_train)
+    n_independent_variables = X_train.shape[1]
+    print("train_sample_size (n): ", train_sample_size)
+    print("n_independent_variables (p): ", n_independent_variables)
+
+    Adj_r2 = 1 - (1 - normal_r2_score) * (train_sample_size - 1) / (
+        train_sample_size - n_independent_variables - 1
     )
 
     print("Adjusted R2 score: ", Adj_r2)

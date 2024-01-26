@@ -9,6 +9,7 @@ import datetime
 import itertools
 import logging
 import os
+import random
 import time
 
 import numpy as np
@@ -77,8 +78,8 @@ def main_run(config):
         print(X)
         print("X.shape, ", X.shape)
 
-        X_for_lr = gs.array(X.reshape(len(X), 1))
-        print("regression reshaped X_for_lr.shape: ", X_for_lr.shape)
+        # X_for_lr = gs.array(X.reshape(len(X), 1))
+        # print("regression reshaped X_for_lr.shape: ", X_for_lr.shape)
 
         wandb.log(
             {
@@ -100,14 +101,28 @@ def main_run(config):
                 }
             )
 
+        logging.info("\n- Computing train/test indices")
+        n_train = int(default_config.train_test_split * len(X))
+
+        X_indices = np.arange(len(X))
+        # Shuffle the array to get random values
+        random.shuffle(X_indices)
+        train_indices = X_indices[:n_train]
+        train_indices = np.sort(train_indices)
+        test_indices = X_indices[n_train:]
+        test_indices = np.sort(test_indices)
+
         logging.info("\n- Normal Linear Regression")
 
         (
             linear_intercept_hat,
             linear_coef_hat,
             lr,
-            lr_score_array,
-        ) = training.fit_linear_regression(y, X_for_lr)
+        ) = training.fit_linear_regression(y, X)
+
+        logging.info("\n- Computing R2 scores for linear regression")
+
+        lr_score_array = training.compute_R2(y, X, test_indices, train_indices)
 
         wandb.log(
             {
@@ -143,20 +158,13 @@ def main_run(config):
 
         (
             poly_intercept_hat,
-            poly_coef_hat_linear,
-            poly_coef_hat_quadratic,
+            # poly_coef_hat_linear,
+            # poly_coef_hat_quadratic,
+            poly_coef_hats,
             pr,
-            pr_score_array,
         ) = training.fit_polynomial_regression(y, X, degree=default_config.poly_degree)
 
-        wandb.log(
-            {
-                "poly_intercept_hat": poly_intercept_hat,
-                "poly_coef_hat_linear": poly_coef_hat_linear,
-                "poly_coef_hat_quadratic": poly_coef_hat_quadratic,
-                "pr_score_array (adj, normal)": pr_score_array,
-            }
-        )
+        logging.info("\n- Computing R2 scores for polynomial regression")
 
         # predictions for polynomial regression
         # TODO: have to make X_poly to do this.
@@ -165,6 +173,17 @@ def main_run(config):
         y_pred_for_pr = pr.predict(X_poly)
         y_pred_for_pr = y_pred_for_pr.reshape([len(X_pred_lr), len(y[0]), 3])
 
+        pr_score_array = training.compute_R2(y, X_poly, test_indices, train_indices)
+
+        wandb.log(
+            {
+                "poly_intercept_hat": poly_intercept_hat,
+                "poly_coef_hat_linear": poly_coef_hats[0],
+                "poly_coef_hat_quadratic": poly_coef_hats[1],
+                "pr_score_array (adj, normal)": pr_score_array,
+            }
+        )
+
         logging.info("Saving polynomial regression results...")
         training.save_regression_results(
             dataset_name=wandb_config.dataset_name,
@@ -172,11 +191,11 @@ def main_run(config):
             X=X_pred,
             space=space,
             true_coef=true_coef,
-            regr_intercept=linear_intercept_hat,
-            regr_coef=linear_coef_hat,
+            regr_intercept=poly_intercept_hat,
+            regr_coef=poly_coef_hats,
             results_dir=polynomial_regression_dir,
-            y_hat=y_pred_for_lr,
-            lr_score_array=lr_score_array,
+            y_hat=y_pred_for_pr,
+            lr_score_array=pr_score_array,
         )
 
         logging.info("\n- Multi-variable Regression")
@@ -203,8 +222,30 @@ def main_run(config):
             multiple_intercept_hat,
             multiple_coef_hat,
             mr,
-            mr_score_array,
         ) = training.fit_linear_regression(y, X_multiple)
+
+        logging.info("\n- Computing R2 scores for multiple regression")
+
+        mr_score_array = training.compute_R2(y, X_multiple, test_indices, train_indices)
+
+        X_multiple_predict = gs.array(X_multiple.reshape(len(X_multiple), -1))
+        y_pred_for_mr = mr.predict(X_multiple_predict)
+        y_pred_for_mr = y_pred_for_mr.reshape([len(X_multiple), len(y[0]), 3])
+
+        logging.info("Saving multiple regression results...")
+
+        training.save_regression_results(
+            dataset_name=wandb_config.dataset_name,
+            y=y,
+            X=X_pred,
+            space=space,
+            true_coef=true_coef,
+            regr_intercept=multiple_intercept_hat,
+            regr_coef=multiple_coef_hat,
+            results_dir=multiple_regression_dir,
+            y_hat=y_pred_for_mr,
+            lr_score_array=mr_score_array,
+        )
 
         wandb_config.update({"full_run": full_run})
         wandb.finish()
