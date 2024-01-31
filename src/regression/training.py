@@ -133,7 +133,8 @@ def fit_geodesic_regression(
     initialization="warm_start",
     linear_residuals=False,
     compute_iterations=False,
-    # device = "cuda:0",
+    use_cuda=True,
+    device_id=1,
 ):
     """Perform regression on parameterized meshes or benchmark data.
 
@@ -168,6 +169,9 @@ def fit_geodesic_regression(
         tol=tol,
         initialization=initialization,
         linear_residuals=linear_residuals,
+        use_cuda=use_cuda,
+        device_id=device_id,
+        embedding_space_dim=3 * len(y[0]),
     )
 
     if intercept_hat_guess is None:

@@ -8,6 +8,7 @@ import geomstats.backend as gs
 import numpy as np
 import pandas as pd
 import trimesh
+from geomstats.geometry.euclidean import Euclidean
 from geomstats.geometry.hyperbolic import Hyperbolic
 from geomstats.geometry.hypersphere import Hypersphere
 from geomstats.learning.frechet_mean import FrechetMean, variance
@@ -18,6 +19,28 @@ import src.import_project_config as pc
 
 # from geomstats.geometry.discrete_surfaces import (
 from src.regression.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
+from src.regression.geodesic_regression import RiemannianGradientDescent
+
+
+def get_optimizer(use_cuda, n_vertices, max_iter=100, tol=1e-5):
+    """Determine Optimizer based on use_cuda.
+
+    If we are running on GPU, we use RiemannianGradientDescent.
+    """
+    if use_cuda:
+        embedding_space_dim = 3 * n_vertices
+        print("embedding_space_dim", embedding_space_dim)
+        embedding_space = Euclidean(dim=embedding_space_dim)
+        optimizer = RiemannianGradientDescent(
+            max_iter=max_iter,
+            init_step_size=0.1,
+            tol=tol,
+            verbose=False,
+            space=embedding_space,
+        )
+    else:
+        optimizer = None
+    return optimizer
 
 
 def load_synthetic_data(config, project_config=None):
@@ -110,7 +133,12 @@ def load_synthetic_data(config, project_config=None):
             d1=project_config.d1,
             a2=project_config.a2,
         )
-        elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
+        optimizer = get_optimizer(
+            config.use_cuda, n_vertices=len(y_noiseless[0]), max_iter=100, tol=1e-5
+        )
+        elastic_metric.exp_solver = _ExpSolver(
+            n_steps=config.n_steps, optimizer=optimizer
+        )
         space.metric = elastic_metric
 
         if os.path.exists(mesh_dir):
@@ -157,7 +185,12 @@ def load_synthetic_data(config, project_config=None):
             d1=project_config.d1,
             a2=project_config.a2,
         )
-        elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
+        optimizer = get_optimizer(
+            config.use_cuda, n_vertices=len(y_noiseless[0]), max_iter=100, tol=1e-5
+        )
+        elastic_metric.exp_solver = _ExpSolver(
+            n_steps=config.n_steps, optimizer=optimizer
+        )
         space.metric = elastic_metric
 
         y = mesh_sequence_vertices
@@ -308,7 +341,12 @@ def load_real_data(config, project_config=None):
             d1=project_config.d1,
             a2=project_config.a2,
         )
-        elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
+        optimizer = get_optimizer(
+            config.use_cuda, n_vertices=len(true_intercept), max_iter=100, tol=1e-5
+        )
+        elastic_metric.exp_solver = _ExpSolver(
+            n_steps=config.n_steps, optimizer=optimizer
+        )
         space.metric = elastic_metric
 
         y = mesh_sequence_vertices

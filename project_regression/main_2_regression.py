@@ -150,6 +150,7 @@ def main_run(config):
             coef_hat_guess=linear_coef_hat,
             initialization=wandb_config.geodesic_initialization,
             linear_residuals=wandb_config.linear_residuals,
+            use_cuda=True,
         )
 
         geodesic_duration_time = time.time() - start_time
@@ -282,6 +283,8 @@ def main():
             "geodesic_initialization": geodesic_initialization,
             "linear_residuals": linear_residuals,
             "tol_factor": tol_factor,
+            "use_cuda": default_config.use_cuda,
+            "device_id": default_config.device_id,
         }
         if dataset_name == "synthetic_mesh":
             for (
