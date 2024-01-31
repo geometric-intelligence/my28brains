@@ -40,7 +40,14 @@ class RiemannianGradientDescent:
     """Riemannian gradient descent."""
 
     def __init__(
-        self, max_iter=100, init_step_size=0.1, tol=1e-5, verbose=False, space=None
+        self,
+        max_iter=100,
+        init_step_size=0.1,
+        tol=1e-5,
+        verbose=False,
+        space=None,
+        use_cuda=False,
+        torchdeviceId=None,
     ):
         self.max_iter = max_iter
         self.init_step_size = init_step_size
@@ -48,11 +55,17 @@ class RiemannianGradientDescent:
         self.tol = tol
         self.jac = "autodiff"
         self.space = space
+        self.use_cuda = use_cuda
+        self.torchdeviceId = torchdeviceId
 
     def _handle_jac(self, fun):
         if self.jac == "autodiff":
 
             def fun_(x):
+                if self.use_cuda:
+                    x = x.to(dtype=torchdtype, device=self.torchdeviceId)
+                    # value, grad = gs.autodiff.value_and_grad(fun, to_numpy=False)(x)
+                    # return value, grad.cpu().numpy()
                 value, grad = gs.autodiff.value_and_grad(fun, to_numpy=False)(x)
                 return value, grad
 
@@ -83,13 +96,27 @@ class RiemannianGradientDescent:
 
         lr = self.init_step_size
 
-        intercept_init, coef_init = gs.split(x0, 2)
-        intercept_init = gs.reshape(intercept_init, space.shape)
-        coef_init = gs.reshape(coef_init, space.shape)
+        if x0.shape == space.shape:  # there is only one value to unpack: intercept
+            intercept_init = x0
+            print("intercept_init.shape", intercept_init.shape)
+            print("space.shape", space.shape)
+            intercept_init = gs.reshape(intercept_init, space.shape)
+            intercept_hat = intercept_hat_new = space.projection(intercept_init)
+            param = gs.flatten(intercept_hat)
+            coef_hat = None
 
-        intercept_hat = intercept_hat_new = space.projection(intercept_init)
-        coef_hat = coef_hat_new = space.to_tangent(coef_init, intercept_hat)
-        param = gs.vstack([gs.flatten(intercept_hat), gs.flatten(coef_hat)])
+        else:  # there are two values to unpack: coef and intercept
+            intercept_init, coef_init = gs.split(x0, 2)
+
+            print("intercept_init.shape", intercept_init.shape)
+            print("space.shape", space.shape)
+            intercept_init = gs.reshape(intercept_init, space.shape)
+            coef_init = gs.reshape(coef_init, space.shape)
+
+            intercept_hat = intercept_hat_new = space.projection(intercept_init)
+            coef_hat = coef_hat_new = space.to_tangent(coef_init, intercept_hat)
+            param = gs.vstack([gs.flatten(intercept_hat), gs.flatten(coef_hat)])
+            param = param.to(self.torchdeviceId)
 
         current_loss = math.inf
         current_grad = gs.zeros_like(param)
@@ -106,7 +133,8 @@ class RiemannianGradientDescent:
             else:
                 if not current_iter % 5:
                     lr *= 2
-                coef_hat = coef_hat_new
+                if coef_hat is not None:
+                    coef_hat = coef_hat_new
                 intercept_hat = intercept_hat_new
                 current_iter += 1
             if abs(loss - current_loss) < self.tol:
@@ -125,14 +153,21 @@ class RiemannianGradientDescent:
             intercept_hat_new = space.metric.exp(
                 -lr * riem_grad_intercept, intercept_hat
             )
-            coef_hat_new = vector_transport(
-                coef_hat - lr * riem_grad_coef,
-                -lr * riem_grad_intercept,
-                intercept_hat,
-                intercept_hat_new,
-            )
+            if coef_hat is not None:
+                coef_hat_new = vector_transport(
+                    coef_hat - lr * riem_grad_coef,
+                    -lr * riem_grad_intercept,
+                    intercept_hat,
+                    intercept_hat_new,
+                )
 
-            param = gs.vstack([gs.flatten(intercept_hat_new), gs.flatten(coef_hat_new)])
+            if coef_hat is not None:
+                param = gs.vstack(
+                    [gs.flatten(intercept_hat_new), gs.flatten(coef_hat_new)]
+                )
+            else:
+                param = gs.flatten(intercept_hat_new)
+            # param = gs.vstack([gs.flatten(intercept_hat_new), gs.flatten(coef_hat_new)])
 
             current_loss = loss
             current_grad = grad
@@ -302,6 +337,8 @@ class GeodesicRegression(BaseEstimator):
                     tol=tol,
                     verbose=False,
                     space=embedding_space,
+                    use_cuda=self.use_cuda,
+                    torchdeviceId=self.torchdeviceId,
                 )
                 print("Using RiemannianGradientDescent optimizer")
             else:
@@ -319,6 +356,8 @@ class GeodesicRegression(BaseEstimator):
                 tol=tol,
                 verbose=False,
                 space=self.space,
+                use_cuda=self.use_cuda,
+                torchdeviceId=self.torchdeviceId,
             )
             print("Using RiemannianGradientDescent optimizer")
 
@@ -354,19 +393,25 @@ class GeodesicRegression(BaseEstimator):
         print("X", X)
         print("X.dtype", X.dtype)
 
+        print("self.use_cuda", self.use_cuda)
         if self.use_cuda:
-            intercept = intercept.to(dtype=torchdtype, device=self.torchdeviceId)
-            coef = coef.to(dtype=torchdtype, device=self.torchdeviceId)
+            intercept = intercept.to(self.torchdeviceId)
+            coef = coef.to(self.torchdeviceId)
         else:
-            intercept = np.array(intercept)
-            coef = np.array(coef)
+            intercept = gs.array(intercept)
+            coef = gs.array(coef)
 
         print("self.torchdeviceId", self.torchdeviceId)
 
         # intercept = torch.from_numpy(intercept).to(dtype=torchdtype, device=self.torchdeviceId)
         # coef = torch.from_numpy(coef).to(dtype=torchdtype, device=self.torchdeviceId)
 
-        return self.space.metric.exp(gs.einsum("n,...->n...", X, coef), intercept)
+        tangent_vec = gs.einsum("n,...->n...", X, coef)
+        tangent_vec = tangent_vec.to(self.torchdeviceId)
+        print("tangent_vec device", tangent_vec.device)
+        print("intercept device", intercept.device)
+
+        return self.space.metric.exp(tangent_vec, intercept)
 
     def _loss(self, X, y, param, weights=None):
         """Compute the loss associated to the geodesic regression.
@@ -488,7 +533,6 @@ class GeodesicRegression(BaseEstimator):
         """
         print("device_id", device_id)
         print("self.torchdeviceId", self.torchdeviceId)
-
         X = gs.copy(X)
         X = np.array(X)
         X = torch.from_numpy(X).to(dtype=torchdtype, device=self.torchdeviceId)

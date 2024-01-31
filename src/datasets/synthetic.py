@@ -14,11 +14,6 @@ import geomstats.backend as gs
 import numpy as np
 import torch
 import trimesh
-from geomstats.geometry.discrete_surfaces import (
-    DiscreteSurfaces,
-    ElasticMetric,
-    _ExpSolver,
-)
 from geomstats.geometry.hyperbolic import Hyperbolic
 from geomstats.geometry.hypersphere import Hypersphere
 from geomstats.learning.frechet_mean import FrechetMean, variance
@@ -28,6 +23,13 @@ import H2_SurfaceMatch.utils.input_output  # noqa: E402
 import H2_SurfaceMatch.utils.utils  # noqa: E402
 import src.datasets.utils as data_utils
 import src.import_project_config as pc
+
+# from geomstats.geometry.discrete_surfaces import (
+#     DiscreteSurfaces,
+#     ElasticMetric,
+#     _ExpSolver,
+# )
+from src.regression.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
 
 
 def generate_mesh(mesh_type, n_subdivisions=None):

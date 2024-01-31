@@ -7,6 +7,7 @@ import os
 import geomstats.backend as gs
 import numpy as np
 import pandas as pd
+import torch
 import trimesh
 from geomstats.geometry.euclidean import Euclidean
 from geomstats.geometry.hyperbolic import Hyperbolic
@@ -17,7 +18,7 @@ import H2_SurfaceMatch.utils.input_output as h2_io
 import src.datasets.synthetic as synthetic
 import src.import_project_config as pc
 
-# from geomstats.geometry.discrete_surfaces import (
+# from geomstats.geometry.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
 from src.regression.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
 from src.regression.geodesic_regression import RiemannianGradientDescent
 
@@ -45,6 +46,13 @@ def get_optimizer(use_cuda, n_vertices, max_iter=100, tol=1e-5):
 
 def load_synthetic_data(config, project_config=None):
     """Load synthetic data according to values in config file."""
+    if config.device_id is None:
+        torchdeviceId = torch.device("cuda:0") if config.use_cuda else "cpu"
+    else:
+        torchdeviceId = (
+            torch.device(f"cuda:{config.device_id}") if config.use_cuda else "cpu"
+        )
+
     if project_config is None:
         calling_script_path = os.path.abspath(inspect.stack()[1].filename)
         project_config = pc.import_default_config(calling_script_path)
@@ -122,6 +130,13 @@ def load_synthetic_data(config, project_config=None):
             np.save(noiseless_true_coef_path, true_coef)
 
         y_noiseless = noiseless_mesh_sequence_vertices
+
+        faces = gs.array(mesh_faces)
+        print("config.use_cuda: ", config.use_cuda)
+        print("config.torch_dtype: ", config.torch_dtype)
+        print("config.torchdeviceId: ", torchdeviceId)
+        if config.use_cuda:
+            faces = faces.to(torchdeviceId)
 
         space = DiscreteSurfaces(faces=gs.array(mesh_faces))
         elastic_metric = ElasticMetric(

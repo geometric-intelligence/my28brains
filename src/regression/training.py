@@ -8,13 +8,15 @@ os.environ["GEOMSTATS_BACKEND"] = "pytorch"  # noqa: E402
 import inspect
 
 import geomstats.backend as gs
-from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import PolynomialFeatures
 
 import H2_SurfaceMatch.utils.input_output as h2_io  # noqa: E402
 import src.import_project_config as pc
+
+# from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
+from src.regression.discrete_surfaces import DiscreteSurfaces
 from src.regression.geodesic_regression import GeodesicRegression
 
 

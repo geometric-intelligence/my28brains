@@ -5,6 +5,7 @@ Lead authors: Emmanuel Hartman, Adele Myers.
 import math
 
 import geomstats.backend as gs
+import torch
 from geomstats.geometry.euclidean import Euclidean
 from geomstats.geometry.manifold import Manifold
 from geomstats.geometry.riemannian_metric import RiemannianMetric
@@ -248,6 +249,12 @@ class DiscreteSurfaces(Manifold):
             gs.broadcast_to(gs.expand_dims(area, axis=-2), batch_shape + (3, n_faces)),
             batch_shape + (-1,),
         )
+
+        # Added lines: to make GPU compatible
+        incident_areas = incident_areas.to(point.device, dtype=torch.float64)
+        id_vertices = id_vertices.to(point.device)
+        val = val.to(point.device, dtype=torch.float64)
+
         incident_areas = gs.scatter_add(
             incident_areas, dim=len(batch_shape), index=id_vertices, src=val
         )
@@ -855,6 +862,9 @@ class ElasticMetric(RiemannianMetric):
             Sobolev metrics: a comprehensive numerical framework".
             arXiv:2204.04238 [cs.CV], 25 Sep 2022.
         """
+        print("base_point device", base_point.device)
+        print("tangent_vec_a device", tangent_vec_a.device)
+        print("tangent_vec_b device", tangent_vec_b.device)
         to_squeeze = False
         if tangent_vec_a.ndim == 2 and tangent_vec_b.ndim == 2:
             to_squeeze = True

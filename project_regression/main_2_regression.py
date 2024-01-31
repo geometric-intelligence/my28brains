@@ -12,6 +12,7 @@ import os
 import time
 
 import numpy as np
+import torch
 
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"  # noqa: E402
 import geomstats.backend as gs
@@ -56,6 +57,7 @@ def main_run(config):
                 os.makedirs(one_regress_dir)
 
         start_time = time.time()
+
         (
             space,
             y,
@@ -150,7 +152,7 @@ def main_run(config):
             coef_hat_guess=linear_coef_hat,
             initialization=wandb_config.geodesic_initialization,
             linear_residuals=wandb_config.linear_residuals,
-            use_cuda=True,
+            use_cuda=default_config.use_cuda,
         )
 
         geodesic_duration_time = time.time() - start_time
@@ -285,6 +287,7 @@ def main():
             "tol_factor": tol_factor,
             "use_cuda": default_config.use_cuda,
             "device_id": default_config.device_id,
+            "torch_dtype": default_config.torch_dtype,
         }
         if dataset_name == "synthetic_mesh":
             for (
