@@ -204,7 +204,11 @@ def generate_twisted_cube_mesh():
 
 
 def generate_parameterized_geodesic(
-    start_mesh, end_mesh, n_X=5, n_steps=3, config=None
+    start_mesh,
+    end_mesh,
+    config,
+    n_X=5,
+    n_steps=3,
 ):
     """Generate a synthetic geodesic between two parameterized meshes.
 
@@ -240,18 +244,17 @@ def generate_parameterized_geodesic(
     true_intercept and true_coef are useful for evaluating the
     performance of a regression model on this synthetic data.
     """
-    if config is None:
-        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
-        config = pc.import_default_config(calling_script_path)
+    project_dir = config.project_dir
+    project_config = pc.import_default_config(project_dir)
     SURFACE_SPACE = DiscreteSurfaces(faces=gs.array(start_mesh.faces))
     METRIC = ElasticMetric(
         space=SURFACE_SPACE,
-        a0=config.a0,
-        a1=config.a1,
-        b1=config.b1,
-        c1=config.c1,
-        d1=config.d1,
-        a2=config.a2,
+        a0=project_config.a0,
+        a1=project_config.a1,
+        b1=project_config.b1,
+        c1=project_config.c1,
+        d1=project_config.d1,
+        a2=project_config.a2,
     )
     METRIC.exp_solver = _ExpSolver(n_steps=n_steps)
     X = gs.arange(0, 1, 1 / n_X)
@@ -270,7 +273,7 @@ def generate_parameterized_geodesic(
     return geod, start_mesh.faces, X, true_intercept, true_coef
 
 
-def generate_unparameterized_geodesic(start_mesh, end_mesh, gpu_id=1, config=None):
+def generate_unparameterized_geodesic(start_mesh, end_mesh, config, gpu_id=1):
     """Generate a synthetic geodesic between two unparameterized meshes.
 
     Parameters
@@ -289,24 +292,23 @@ def generate_unparameterized_geodesic(start_mesh, end_mesh, gpu_id=1, config=Non
     F0 : torch.tensor, shape=[n_faces, 3]
         The faces of each mesh along the geodesic.
     """
-    if config is None:
-        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
-        config = pc.import_default_config(calling_script_path)
+    project_dir = config.project_dir
+    project_config = pc.import_default_config(project_dir)
     source = [start_mesh.vertices, start_mesh.faces]
     target = [end_mesh.vertices, end_mesh.faces]
     device = torch.device(f"cuda:{gpu_id}" if torch.cuda.is_available() else "cpu")
     geod, F0 = H2_SurfaceMatch.H2_match.H2MultiRes(
         source=source,
         target=target,
-        a0=config.a0,
-        a1=config.a1,
-        b1=config.b1,
-        c1=config.c1,
-        d1=config.d1,
-        a2=config.a2,
-        resolutions=config.resolutions,
+        a0=project_config.a0,
+        a1=project_config.a1,
+        b1=project_config.b1,
+        c1=project_config.c1,
+        d1=project_config.d1,
+        a2=project_config.a2,
+        resolutions=project_config.resolutions,
         start=source,
-        paramlist=config.paramlist,
+        paramlist=project_config.paramlist,
         device=device,
     )
     return geod, F0

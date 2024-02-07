@@ -13,7 +13,6 @@ from sklearn.metrics import r2_score
 from sklearn.preprocessing import PolynomialFeatures
 
 import H2_SurfaceMatch.utils.input_output as h2_io  # noqa: E402
-import src.import_project_config as pc
 
 # from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 from src.regression.discrete_surfaces import DiscreteSurfaces
@@ -29,10 +28,10 @@ def save_regression_results(
     regr_intercept,
     regr_coef,
     results_dir,
+    config,
     linear_residuals=None,
     model=None,
     y_hat=None,
-    config=None,
     lr_score_array=None,
 ):
     """Save regression results to files.
@@ -51,10 +50,6 @@ def save_regression_results(
     results_directory: string, the directory in which to save the results
     y_hat: numpy array, the y values predicted by the regression model.
     """
-    if config is None:
-        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
-        config = pc.import_default_config(calling_script_path)
-
     if model is None:
         suffix = f"{dataset_name}"
     elif model == "linear":

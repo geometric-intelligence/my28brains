@@ -27,6 +27,13 @@ def get_optimizer(use_cuda, n_vertices, max_iter=100, tol=1e-5):
     """Determine Optimizer based on use_cuda.
 
     If we are running on GPU, we use RiemannianGradientDescent.
+
+    Parameters
+    ----------
+    use_cuda : bool. Whether to use GPU.
+    n_vertices : int
+    max_iter : int
+    tol : float
     """
     if use_cuda:
         embedding_space_dim = 3 * n_vertices
@@ -44,7 +51,7 @@ def get_optimizer(use_cuda, n_vertices, max_iter=100, tol=1e-5):
     return optimizer
 
 
-def load_synthetic_data(config, project_config=None):
+def load_synthetic_data(config):
     """Load synthetic data according to values in config file."""
     if config.device_id is None:
         torchdeviceId = torch.device("cuda:0") if config.use_cuda else "cpu"
@@ -53,9 +60,8 @@ def load_synthetic_data(config, project_config=None):
             torch.device(f"cuda:{config.device_id}") if config.use_cuda else "cpu"
         )
 
-    if project_config is None:
-        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
-        project_config = pc.import_default_config(calling_script_path)
+    project_dir = config.project_dir
+    project_config = pc.import_default_config(project_dir)
     if config.dataset_name == "synthetic_mesh":
         print("Using synthetic mesh data")
         data_dir = project_config.synthetic_data_dir
@@ -107,8 +113,8 @@ def load_synthetic_data(config, project_config=None):
             print(
                 f"Noiseless geodesic does not exist in {noiseless_mesh_dir}. Creating one."
             )
-            start_mesh = load_mesh(start_shape, n_subdivisions)
-            end_mesh = load_mesh(end_shape, n_subdivisions)
+            start_mesh = load_mesh(start_shape, n_subdivisions, config)
+            end_mesh = load_mesh(end_shape, n_subdivisions, config)
 
             (
                 noiseless_mesh_sequence_vertices,
@@ -248,11 +254,11 @@ def load_synthetic_data(config, project_config=None):
         raise ValueError(f"Unknown dataset name {config.dataset_name}")
 
 
-def load_real_data(config, project_config=None):
+def load_real_data(config):
     """Load real brain meshes according to values in config file."""
-    if project_config is None:
-        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
-        project_config = pc.import_default_config(calling_script_path)
+    print(config)
+    project_dir = config.project_dir
+    project_config = pc.import_default_config(project_dir)
     if config.dataset_name == "menstrual_mesh":
 
         # hormone_labels = ["Prog", "Estro", "DHEAS", "LH", "FSH", "SHBG", "EthinylEstradiol", "Levonorgestrel"]
@@ -390,7 +396,7 @@ def load_real_data(config, project_config=None):
         raise ValueError(f"Unknown dataset name {config.dataset_name}")
 
 
-def load_mesh(mesh_type, n_subdivisions, project_config=None):
+def load_mesh(mesh_type, n_subdivisions, config):
     """Load a mesh from the synthetic dataset.
 
     If the mesh does not exist, create it.
@@ -399,9 +405,8 @@ def load_mesh(mesh_type, n_subdivisions, project_config=None):
     ----------
     mesh_type : str, {"sphere", "ellipsoid", "pill", "cube"}
     """
-    if project_config is None:
-        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
-        project_config = pc.import_default_config(calling_script_path)
+    project_dir = config.project_dir
+    project_config = pc.import_default_config(project_dir)
     data_dir = project_config.synthetic_data_dir
     shape_dir = os.path.join(data_dir, f"{mesh_type}_subs{n_subdivisions}")
     vertices_path = os.path.join(shape_dir, "vertices.npy")

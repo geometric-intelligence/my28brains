@@ -75,13 +75,13 @@ stepsize = {
 run_type = "base"  # can either be "base" for base result or "exp" for testing.
 
 # Brain hemispheres and anatomical structures
-hemisphere = ["left"]  # , "right"]
-structure_ids = [-1]
+hemisphere = "left"  # , "right"]
+structure_id = -1
 
 # Face area threshold for non-degenerate meshes:
 # the less we decimate, the more likely it is to have small faces
 # thus the thresholt needs to be higher
-area_thresholds = [0.00]  # 0.0001, 0.001, 0.01, 0.1, 1.0]
+area_threshold = 0.00  # [0.00] 0.0001, 0.001, 0.01, 0.1, 1.0]
 
 # Define template structure of the mesh that will be used
 # for all mesh in the interpolation
@@ -106,29 +106,28 @@ run_interpolate = False
 
 # 2. Regression Parameters
 
-dataset_name = ["menstrual_mesh"]
+dataset_name = "menstrual_mesh"
 hormone_name = "Prog"  # hormone to use for lr and poly regression
 sort = False
 train_test_split = 0.8
+use_cuda = False
 
 poly_degree = 3
 
-geodesic_initialization = [
-    "warm_start",
-]
-linear_residuals = [
-    True,
-]
+geodesic_initialization = ("warm_start",)
+linear_residuals = True  # [
+#     True,
+# ]
 
 n_predicted_points = 30
 
 n_steps = [3]  # n steps for the exp solver of geomstats. 3, 5
-tol_factor = [
-    # 0.001,
-    0.01,
-    # 0.1,
-    # 0.5,
-]  # tolerance for geodesic regression. If none logged, value 0.001.
+tol_factor = 0.01  # [
+#     # 0.001,
+#     0.01,
+#     # 0.1,
+#     # 0.5,
+# ]  # tolerance for geodesic regression. If none logged, value 0.001.
 
 n_subdivisions = ["None"]
 

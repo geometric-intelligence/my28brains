@@ -150,6 +150,7 @@ def main_run(config):
             regr_intercept=linear_intercept_hat,
             regr_coef=linear_coef_hat,
             results_dir=linear_regression_dir,
+            config=wandb_config,
             y_hat=y_pred_for_lr,
             lr_score_array=lr_score_array,
         )
@@ -194,6 +195,7 @@ def main_run(config):
             regr_intercept=poly_intercept_hat,
             regr_coef=poly_coef_hats,
             results_dir=polynomial_regression_dir,
+            config=wandb_config,
             y_hat=y_pred_for_pr,
             lr_score_array=pr_score_array,
         )
@@ -243,6 +245,7 @@ def main_run(config):
             regr_intercept=multiple_intercept_hat,
             regr_coef=multiple_coef_hat,
             results_dir=multiple_regression_dir,
+            config=wandb_config,
             y_hat=y_pred_for_mr,
             lr_score_array=mr_score_array,
         )
@@ -261,41 +264,26 @@ def main():
 
     This launches experiments with wandb with different config parameters.
     """
-    for (
-        dataset_name,
-        geodesic_initialization,
-        linear_residuals,
-        tol_factor,
-    ) in itertools.product(
-        default_config.dataset_name,
-        default_config.geodesic_initialization,
-        default_config.linear_residuals,
-        default_config.tol_factor,
-    ):
-        main_config = {
-            "dataset_name": dataset_name,
-            "geodesic_initialization": geodesic_initialization,
-            "linear_residuals": linear_residuals,
-            "tol_factor": tol_factor,
-        }
+    main_config = {
+        "dataset_name": default_config.dataset_name,
+        "geodesic_initialization": default_config.geodesic_initialization,
+        "linear_residuals": default_config.linear_residuals,
+        "tol_factor": default_config.tol_factor,
+        "project_dir": default_config.project_dir,
+        "use_cuda": default_config.use_cuda,
+    }
 
-        if dataset_name == "menstrual_mesh":
-            for hemisphere, n_steps, structure_id, area_threshold in itertools.product(
-                default_config.hemisphere,
-                default_config.n_steps,
-                default_config.structure_ids,
-                default_config.area_thresholds,
-            ):
-                config = {
-                    "hemisphere": hemisphere,
-                    "n_steps": n_steps,
-                    "structure_id": structure_id,
-                    "area_threshold": area_threshold,
-                }
-                config.update(main_config)
-                main_run(config)
-        else:
-            print("Please choose valid dataset for this project")
+    if default_config.dataset_name == "menstrual_mesh":
+        config = {
+            "hemisphere": default_config.hemisphere,
+            "n_steps": default_config.n_steps,
+            "structure_id": default_config.structure_id,
+            "area_threshold": default_config.area_threshold,
+        }
+        config.update(main_config)
+        main_run(config)
+    else:
+        print("Please choose valid dataset for this project")
 
 
 main()

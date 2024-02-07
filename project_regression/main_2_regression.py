@@ -288,6 +288,7 @@ def main():
             "use_cuda": default_config.use_cuda,
             "device_id": default_config.device_id,
             "torch_dtype": default_config.torch_dtype,
+            "project_dir": default_config.project_dir,
         }
         if dataset_name == "synthetic_mesh":
             for (
