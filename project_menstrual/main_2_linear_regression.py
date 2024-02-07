@@ -9,12 +9,14 @@ import datetime
 import itertools
 import logging
 import os
+import random
 import time
 
 import numpy as np
 
 os.environ["GEOMSTATS_BACKEND"] = "pytorch"  # noqa: E402
 import geomstats.backend as gs
+from sklearn.preprocessing import PolynomialFeatures
 
 import project_menstrual.default_config as default_config
 import src.datasets.utils as data_utils
@@ -52,26 +54,40 @@ def main_run(config):
         run_type = default_config.run_type
 
         linear_regression_dir = os.path.join(regression_dir, f"{run_type}_linear")
-        geodesic_regression_dir = os.path.join(regression_dir, f"{run_type}_geodesic")
-        for one_regress_dir in [linear_regression_dir, geodesic_regression_dir]:
+        polynomial_regression_dir = os.path.join(
+            regression_dir, f"{run_type}_polynomial_degree{default_config.poly_degree}"
+        )
+        multiple_regression_dir = os.path.join(regression_dir, f"{run_type}_multiple")
+        for one_regress_dir in [
+            linear_regression_dir,
+            polynomial_regression_dir,
+            multiple_regression_dir,
+        ]:
             if not os.path.exists(one_regress_dir):
                 os.makedirs(one_regress_dir)
 
-        start_time = time.time()
         (
             space,
             y,
-            y_noiseless,
-            X,
+            all_hormone_levels,
             true_intercept,
             true_coef,
-        ) = data_utils.load(wandb_config)
+        ) = data_utils.load_real_data(wandb_config)
+
+        X = all_hormone_levels[default_config.hormone_name].values
+        print(X)
+        print("X.shape, ", X.shape)
+
+        # X_for_lr = gs.array(X.reshape(len(X), 1))
+        # print("regression reshaped X_for_lr.shape: ", X_for_lr.shape)
 
         wandb.log(
             {
                 "X": np.array(X),
                 "true_intercept": np.array(true_intercept),
                 "true_coef": np.array(true_coef),
+                "true_intercept_fig": wandb.Object3D(true_intercept.numpy()),
+                "true_coef_fig": wandb.Object3D(true_coef.numpy()),
             }
         )
 
@@ -85,46 +101,18 @@ def main_run(config):
                 }
             )
 
-        if (
-            wandb_config.dataset_name == "synthetic_mesh"
-            or wandb_config.dataset_name == "menstrual_mesh"
-        ):
-            mesh_sequence_vertices = y
-            mesh_faces = space.faces
-            logging.info(
-                "\n- Calculating tolerance for geodesic regression."
-                "Based on: size of shape, number of time points, number of vertices."
-            )
-            mesh_diameter = data_utils.mesh_diameter(mesh_sequence_vertices[0])
-            tol = (
-                wandb_config.tol_factor
-                * mesh_diameter
-                * len(mesh_sequence_vertices[0])
-                * len(mesh_sequence_vertices)
-            ) ** 2
-            logging.info(
-                f"\n- Tolerance calculated for geodesic regression: {tol:.3f}."
-            )
+        logging.info("\n- Computing train/test indices")
+        n_train = int(default_config.train_test_split * len(X))
 
-            wandb.log(
-                {
-                    "mesh_diameter": mesh_diameter,
-                    "n_faces": len(mesh_faces),
-                    "geodesic_tol": tol,
-                    # "euclidean_subspace": euclidean_subspace,
-                    "mesh_sequence_vertices": wandb.Object3D(
-                        mesh_sequence_vertices.numpy().reshape((-1, 3))
-                    ),
-                    # "test_diff_tolerance": diff_tolerance,
-                    "true_intercept_fig": wandb.Object3D(true_intercept.numpy()),
-                    "true_coef_fig": wandb.Object3D(true_coef.numpy()),
-                }
-            )
-        else:
-            tol = wandb_config.tol_factor
-            wandb.log({"geodesic_tol": tol})
+        X_indices = np.arange(len(X))
+        # Shuffle the array to get random values
+        random.shuffle(X_indices)
+        train_indices = X_indices[:n_train]
+        train_indices = np.sort(train_indices)
+        test_indices = X_indices[n_train:]
+        test_indices = np.sort(test_indices)
 
-        logging.info("\n- Linear Regression for 'warm-start' initialization")
+        logging.info("\n- Normal Linear Regression")
 
         (
             linear_intercept_hat,
@@ -132,10 +120,15 @@ def main_run(config):
             lr,
         ) = training.fit_linear_regression(y, X)
 
+        logging.info("\n- Computing R2 scores for linear regression")
+
+        lr_score_array = training.compute_R2(y, X, test_indices, train_indices)
+
         wandb.log(
             {
                 "linear_intercept_hat": linear_intercept_hat,
                 "linear_coef_hat": linear_coef_hat,
+                "lr_score_array (adj, normal)": lr_score_array,
             }
         )
 
@@ -157,100 +150,104 @@ def main_run(config):
             regr_intercept=linear_intercept_hat,
             regr_coef=linear_coef_hat,
             results_dir=linear_regression_dir,
-            model="linear",
-            linear_residuals=wandb_config.linear_residuals,
+            config=wandb_config,
             y_hat=y_pred_for_lr,
+            lr_score_array=lr_score_array,
         )
 
-        logging.info("\n- Geodesic Regression")
+        logging.info("\n- Polynomial Regression")
+
         (
-            geodesic_intercept_hat,
-            geodesic_coef_hat,
-            gr,
-        ) = training.fit_geodesic_regression(
-            y,
-            space,
-            X,
-            tol=tol,
-            intercept_hat_guess=linear_intercept_hat,
-            coef_hat_guess=linear_coef_hat,
-            initialization=wandb_config.geodesic_initialization,
-            linear_residuals=wandb_config.linear_residuals,
-        )
+            poly_intercept_hat,
+            # poly_coef_hat_linear,
+            # poly_coef_hat_quadratic,
+            poly_coef_hats,
+            pr,
+        ) = training.fit_polynomial_regression(y, X, degree=default_config.poly_degree)
 
-        geodesic_duration_time = time.time() - start_time
-        geodesic_intercept_err = gs.linalg.norm(geodesic_intercept_hat - true_intercept)
-        geodesic_coef_err = gs.linalg.norm(geodesic_coef_hat - true_coef)
+        logging.info("\n- Computing R2 scores for polynomial regression")
 
-        n_iterations = gr.n_iterations
-        n_function_evaluations = gr.n_fevaluations
-        n_jacobian_evaluations = gr.n_jevaluations
+        # predictions for polynomial regression
+        # TODO: have to make X_poly to do this.
+        poly = PolynomialFeatures(degree=default_config.poly_degree, include_bias=False)
+        X_poly = poly.fit_transform(X_pred_lr)
+        y_pred_for_pr = pr.predict(X_poly)
+        y_pred_for_pr = y_pred_for_pr.reshape([len(X_pred_lr), len(y[0]), 3])
 
-        logging.info("Computing points along geodesic regression...")
-        y_pred_for_gr = gr.predict(X_pred)
-        y_pred_for_gr = y_pred_for_gr.reshape(y.shape)
-
-        gr_linear_residuals = gs.array(y_pred_for_gr) - gs.array(y)
-        rmsd = gs.linalg.norm(gr_linear_residuals) / gs.sqrt(len(y))
-
-        if wandb_config.dataset_name in ["synthetic_mesh", "menstrual_mesh"]:
-
-            rmsd = rmsd / (len(mesh_sequence_vertices[0]) * mesh_diameter)
-
-            wandb.log(
-                {
-                    "geodesic_intercept_hat_fig": wandb.Object3D(
-                        geodesic_intercept_hat.numpy()
-                    ),
-                    "geodesic_coef_hat_fig": wandb.Object3D(geodesic_coef_hat.numpy()),
-                    "y_pred_for_gr_fig": wandb.Object3D(
-                        y_pred_for_gr.detach().numpy().reshape((-1, 3))
-                    ),
-                    "n_faces": len(mesh_faces),
-                    "n_vertices": len(mesh_sequence_vertices[0]),
-                }
-            )
-
-        nrmsd = rmsd / gs.linalg.norm(y[0] - y[-1])
+        pr_score_array = training.compute_R2(y, X_poly, test_indices, train_indices)
 
         wandb.log(
             {
-                "geodesic_duration_time": geodesic_duration_time,
-                "geodesic_intercept_err": geodesic_intercept_err,
-                "geodesic_coef_err": geodesic_coef_err,
-                "geodesic_initialization": wandb_config.geodesic_initialization,
-                "n_geod_iterations": n_iterations,
-                "n_geod_function_evaluations": n_function_evaluations,
-                "n_geod_jacobian_evaluations": n_jacobian_evaluations,
-                "rmsd": rmsd,
-                "nrmsd": nrmsd,
-                "gr_intercept_hat": np.array(geodesic_intercept_hat),
-                "gr_coef_hat": np.array(geodesic_coef_hat),
+                "poly_intercept_hat": poly_intercept_hat,
+                "poly_coef_hat_linear": poly_coef_hats[0],
+                "poly_coef_hat_quadratic": poly_coef_hats[1],
+                "pr_score_array (adj, normal)": pr_score_array,
             }
         )
 
-        logging.info(f">> Duration (geodesic): {geodesic_duration_time:.3f} secs.")
-        logging.info(">> Regression errors (geodesic):")
-        logging.info(
-            f"On intercept: {geodesic_intercept_err:.6f}, on coef: "
-            f"{geodesic_coef_err:.6f}"
-        )
-
-        print(f"y_pred_for_gr: " f"{y_pred_for_gr.shape}")
-
-        logging.info("Saving geodesic results...")
+        logging.info("Saving polynomial regression results...")
         training.save_regression_results(
             dataset_name=wandb_config.dataset_name,
             y=y,
-            X=X,
+            X=X_pred,
             space=space,
             true_coef=true_coef,
-            regr_intercept=geodesic_intercept_hat,
-            regr_coef=geodesic_coef_hat,
-            results_dir=geodesic_regression_dir,
-            model="geodesic",
-            linear_residuals=wandb_config.linear_residuals,
-            y_hat=y_pred_for_gr,
+            regr_intercept=poly_intercept_hat,
+            regr_coef=poly_coef_hats,
+            results_dir=polynomial_regression_dir,
+            config=wandb_config,
+            y_hat=y_pred_for_pr,
+            lr_score_array=pr_score_array,
+        )
+
+        logging.info("\n- Multi-variable Regression")
+
+        progesterone_levels = gs.array(all_hormone_levels["Prog"].values)
+        estrogen_levels = gs.array(all_hormone_levels["Estro"].values)
+        dheas_levels = gs.array(all_hormone_levels["DHEAS"].values)
+        lh_levels = gs.array(all_hormone_levels["LH"].values)
+        fsh_levels = gs.array(all_hormone_levels["FSH"].values)
+        shbg_levels = gs.array(all_hormone_levels["SHBG"].values)
+
+        X_multiple = gs.vstack(
+            (
+                progesterone_levels,
+                estrogen_levels,
+                dheas_levels,
+                lh_levels,
+                fsh_levels,
+                shbg_levels,
+            )
+        ).T  # NOTE: copilot thinks this should be transposed.
+
+        (
+            multiple_intercept_hat,
+            multiple_coef_hat,
+            mr,
+        ) = training.fit_linear_regression(y, X_multiple)
+
+        logging.info("\n- Computing R2 scores for multiple regression")
+
+        mr_score_array = training.compute_R2(y, X_multiple, test_indices, train_indices)
+
+        X_multiple_predict = gs.array(X_multiple.reshape(len(X_multiple), -1))
+        y_pred_for_mr = mr.predict(X_multiple_predict)
+        y_pred_for_mr = y_pred_for_mr.reshape([len(X_multiple), len(y[0]), 3])
+
+        logging.info("Saving multiple regression results...")
+
+        training.save_regression_results(
+            dataset_name=wandb_config.dataset_name,
+            y=y,
+            X=X_pred,
+            space=space,
+            true_coef=true_coef,
+            regr_intercept=multiple_intercept_hat,
+            regr_coef=multiple_coef_hat,
+            results_dir=multiple_regression_dir,
+            config=wandb_config,
+            y_hat=y_pred_for_mr,
+            lr_score_array=mr_score_array,
         )
 
         wandb_config.update({"full_run": full_run})
@@ -267,36 +264,26 @@ def main():
 
     This launches experiments with wandb with different config parameters.
     """
-    for (
-        dataset_name,
-        geodesic_initialization,
-        linear_residuals,
-        tol_factor,
-    ) in itertools.product(
-        default_config.dataset_name,
-        default_config.geodesic_initialization,
-        default_config.linear_residuals,
-        default_config.tol_factor,
-    ):
-        main_config = {
-            "dataset_name": dataset_name,
-            "geodesic_initialization": geodesic_initialization,
-            "linear_residuals": linear_residuals,
-            "tol_factor": tol_factor,
-        }
+    main_config = {
+        "dataset_name": default_config.dataset_name,
+        "geodesic_initialization": default_config.geodesic_initialization,
+        "linear_residuals": default_config.linear_residuals,
+        "tol_factor": default_config.tol_factor,
+        "project_dir": default_config.project_dir,
+        "use_cuda": default_config.use_cuda,
+    }
 
-        if dataset_name == "menstrual_mesh":
-            for hemisphere, n_steps in itertools.product(
-                default_config.hemisphere, default_config.n_steps
-            ):
-                config = {
-                    "hemisphere": hemisphere,
-                    "n_steps": n_steps,
-                }
-                config.update(main_config)
-                main_run(config)
-        else:
-            print("Please choose valid dataset for this project")
+    if default_config.dataset_name == "menstrual_mesh":
+        config = {
+            "hemisphere": default_config.hemisphere,
+            "n_steps": default_config.n_steps,
+            "structure_id": default_config.structure_id,
+            "area_threshold": default_config.area_threshold,
+        }
+        config.update(main_config)
+        main_run(config)
+    else:
+        print("Please choose valid dataset for this project")
 
 
 main()

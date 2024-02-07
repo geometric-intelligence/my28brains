@@ -25,26 +25,47 @@ import math
 
 import geomstats.backend as gs
 import geomstats.errors as error
+import numpy as np
+import torch
+from geomstats.geometry.euclidean import Euclidean
 from geomstats.learning.frechet_mean import FrechetMean
 from geomstats.numerics.optimizers import ScipyMinimize
 from scipy.optimize import OptimizeResult
 from sklearn.base import BaseEstimator
 
+torchdtype = torch.float32
+
 
 class RiemannianGradientDescent:
     """Riemannian gradient descent."""
 
-    def __init__(self, max_iter=100, init_step_size=0.1, tol=1e-5, verbose=False):
+    def __init__(
+        self,
+        max_iter=100,
+        init_step_size=0.1,
+        tol=1e-5,
+        verbose=False,
+        space=None,
+        use_cuda=False,
+        torchdeviceId=None,
+    ):
         self.max_iter = max_iter
         self.init_step_size = init_step_size
         self.verbose = verbose
         self.tol = tol
         self.jac = "autodiff"
+        self.space = space
+        self.use_cuda = use_cuda
+        self.torchdeviceId = torchdeviceId
 
     def _handle_jac(self, fun):
         if self.jac == "autodiff":
 
             def fun_(x):
+                if self.use_cuda:
+                    x = x.to(dtype=torchdtype, device=self.torchdeviceId)
+                    # value, grad = gs.autodiff.value_and_grad(fun, to_numpy=False)(x)
+                    # return value, grad.cpu().numpy()
                 value, grad = gs.autodiff.value_and_grad(fun, to_numpy=False)(x)
                 return value, grad
 
@@ -53,7 +74,8 @@ class RiemannianGradientDescent:
 
         return fun_
 
-    def _get_vector_transport(self, space):
+    def _get_vector_transport(self):
+        space = self.space
         if hasattr(space.metric, "parallel_transport"):
 
             def vector_transport(tan_a, tan_b, base_point, _):
@@ -66,20 +88,35 @@ class RiemannianGradientDescent:
 
         return vector_transport
 
-    def minimize(self, space, fun, x0):
+    def minimize(self, fun, x0):
         """Perform gradient descent."""
+        space = self.space
         fun = self._handle_jac(fun)
-        vector_transport = self._get_vector_transport(space)
+        vector_transport = self._get_vector_transport()
 
         lr = self.init_step_size
 
-        intercept_init, coef_init = gs.split(x0, 2)
-        intercept_init = gs.reshape(intercept_init, space.shape)
-        coef_init = gs.reshape(coef_init, space.shape)
+        if x0.shape == space.shape:  # there is only one value to unpack: intercept
+            intercept_init = x0
+            print("intercept_init.shape", intercept_init.shape)
+            print("space.shape", space.shape)
+            intercept_init = gs.reshape(intercept_init, space.shape)
+            intercept_hat = intercept_hat_new = space.projection(intercept_init)
+            param = gs.flatten(intercept_hat)
+            coef_hat = None
 
-        intercept_hat = intercept_hat_new = space.projection(intercept_init)
-        coef_hat = coef_hat_new = space.to_tangent(coef_init, intercept_hat)
-        param = gs.vstack([gs.flatten(intercept_hat), gs.flatten(coef_hat)])
+        else:  # there are two values to unpack: coef and intercept
+            intercept_init, coef_init = gs.split(x0, 2)
+
+            print("intercept_init.shape", intercept_init.shape)
+            print("space.shape", space.shape)
+            intercept_init = gs.reshape(intercept_init, space.shape)
+            coef_init = gs.reshape(coef_init, space.shape)
+
+            intercept_hat = intercept_hat_new = space.projection(intercept_init)
+            coef_hat = coef_hat_new = space.to_tangent(coef_init, intercept_hat)
+            param = gs.vstack([gs.flatten(intercept_hat), gs.flatten(coef_hat)])
+            param = param.to(self.torchdeviceId)
 
         current_loss = math.inf
         current_grad = gs.zeros_like(param)
@@ -96,7 +133,8 @@ class RiemannianGradientDescent:
             else:
                 if not current_iter % 5:
                     lr *= 2
-                coef_hat = coef_hat_new
+                if coef_hat is not None:
+                    coef_hat = coef_hat_new
                 intercept_hat = intercept_hat_new
                 current_iter += 1
             if abs(loss - current_loss) < self.tol:
@@ -115,14 +153,21 @@ class RiemannianGradientDescent:
             intercept_hat_new = space.metric.exp(
                 -lr * riem_grad_intercept, intercept_hat
             )
-            coef_hat_new = vector_transport(
-                coef_hat - lr * riem_grad_coef,
-                -lr * riem_grad_intercept,
-                intercept_hat,
-                intercept_hat_new,
-            )
+            if coef_hat is not None:
+                coef_hat_new = vector_transport(
+                    coef_hat - lr * riem_grad_coef,
+                    -lr * riem_grad_intercept,
+                    intercept_hat,
+                    intercept_hat_new,
+                )
 
-            param = gs.vstack([gs.flatten(intercept_hat_new), gs.flatten(coef_hat_new)])
+            if coef_hat is not None:
+                param = gs.vstack(
+                    [gs.flatten(intercept_hat_new), gs.flatten(coef_hat_new)]
+                )
+            else:
+                param = gs.flatten(intercept_hat_new)
+            # param = gs.vstack([gs.flatten(intercept_hat_new), gs.flatten(coef_hat_new)])
 
             current_loss = loss
             current_grad = grad
@@ -198,11 +243,30 @@ class GeodesicRegression(BaseEstimator):
         tol=1e-5,
         linear_residuals=False,
         compute_iterations=True,
+        use_cuda=False,
+        device_id=None,
+        embedding_space_dim=None,
     ):
         self.space = space
+        self.embedding_space_dim = embedding_space_dim
         self.center_X = center_X
         self.verbose = verbose
         self.tol = tol
+        self.use_cuda = use_cuda
+        self.device_id = device_id
+        if device_id is None:
+            self.torchdeviceId = torch.device("cuda:0") if self.use_cuda else "cpu"
+        else:
+            self.torchdeviceId = (
+                torch.device(f"cuda:{device_id}") if self.use_cuda else "cpu"
+            )
+
+        if self.use_cuda:
+            if embedding_space_dim is None:
+                raise ValueError(
+                    "embedding_space_dim must be set when use_cuda is True."
+                )
+
         self._method = None
         self.method = method
         self.initialization = initialization
@@ -263,11 +327,27 @@ class GeodesicRegression(BaseEstimator):
         tol = self.tol
         max_iter = 100
         if value == "extrinsic":
-            optimizer = ScipyMinimize(
-                method="CG",
-                options={"disp": self.verbose, "maxiter": max_iter},
-                tol=tol,
-            )
+            if self.use_cuda:
+                embedding_space_dim = self.embedding_space_dim
+                print("embedding_space_dim", embedding_space_dim)
+                embedding_space = Euclidean(dim=embedding_space_dim)
+                optimizer = RiemannianGradientDescent(
+                    max_iter=max_iter,
+                    init_step_size=0.1,
+                    tol=tol,
+                    verbose=False,
+                    space=embedding_space,
+                    use_cuda=self.use_cuda,
+                    torchdeviceId=self.torchdeviceId,
+                )
+                print("Using RiemannianGradientDescent optimizer")
+            else:
+                optimizer = ScipyMinimize(
+                    method="CG",
+                    options={"disp": self.verbose, "maxiter": max_iter},
+                    tol=tol,
+                )
+                print("Using ScipyMinimize optimizer")
 
         else:
             optimizer = RiemannianGradientDescent(
@@ -275,7 +355,11 @@ class GeodesicRegression(BaseEstimator):
                 init_step_size=0.1,
                 tol=tol,
                 verbose=False,
+                space=self.space,
+                use_cuda=self.use_cuda,
+                torchdeviceId=self.torchdeviceId,
             )
+            print("Using RiemannianGradientDescent optimizer")
 
         self.optimizer = optimizer
 
@@ -309,7 +393,25 @@ class GeodesicRegression(BaseEstimator):
         print("X", X)
         print("X.dtype", X.dtype)
 
-        return self.space.metric.exp(gs.einsum("n,...->n...", X, coef), intercept)
+        print("self.use_cuda", self.use_cuda)
+        if self.use_cuda:
+            intercept = intercept.to(self.torchdeviceId)
+            coef = coef.to(self.torchdeviceId)
+        else:
+            intercept = gs.array(intercept)
+            coef = gs.array(coef)
+
+        print("self.torchdeviceId", self.torchdeviceId)
+
+        # intercept = torch.from_numpy(intercept).to(dtype=torchdtype, device=self.torchdeviceId)
+        # coef = torch.from_numpy(coef).to(dtype=torchdtype, device=self.torchdeviceId)
+
+        tangent_vec = gs.einsum("n,...->n...", X, coef)
+        tangent_vec = tangent_vec.to(self.torchdeviceId)
+        print("tangent_vec device", tangent_vec.device)
+        print("intercept device", intercept.device)
+
+        return self.space.metric.exp(tangent_vec, intercept)
 
     def _loss(self, X, y, param, weights=None):
         """Compute the loss associated to the geodesic regression.
@@ -408,7 +510,7 @@ class GeodesicRegression(BaseEstimator):
             )
         return init
 
-    def fit(self, X, y, weights=None):
+    def fit(self, X, y, weights=None, device_id=None):
         """Estimate the parameters of the geodesic regression.
 
         Estimate the intercept and the coefficient defining the
@@ -429,13 +531,20 @@ class GeodesicRegression(BaseEstimator):
         self : object
             Returns self.
         """
+        print("device_id", device_id)
+        print("self.torchdeviceId", self.torchdeviceId)
         X = gs.copy(X)
+        X = np.array(X)
+        X = torch.from_numpy(X).to(dtype=torchdtype, device=self.torchdeviceId)
+
+        y = np.array(y)
+        y = torch.from_numpy(y).to(dtype=torchdtype, device=self.torchdeviceId)
         if self.center_X:
             self.mean_ = gs.mean(X)
             X -= self.mean_
 
         if self.method == "extrinsic":
-            res = self._fit_extrinsic(X, y, weights)
+            res = self._fit_extrinsic(X, y, weights=weights)
         if self.method == "riemannian":
             res = self._fit_riemannian(X, y, weights)
 
@@ -525,7 +634,8 @@ class GeodesicRegression(BaseEstimator):
         intercept_init, coef_init = self._initialize_parameters(y)
         x0 = gs.vstack([gs.flatten(intercept_init), gs.flatten(coef_init)])
 
-        result = self.optimizer.minimize(self.space, objective_with_grad, x0)
+        # result = self.optimizer.minimize(self.space, objective_with_grad, x0)
+        result = self.optimizer.minimize(objective_with_grad, x0)
 
         if self.compute_iterations:
             n_iterations = result.nit
@@ -537,7 +647,7 @@ class GeodesicRegression(BaseEstimator):
 
         return result
 
-    def predict(self, X):
+    def predict(self, X, device_id=None):
         """Predict the manifold value for each input.
 
         Parameters

@@ -1,11 +1,15 @@
 """Utils to import data."""
 
+import glob
 import inspect
 import os
 
 import geomstats.backend as gs
 import numpy as np
+import pandas as pd
+import torch
 import trimesh
+from geomstats.geometry.euclidean import Euclidean
 from geomstats.geometry.hyperbolic import Hyperbolic
 from geomstats.geometry.hypersphere import Hypersphere
 from geomstats.learning.frechet_mean import FrechetMean, variance
@@ -14,15 +18,50 @@ import H2_SurfaceMatch.utils.input_output as h2_io
 import src.datasets.synthetic as synthetic
 import src.import_project_config as pc
 
-# from geomstats.geometry.discrete_surfaces import (
+# from geomstats.geometry.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
 from src.regression.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
+from src.regression.geodesic_regression import RiemannianGradientDescent
 
 
-def load(config, project_config=None):
-    """Load data according to values in config file."""
-    if project_config is None:
-        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
-        project_config = pc.import_default_config(calling_script_path)
+def get_optimizer(use_cuda, n_vertices, max_iter=100, tol=1e-5):
+    """Determine Optimizer based on use_cuda.
+
+    If we are running on GPU, we use RiemannianGradientDescent.
+
+    Parameters
+    ----------
+    use_cuda : bool. Whether to use GPU.
+    n_vertices : int
+    max_iter : int
+    tol : float
+    """
+    if use_cuda:
+        embedding_space_dim = 3 * n_vertices
+        print("embedding_space_dim", embedding_space_dim)
+        embedding_space = Euclidean(dim=embedding_space_dim)
+        optimizer = RiemannianGradientDescent(
+            max_iter=max_iter,
+            init_step_size=0.1,
+            tol=tol,
+            verbose=False,
+            space=embedding_space,
+        )
+    else:
+        optimizer = None
+    return optimizer
+
+
+def load_synthetic_data(config):
+    """Load synthetic data according to values in config file."""
+    if config.device_id is None:
+        torchdeviceId = torch.device("cuda:0") if config.use_cuda else "cpu"
+    else:
+        torchdeviceId = (
+            torch.device(f"cuda:{config.device_id}") if config.use_cuda else "cpu"
+        )
+
+    project_dir = config.project_dir
+    project_config = pc.import_default_config(project_dir)
     if config.dataset_name == "synthetic_mesh":
         print("Using synthetic mesh data")
         data_dir = project_config.synthetic_data_dir
@@ -74,8 +113,8 @@ def load(config, project_config=None):
             print(
                 f"Noiseless geodesic does not exist in {noiseless_mesh_dir}. Creating one."
             )
-            start_mesh = load_mesh(start_shape, n_subdivisions)
-            end_mesh = load_mesh(end_shape, n_subdivisions)
+            start_mesh = load_mesh(start_shape, n_subdivisions, config)
+            end_mesh = load_mesh(end_shape, n_subdivisions, config)
 
             (
                 noiseless_mesh_sequence_vertices,
@@ -98,6 +137,13 @@ def load(config, project_config=None):
 
         y_noiseless = noiseless_mesh_sequence_vertices
 
+        faces = gs.array(mesh_faces)
+        print("config.use_cuda: ", config.use_cuda)
+        print("config.torch_dtype: ", config.torch_dtype)
+        print("config.torchdeviceId: ", torchdeviceId)
+        if config.use_cuda:
+            faces = faces.to(torchdeviceId)
+
         space = DiscreteSurfaces(faces=gs.array(mesh_faces))
         elastic_metric = ElasticMetric(
             space=space,
@@ -108,7 +154,12 @@ def load(config, project_config=None):
             d1=project_config.d1,
             a2=project_config.a2,
         )
-        elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
+        optimizer = get_optimizer(
+            config.use_cuda, n_vertices=len(y_noiseless[0]), max_iter=100, tol=1e-5
+        )
+        elastic_metric.exp_solver = _ExpSolver(
+            n_steps=config.n_steps, optimizer=optimizer
+        )
         space.metric = elastic_metric
 
         if os.path.exists(mesh_dir):
@@ -155,79 +206,17 @@ def load(config, project_config=None):
             d1=project_config.d1,
             a2=project_config.a2,
         )
-        elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
+        optimizer = get_optimizer(
+            config.use_cuda, n_vertices=len(y_noiseless[0]), max_iter=100, tol=1e-5
+        )
+        elastic_metric.exp_solver = _ExpSolver(
+            n_steps=config.n_steps, optimizer=optimizer
+        )
         space.metric = elastic_metric
 
         y = mesh_sequence_vertices
         return space, y, y_noiseless, X, true_intercept, true_coef
 
-    elif config.dataset_name == "menstrual_mesh":
-        print("Using menstrual mesh data")
-        mesh_dir = project_config.sorted_dir
-        mesh_sequence_vertices = []
-        mesh_sequence_faces = []
-        # first_day = int(project_config.day_range[0])
-        # last_day = int(project_config.day_range[1])
-        # X = gs.arange(0, 1, 1/(last_day - first_day + 1))
-
-        hormone_levels_path = os.path.join(
-            project_config.sorted_dir, "sorted_hormone_levels.npy"
-        )
-        hormone_levels = np.loadtxt(hormone_levels_path, delimiter=",")
-        X = gs.array(hormone_levels)
-        print("X: ", X)
-
-        for i, hormone_level in enumerate(hormone_levels):
-            file_suffix = f"hormone_level{hormone_level}.ply"
-
-            # List all files in the directory
-            files_in_directory = os.listdir(project_config.sorted_dir)
-
-            # Filter files that end with the specified format
-            matching_files = [
-                file for file in files_in_directory if file.endswith(file_suffix)
-            ]
-
-            # Construct the full file paths using os.path.join
-            mesh_paths = [
-                os.path.join(project_config.sorted_dir, file) for file in matching_files
-            ]
-
-            # Print the result
-            for mesh_path in mesh_paths:
-                print(f"Mesh Path {i + 1}: {mesh_path}")
-                vertices, faces, _ = h2_io.loadData(mesh_path)
-                mesh_sequence_vertices.append(vertices)
-                mesh_sequence_faces.append(faces)
-        mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
-
-        # parameterized = all(
-        # faces == mesh_sequence_faces[0] for faces in mesh_sequence_faces)
-        for faces in mesh_sequence_faces:
-            if (faces != mesh_sequence_faces[0]).all():
-                raise ValueError("Meshes are not parameterized")
-
-        mesh_faces = gs.array(mesh_sequence_faces[0])
-        true_intercept = gs.array(mesh_sequence_vertices[0])
-        true_coef = gs.array(mesh_sequence_vertices[1] - mesh_sequence_vertices[0])
-        print(mesh_dir)
-
-        space = DiscreteSurfaces(faces=mesh_faces)
-        elastic_metric = ElasticMetric(
-            space=space,
-            a0=project_config.a0,
-            a1=project_config.a1,
-            b1=project_config.b1,
-            c1=project_config.c1,
-            d1=project_config.d1,
-            a2=project_config.a2,
-        )
-        elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps)
-        space.metric = elastic_metric
-
-        y = mesh_sequence_vertices
-        y_noiseless = None
-        return space, y, y_noiseless, X, true_intercept, true_coef
     elif config.dataset_name in ["hyperboloid", "hypersphere"]:
         print(f"Creating synthetic dataset on {config.dataset_name}")
         if config.dataset_name == "hyperboloid":
@@ -265,7 +254,149 @@ def load(config, project_config=None):
         raise ValueError(f"Unknown dataset name {config.dataset_name}")
 
 
-def load_mesh(mesh_type, n_subdivisions, project_config=None):
+def load_real_data(config):
+    """Load real brain meshes according to values in config file."""
+    print(config)
+    project_dir = config.project_dir
+    project_config = pc.import_default_config(project_dir)
+    if config.dataset_name == "menstrual_mesh":
+
+        # hormone_labels = ["Prog", "Estro", "DHEAS", "LH", "FSH", "SHBG", "EthinylEstradiol", "Levonorgestrel"]
+
+        # all_hormone_levels_array = []
+        # for hormone in hormone_labels:
+        #     all_hormone_levels_array.append(days_used[hormone])
+        # all_hormone_levels = gs.array(all_hormone_levels_array)
+
+        # load meshes
+        mesh_sequence_vertices = []
+        mesh_sequence_faces = []
+        if project_config.sort:
+            days_to_ignore = None
+            print("Using menstrual mesh data (from progesterone sorted directory)")
+            mesh_dir = project_config.sorted_dir
+
+            sorted_hormone_levels_path = os.path.join(
+                mesh_dir, "sorted_hormone_levels.npy"
+            )
+            sorted_hormone_levels = np.loadtxt(
+                sorted_hormone_levels_path, delimiter=","
+            )
+
+            for i, hormone_level in enumerate(sorted_hormone_levels):
+                file_suffix = f"hormone_level{hormone_level}.ply"
+
+                # List all files in the directory
+                files_in_directory = os.listdir(mesh_dir)
+
+                # Filter files that end with the specified format
+                matching_files = [
+                    file for file in files_in_directory if file.endswith(file_suffix)
+                ]
+
+                # Construct the full file paths using os.path.join
+                mesh_paths = [os.path.join(mesh_dir, file) for file in matching_files]
+
+                # Print the result
+                for mesh_path in mesh_paths:
+                    print(f"Mesh Path {i + 1}: {mesh_path}")
+                    vertices, faces, _ = h2_io.loadData(mesh_path)
+                    mesh_sequence_vertices.append(vertices)
+                    mesh_sequence_faces.append(faces)
+        else:
+            print("Using menstrual mesh data (from reparameterized directory)")
+            mesh_dir = project_config.reparameterized_dir
+
+            # make sure there are meshes in the directory
+            mesh_string_base = os.path.join(
+                mesh_dir, f"{config.hemisphere}_structure_{config.structure_id}**.ply"
+            )
+            mesh_paths = sorted(glob.glob(mesh_string_base))
+            print(
+                f"\ne. (Sort) Found {len(mesh_paths)} .plys for ({config.hemisphere}, {config.structure_id}) in {mesh_dir}"
+            )
+
+            # load meshes
+            mesh_sequence_vertices, mesh_sequence_faces = [], []
+            first_day = int(project_config.day_range[0])
+            last_day = int(project_config.day_range[1])
+
+            days_to_ignore = []
+            for day in range(first_day, last_day + 1):
+                mesh_path = os.path.join(
+                    mesh_dir,
+                    f"{config.hemisphere}_structure_{config.structure_id}_day{day:02d}"
+                    f"_at_{config.area_threshold}.ply",
+                )
+                vertices, faces, _ = h2_io.loadData(mesh_path)
+                if vertices.shape[0] == 0:
+                    print(f"Day {day} has no data. Skipping.")
+                    print(f"DayID not to use: {day}")
+                    days_to_ignore.append(day)
+                    continue
+                mesh_sequence_vertices.append(vertices)
+                print("vertices.shape ", vertices.shape)
+                mesh_sequence_faces.append(faces)
+            days_to_ignore = gs.array(days_to_ignore)
+
+        mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
+
+        # parameterized = all(
+        # faces == mesh_sequence_faces[0] for faces in mesh_sequence_faces)
+        for faces in mesh_sequence_faces:
+            if (faces != mesh_sequence_faces[0]).all():
+                raise ValueError("Meshes are not parameterized")
+
+        mesh_faces = gs.array(mesh_sequence_faces[0])
+        true_intercept = gs.array(mesh_sequence_vertices[0])
+        true_coef = gs.array(mesh_sequence_vertices[1] - mesh_sequence_vertices[0])
+        print(mesh_dir)
+
+        space = DiscreteSurfaces(faces=mesh_faces)
+        elastic_metric = ElasticMetric(
+            space=space,
+            a0=project_config.a0,
+            a1=project_config.a1,
+            b1=project_config.b1,
+            c1=project_config.c1,
+            d1=project_config.d1,
+            a2=project_config.a2,
+        )
+        optimizer = get_optimizer(
+            config.use_cuda, n_vertices=len(true_intercept), max_iter=100, tol=1e-5
+        )
+        elastic_metric.exp_solver = _ExpSolver(
+            n_steps=config.n_steps, optimizer=optimizer
+        )
+        space.metric = elastic_metric
+
+        y = mesh_sequence_vertices
+
+        # load all hormones
+        hormones_path = os.path.join(project_config.data_dir, "hormones.csv")
+        df = pd.read_csv(hormones_path, delimiter=",")
+        days_used = df[df["dayID"] < project_config.day_range[1] + 1]
+        days_used = days_used[days_used["dayID"] > project_config.day_range[0] - 1]
+        if days_to_ignore is not None:
+            for day in days_to_ignore:
+                day = int(day)
+                days_used = days_used[days_used["dayID"] != day]
+                print("Hormones excluded from day: ", day)
+        print(days_used)
+        all_hormone_levels = days_used
+
+        print(f"space faces: {space.faces.shape}")
+        print(f"y shape: {y.shape}")
+        print(f"X shape: {all_hormone_levels.shape}")
+        print(f"true intercept shape: {true_intercept.shape}")
+        print(f"true coef shape: {true_coef.shape}")
+
+        return space, y, all_hormone_levels, true_intercept, true_coef
+    else:
+        raise ValueError(f"Unknown dataset name {config.dataset_name}")
+
+
+def load_mesh(mesh_type, n_subdivisions, config):
     """Load a mesh from the synthetic dataset.
 
     If the mesh does not exist, create it.
@@ -274,9 +405,8 @@ def load_mesh(mesh_type, n_subdivisions, project_config=None):
     ----------
     mesh_type : str, {"sphere", "ellipsoid", "pill", "cube"}
     """
-    if project_config is None:
-        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
-        project_config = pc.import_default_config(calling_script_path)
+    project_dir = config.project_dir
+    project_config = pc.import_default_config(project_dir)
     data_dir = project_config.synthetic_data_dir
     shape_dir = os.path.join(data_dir, f"{mesh_type}_subs{n_subdivisions}")
     vertices_path = os.path.join(shape_dir, "vertices.npy")

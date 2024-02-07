@@ -8,11 +8,14 @@ os.environ["GEOMSTATS_BACKEND"] = "pytorch"  # noqa: E402
 import inspect
 
 import geomstats.backend as gs
-from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+from sklearn.preprocessing import PolynomialFeatures
 
 import H2_SurfaceMatch.utils.input_output as h2_io  # noqa: E402
-import src.import_project_config as pc
+
+# from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
+from src.regression.discrete_surfaces import DiscreteSurfaces
 from src.regression.geodesic_regression import GeodesicRegression
 
 
@@ -25,10 +28,11 @@ def save_regression_results(
     regr_intercept,
     regr_coef,
     results_dir,
-    model,
-    linear_residuals,
+    config,
+    linear_residuals=None,
+    model=None,
     y_hat=None,
-    config=None,
+    lr_score_array=None,
 ):
     """Save regression results to files.
 
@@ -46,19 +50,17 @@ def save_regression_results(
     results_directory: string, the directory in which to save the results
     y_hat: numpy array, the y values predicted by the regression model.
     """
-    if config is None:
-        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
-        config = pc.import_default_config(calling_script_path)
-    if model == "linear":
+    if model is None:
+        suffix = f"{dataset_name}"
+    elif model == "linear":
         suffix = f"{dataset_name}_lr"
-    if model == "geodesic" and linear_residuals:
+    elif model == "geodesic" and linear_residuals:
         suffix = f"{dataset_name}_gr_linear_residuals"
     else:
         suffix = f"{dataset_name}_gr_geodesic_residuals"
     true_intercept_path = os.path.join(results_dir, f"true_intercept_{suffix}")
     true_coef_path = os.path.join(results_dir, f"true_coef_{suffix}")
     regr_intercept_path = os.path.join(results_dir, f"regr_intercept_{suffix}")
-    regr_coef_path = os.path.join(results_dir, f"regr_coef_{suffix}")
     y_path = os.path.join(results_dir, f"y_{suffix}")
     X_path = os.path.join(results_dir, f"X_{suffix}")
     y_hat_path = os.path.join(results_dir, f"y_hat_{suffix}")
@@ -91,15 +93,6 @@ def save_regression_results(
                 faces,
             )
 
-        # HACK ALERT: uses the plotGeodesic function to plot
-        # the original mesh sequence, which is not a geodesic
-        # h2_io.plotGeodesic( # plots and saves
-        #     geod=gs.array(mesh_sequence_vertices).detach().numpy(),
-        #     F=faces,
-        #     stepsize=config.stepsize[dataset_name],
-        #     file_name=y_path,
-        # )
-
         if y_hat is not None:
             if not os.path.exists(y_hat_path):
                 os.makedirs(y_hat_path)
@@ -112,16 +105,19 @@ def save_regression_results(
                     gs.array(mesh).numpy(),
                     faces,
                 )
-            # h2_io.plotGeodesic( # plots and saves
-            #     geod=gs.array(y_hat).detach().numpy(),
-            #     F=faces,
-            #     stepsize=config.stepsize[dataset_name],
-            #     file_name=y_hat_path,
-            # )
+
+            if lr_score_array is not None:
+                score_path = os.path.join(y_hat_path, f"R2_score_{suffix}")
+                np.savetxt(score_path, lr_score_array)
 
     np.savetxt(true_coef_path, true_coef)
-    np.savetxt(regr_coef_path, regr_coef)
     np.savetxt(X_path, X)
+
+    print("regr_coef.shape: ", regr_coef.shape)
+    if len(regr_coef.shape) > 2:
+        for i, coef in enumerate(regr_coef):
+            regr_coef_path = os.path.join(results_dir, f"regr_coef_{suffix}_degree_{i}")
+            np.savetxt(regr_coef_path, coef)
 
 
 def fit_geodesic_regression(
@@ -134,7 +130,8 @@ def fit_geodesic_regression(
     initialization="warm_start",
     linear_residuals=False,
     compute_iterations=False,
-    # device = "cuda:0",
+    use_cuda=True,
+    device_id=1,
 ):
     """Perform regression on parameterized meshes or benchmark data.
 
@@ -169,6 +166,9 @@ def fit_geodesic_regression(
         tol=tol,
         initialization=initialization,
         linear_residuals=linear_residuals,
+        use_cuda=use_cuda,
+        device_id=device_id,
+        embedding_space_dim=3 * len(y[0]),
     )
 
     if intercept_hat_guess is None:
@@ -181,12 +181,6 @@ def fit_geodesic_regression(
 
     gr.intercept_ = intercept_hat_guess
     gr.coef_ = coef_hat_guess
-
-    # print("Intercept guess: ", gr.intercept_.shape)
-    # print("Coef guess: ", gr.coef_.shape)
-
-    # print("y.shape: ", y.shape)
-    # print("X.shape: ", X.shape)
 
     gr.fit(gs.array(X), gs.array(y))
 
@@ -210,15 +204,15 @@ def fit_linear_regression(y, X):  # , device = "cuda:0"):
     intercept_hat: intercept of regression fit
     coef_hat: slope of regression fit
     """
-    original_y_shape = y[0].shape
+    original_point_shape = y[0].shape
 
     print("y.shape: ", y.shape)
+    print("original_point_shape: ", original_point_shape)
     print("X.shape: ", X.shape)
 
     y = gs.array(y.reshape((len(X), -1)))
-    print("y.shape: ", y.shape)
-
-    X = gs.array(X.reshape(len(X), 1))
+    X = gs.array(X.reshape(len(X), -1))
+    print("regression reshaped y.shape: ", y.shape)
 
     lr = LinearRegression()
 
@@ -226,10 +220,130 @@ def fit_linear_regression(y, X):  # , device = "cuda:0"):
 
     intercept_hat, coef_hat = lr.intercept_, lr.coef_
 
-    intercept_hat = intercept_hat.reshape(original_y_shape)
-    coef_hat = coef_hat.reshape(original_y_shape)
+    if X.shape[1] > 1:
+        coef_hat = coef_hat.reshape(
+            X.shape[1], original_point_shape[0], original_point_shape[1]
+        )
+
+    else:
+        coef_hat = coef_hat.reshape(original_point_shape)
+
+    print("coef_hat.shape: ", coef_hat.shape)
+
+    intercept_hat = intercept_hat.reshape(original_point_shape)
 
     intercept_hat = gs.array(intercept_hat)
     coef_hat = gs.array(coef_hat)
 
     return intercept_hat, coef_hat, lr
+
+
+def fit_polynomial_regression(y, X, degree=2):
+    """Perform polynomial regression on parameterized meshes.
+
+    Also used to perform multiple linear regression.
+
+    Parameters
+    ----------
+    y: vertices of mesh sequence to be fit
+    X: list of X corresponding to y
+
+    Returns
+    -------
+    intercept_hat: intercept of regression fit
+    coef_hat: slope of regression fit
+    """
+    original_point_shape = y[0].shape
+
+    y = gs.array(y.reshape((len(X), -1)))
+    X = gs.array(X.reshape(len(X), 1))
+
+    poly = PolynomialFeatures(degree=degree, include_bias=False)
+    X_poly = poly.fit_transform(X)  # X_poly is a matrix of shape (len(X), degree + 1)
+    # The extra row is filled with 1's, which is the "intercept" term.
+
+    print("X_poly.shape: ", X_poly.shape)
+    print("X_poly: ", X_poly)
+
+    lr = LinearRegression()
+    lr.fit(X_poly, y)
+
+    intercept_hat, coef_hats = lr.intercept_, lr.coef_
+
+    print("coef_hat.shape: ", coef_hats.shape)
+
+    coef_hats = coef_hats.reshape(
+        degree, original_point_shape[0], original_point_shape[1]
+    )
+    print("reshaped coef_hats.shape:", coef_hats.shape)
+
+    # intercept_term = coef_hats[0] # note: this is essentially zero. ignore.
+    # coef_hat_linear = coef_hats[0]
+    # coef_hat_quadratic = coef_hats[1]
+
+    # coef_hat_linear = coef_hat_linear.reshape(original_point_shape)
+    # coef_hat_quadratic = coef_hat_quadratic.reshape(original_point_shape)
+    intercept_hat = intercept_hat.reshape(original_point_shape)
+
+    # coef_hat_linear = gs.array(coef_hat_linear)
+    # coef_hat_quadratic = gs.array(coef_hat_quadratic)
+    coef_hats = gs.array(coef_hats)
+    intercept_hat = gs.array(intercept_hat)
+
+    print("original_point_shape: ", original_point_shape)
+    print("coef_hats.shape: ", coef_hats.shape)
+
+    return intercept_hat, coef_hats, lr
+
+
+def compute_R2(y, X, test_indices, train_indices):
+    """Compute R2 score for linear regression.
+
+    Parameters
+    ----------
+    X: list of X corresponding to y
+    y: vertices of mesh sequence to be fit
+        (flattened s.t. array dimension <= 2)
+    lr: linear regression model
+
+    Returns
+    -------
+    score_array: [adjusted R2 score, normal R2 score]
+    """
+    X_train = gs.array(X[train_indices])
+    X_test = gs.array(X[test_indices])
+    y_train = gs.array(y[train_indices])
+    y_test = gs.array(y[test_indices])
+
+    print("X_pred: ", X)
+    print("X_train: ", X_train)
+    print("X_test: ", X_test)
+
+    # X_train = gs.array(X_train.reshape(len(X_train), len(X_train[0])))
+    # X_test = gs.array(X_test.reshape(len(X_test), len(X_test[0])))
+    X_train = gs.array(X_train.reshape(len(X_train), -1))
+    X_test = gs.array(X_test.reshape(len(X_test), -1))
+    y_train = gs.array(y_train.reshape((len(X_train), -1)))
+    y_test = gs.array(y_test.reshape((len(X_test), -1)))
+
+    lr = LinearRegression()
+    lr.fit(X_train, y_train)
+
+    y_pred_for_lr = lr.predict(X_test)
+
+    normal_r2_score = r2_score(y_test, y_pred_for_lr)
+
+    train_sample_size = len(y_train)
+    n_independent_variables = X_train.shape[1]
+    print("train_sample_size (n): ", train_sample_size)
+    print("n_independent_variables (p): ", n_independent_variables)
+
+    Adj_r2 = 1 - (1 - normal_r2_score) * (train_sample_size - 1) / (
+        train_sample_size - n_independent_variables - 1
+    )
+
+    print("Adjusted R2 score: ", Adj_r2)
+    print("R2 score: ", normal_r2_score)
+    score_array = np.array([Adj_r2, normal_r2_score])
+
+    return score_array

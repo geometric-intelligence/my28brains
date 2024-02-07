@@ -9,13 +9,15 @@ import geomstats.backend as gs
 import numpy as np
 import torch
 import trimesh
-from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 
 import H2_SurfaceMatch.H2_match  # noqa: E402
 import H2_SurfaceMatch.utils.input_output as h2_io  # noqa: E402
 import H2_SurfaceMatch.utils.utils  # noqa: E402
 import src.import_project_config as pc
 import src.preprocessing.writing as write
+
+# from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
+from src.regression.discrete_surfaces import DiscreteSurfaces
 
 
 def remove_degenerate_faces(vertices, faces, area_threshold=0.01):
@@ -83,7 +85,7 @@ def remove_degenerate_faces_and_write(
         write.trimesh_to_ply(new_mesh, ply_path)
 
 
-def scale_decimate(path, config=None):
+def scale_decimate(path, config):
     """Scale and decimate a mesh.
 
     Parameters
@@ -106,12 +108,13 @@ def scale_decimate(path, config=None):
         - faces: np.ndarray
             Faces of the mesh.
     """
-    if config is None:
-        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
-        config = pc.import_default_config(calling_script_path)
+    project_dir = config.project_dir
+    project_config = pc.import_default_config(project_dir)
     vertices, faces, _ = h2_io.loadData(path)
-    vertices = vertices / config.scaling_factor  # was / 10
-    n_faces_after_decimation = int(faces.shape[0] / config.initial_decimation_fact)
+    vertices = vertices / project_config.scaling_factor  # was / 10
+    n_faces_after_decimation = int(
+        faces.shape[0] / project_config.initial_decimation_fact
+    )
     vertices, faces = H2_SurfaceMatch.utils.utils.decimate_mesh(
         vertices, faces, n_faces_after_decimation
     )
@@ -119,7 +122,7 @@ def scale_decimate(path, config=None):
 
 
 def scale_decimate_and_compute_geodesic(
-    start_path, end_path, template_path=None, gpu_id=1, config=None
+    start_path, end_path, config, template_path=None, gpu_id=1
 ):
     """Compute the geodesic between two meshes, after scaling and decimation of both.
 
@@ -136,9 +139,8 @@ def scale_decimate_and_compute_geodesic(
     config : object
         Config object containing parameters of the experiment.
     """
-    if config is None:
-        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
-        config = pc.import_default_config(calling_script_path)
+    project_dir = config.project_dir
+    project_config = pc.import_default_config(project_dir)
     device = torch.device(f"cuda:{gpu_id}" if torch.cuda.is_available() else "cpu")
     start_time = time.time()
 
@@ -153,15 +155,15 @@ def scale_decimate_and_compute_geodesic(
     geod, F0 = H2_SurfaceMatch.H2_match.H2MultiRes(
         source=source,
         target=target,
-        a0=config.a0,
-        a1=config.a1,
-        b1=config.b1,
-        c1=config.c1,
-        d1=config.d1,
-        a2=config.a2,
-        resolutions=config.resolutions,
+        a0=project_config.a0,
+        a1=project_config.a1,
+        b1=project_config.b1,
+        c1=project_config.c1,
+        d1=project_config.d1,
+        a2=project_config.a2,
+        resolutions=project_config.resolutions,
         start=template,
-        paramlist=config.paramlist,
+        paramlist=project_config.paramlist,
         device=device,
     )
     comp_time = time.time() - start_time
@@ -169,7 +171,7 @@ def scale_decimate_and_compute_geodesic(
     return geod, F0
 
 
-def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id, config=None):
+def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id, config):
     """Auxiliary function that will be run in parallel on different GPUs.
 
     This creates a geodesic with n_geodesic_time between a pair (start, end) of meshes.
@@ -193,9 +195,8 @@ def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id, config=No
     gpu_id : int
         ID of the GPU to use.
     """
-    if config is None:
-        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
-        config = pc.import_default_config(calling_script_path)
+    project_dir = config.project_dir
+    project_config = pc.import_default_config(project_dir)
     start_path, end_path = input_paths[i_pair], input_paths[i_pair + 1]
 
     basename = os.path.splitext(os.path.basename(start_path))[0]
@@ -214,7 +215,7 @@ def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id, config=No
         h2_io.plotGeodesic(
             [geod[i_geodesic_time]],
             F0,
-            stepsize=config.stepsize,  # open3d plotting parameter - unused
+            stepsize=project_config.stepsize,  # open3d plotting parameter - unused
             file_name=f"{ply_prefix}{i_geodesic_time}",
             axis=[0, 1, 0],
             angle=-1 * np.pi / 2,
@@ -222,7 +223,7 @@ def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id, config=No
     print(f"\tGeodesic interpolation {i_pair} saved to: " f"{output_dir}.")
 
 
-def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id, config=None):
+def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id, config):
     """Auxiliary function that will be run in parallel on different GPUs.
 
     The start path is the path whose parameterization is used as reference.
@@ -246,10 +247,9 @@ def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id, config
     gpu_id : int
         ID of the GPU to use.
     """
-    if config is None:
-        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
-        config = pc.import_default_config(calling_script_path)
-    start_path = input_paths[config.template_day]
+    project_dir = config.project_dir
+    project_config = pc.import_default_config(project_dir)
+    start_path = input_paths[project_config.template_day]
     end_path = input_paths[i_path]
     ply_path = os.path.join(output_dir, os.path.basename(end_path))
 
@@ -264,7 +264,7 @@ def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id, config
     h2_io.plotGeodesic(
         [geod[-1]],
         F0,
-        stepsize=config.stepsize[
+        stepsize=project_config.stepsize[
             "menstrual_mesh"
         ],  # open3d plotting parameter - unused
         file_name=os.path.splitext(ply_path)[0],  # remove .ply extension

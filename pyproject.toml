@@ -29,6 +29,8 @@ dependencies=[
     "joblib",
     "kaleido",
     "matplotlib>=3.5.1",
+    "ipywidgets",
+    "pyvista",
     "nibabel",
     "nilearn",
     "numpy",

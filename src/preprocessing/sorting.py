@@ -16,7 +16,7 @@ import src.import_project_config as pc
 
 
 def sort_meshes_by_hormones_and_write(
-    input_dir, output_dir, hemisphere, structure_id, area_threshold, config=None
+    input_dir, output_dir, hemisphere, structure_id, area_threshold, config
 ):
     """Sort meshes in meshes_parameterized by hormone level.
 
@@ -37,10 +37,6 @@ def sort_meshes_by_hormones_and_write(
     config : project config.
         Config object.
     """
-    if config is None:
-        calling_script_path = os.path.abspath(inspect.stack()[1].filename)
-        config = pc.import_default_config(calling_script_path)
-
     string_base = os.path.join(
         input_dir, f"{hemisphere}_structure_{structure_id}**.ply"
     )
