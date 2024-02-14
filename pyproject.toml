@@ -1,96 +1,38 @@
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
+[tool.poetry]
 name = "my28brains"
-dynamic = ["version"]
-authors = [
-    {name = "Adele Myers", email = "adele@ucsb.edu"}
-]
-readme = "README.md"
+version = "0.1.0"
 description = "Brain Shape Analysis through the Menstrual Cycle"
-license = {file = "LICENSE.txt"}
-classifiers = [
-    "License :: OSI Approved :: MIT License",
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Science/Research",
-    "Topic :: Scientific/Engineering",
-    "Topic :: Scientific/Engineering :: Mathematics",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Natural Language :: English",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11"
-]
-requires-python = ">= 3.10"
-dependencies=[
-    "geomstats @ git+https://github.com/geomstats/geomstats.git",
-    "joblib",
-    "kaleido",
-    "matplotlib>=3.5.1",
-    "ipywidgets",
-    "pyvista",
-    "nibabel",
-    "nilearn",
-    "numpy",
-    "open3d",
-    "pykeops",
-    "jupyterlab",
-    "plotly",
-    "psutil",
-    "requests",
-    "rtree",
-    "scikit-image>=0.19.3",
-    "torch==2.0.0",
-    "trimesh",
-    "wandb"
-]
+authors = ["Adele Myers <adele@ucsb.edu>"]
+readme = "README.md"
 
-[project.optional-dependencies]
-doc = [
-    "jupyter",
-    "jupyterlab",
-    "jupyterlab-code-formatter"
-]
-lint = [
-    "black < 23.0",
-    "black[jupyter]",
-    "flake8",
-    "flake8-docstrings",
-    "Flake8-pyproject",
-    "isort",
-    "pre-commit"
-]
-test = [
-    "pytest",
-    "pytest-cov",
-    "jupyter"
-]
-
-dev = ["my28brains[test, lint]"]
-all = ["my28brains[doc, dev]"]
-
-[project.urls]
-homepage="https://github.com/geometric-intelligence/my28brains"
-repository="https://github.com/geometric-intelligence/my28brains"
-
-[tool.setuptools.dynamic]
-version = {attr = "my28brains.__version__"}
-
-[tool.setuptools.packages.find]
-include = [
-    "my28brains",
-    "my28brains.*"
-]
-
-[tool.pytest.ini_options]
-addopts = "--capture=no"
-
-[tool.isort]
-multi_line_output = 3
-include_trailing_comma = true
-skip = [".gitignore", ".venv"]
+[tool.poetry.dependencies]
+python = "^3.11"
+geomstats = "*"
+joblib = "*"
+matplotlib = "*"
+nibabel = "*"
+nilearn = "*"
+open3d = "*"
+pykeops = "*"
+plotly = "*"
+psutil = "*"
+requests = "*"
+rtree = "*"
+scikit-image = "*"
+trimesh = "*"
+wandb = "*"
+jupyter = "*"
+pandas = "*"
+jupyterlab = "*"
+pytest = "*"
+jupyterlab-code-formatter = "*"
+pre-commit = "*"
+black = "*"
+flake8 = "*"
+flake8-docstrings = "*"
+Flake8-pyproject = "*"
+isort = "*"
+pyvista = "^0.43.3"
 
 [tool.flake8]
 application_import_names = "my28brains"
@@ -103,5 +45,19 @@ per-file-ignores = [
     "*/__init__.py: F401,F403,D104"
 ]
 
-[tool.coverage.report]
-exclude_lines = ["pragma: not covered", "@overload"]
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+skip = [".gitignore", ".venv"]
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+packages = [
+    { include = "src" },
+    { include = "project_menstrual" },
+    { include = "project_pregnancy" },
+    { include = "project_regression" },
+]

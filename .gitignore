@@ -12,6 +12,7 @@ src/blender/blends/*
 src/notebooks/csv/*
 src/notebooks/viz_plys/*
 project_blender/meshes/*
+temp_my28brains/*
 
 # anaconda stuff
 Anaconda3-2021.11-Linux-x86_64.sh
