@@ -73,7 +73,14 @@ def extract_meshes_from_nii_and_write(input_dir, output_dir, hemisphere, structu
 
 
 def _extract_mesh(img_fdata, structure_id):
-    """Extract one surface mesh from the fdata of a segmented image."""
+    """Extract one surface mesh from the fdata of a segmented image.
+    
+    Parameters
+    ----------
+    img_fdata: array-like, shape = [n_x, n_y, n_z]. Voxels which are colored
+        according to substructure assignment. For example, color of voxel
+        (0, 0, 0) is an integer value that can be anywhere from 0-9.
+    """
     if structure_id == -1:
         img_mask = img_fdata != 0
     else:
