@@ -52,6 +52,7 @@ src_dir = os.path.join(os.getcwd(), "src")
 h2_dir = os.path.join(os.getcwd(), "H2_SurfaceMatch")
 sys.path.append(code_dir)
 sys.path.append(h2_dir)
+sys.path.append(src_dir)
 
 # WANDB API KEY
 # Find it here: https://wandb.ai/authorize
