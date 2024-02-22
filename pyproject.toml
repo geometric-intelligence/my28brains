@@ -34,6 +34,8 @@ Flake8-pyproject = "*"
 isort = "*"
 pyvista = "^0.43.3"
 dash = "^2.15.0"
+addict = "*"
+tqdm = "^4.66.2"
 
 [tool.flake8]
 application_import_names = "my28brains"
