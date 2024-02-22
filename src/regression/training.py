@@ -14,8 +14,8 @@ from sklearn.preprocessing import PolynomialFeatures
 
 import H2_SurfaceMatch.utils.input_output as h2_io  # noqa: E402
 
-# from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
-from src.regression.discrete_surfaces import DiscreteSurfaces
+from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
+# from src.regression.discrete_surfaces import DiscreteSurfaces
 from src.regression.geodesic_regression import GeodesicRegression
 
 
@@ -27,12 +27,14 @@ def save_regression_results(
     true_coef,
     regr_intercept,
     regr_coef,
+    duration_time,
     results_dir,
     config,
     linear_residuals=None,
     model=None,
     y_hat=None,
     lr_score_array=None,
+    
 ):
     """Save regression results to files.
 
@@ -64,6 +66,7 @@ def save_regression_results(
     y_path = os.path.join(results_dir, f"y_{suffix}")
     X_path = os.path.join(results_dir, f"X_{suffix}")
     y_hat_path = os.path.join(results_dir, f"y_hat_{suffix}")
+    duration_time_path = os.path.join(results_dir, f"duration_time_{suffix}")
 
     if dataset_name == "synthetic_mesh" or dataset_name == "menstrual_mesh":
         faces = gs.array(space.faces).numpy()
@@ -112,6 +115,7 @@ def save_regression_results(
 
     np.savetxt(true_coef_path, true_coef)
     np.savetxt(X_path, X)
+    np.savetxt(duration_time_path, duration_time)
 
     print("regr_coef.shape: ", regr_coef.shape)
     if len(regr_coef.shape) > 2:

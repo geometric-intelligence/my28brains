@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-geomstats = "*"
+geomstats = { git = "https://github.com/geomstats/geomstats.git" }
 joblib = "*"
 matplotlib = "*"
 nibabel = "*"

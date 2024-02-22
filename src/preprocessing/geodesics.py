@@ -16,8 +16,8 @@ import H2_SurfaceMatch.utils.utils  # noqa: E402
 import src.import_project_config as pc
 import src.preprocessing.writing as write
 
-# from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
-from src.regression.discrete_surfaces import DiscreteSurfaces
+from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
+# from src.regression.discrete_surfaces import DiscreteSurfaces
 
 
 def remove_degenerate_faces(vertices, faces, area_threshold=0.01):

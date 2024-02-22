@@ -24,12 +24,12 @@ import H2_SurfaceMatch.utils.utils  # noqa: E402
 import src.datasets.utils as data_utils
 import src.import_project_config as pc
 
-# from geomstats.geometry.discrete_surfaces import (
-#     DiscreteSurfaces,
-#     ElasticMetric,
-#     _ExpSolver,
-# )
-from src.regression.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
+from geomstats.geometry.discrete_surfaces import (
+    DiscreteSurfaces,
+    ElasticMetric,
+    _ExpSolver,
+)
+# from src.regression.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
 
 
 def generate_mesh(mesh_type, n_subdivisions=None):

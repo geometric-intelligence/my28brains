@@ -170,6 +170,9 @@ def main_run(config):
         gr_linear_residuals = gs.array(y_pred_for_gr) - gs.array(y)
         rmsd_linear = gs.linalg.norm(gr_linear_residuals) / gs.sqrt(len(y))
 
+        print("y_pred_for_gr: ", y_pred_for_gr.shape)
+        print("y: ", y.shape)
+
         gr_geod_residuals = space.metric.dist(y_pred_for_gr, y)
         rmsd_geodesic = gs.linalg.norm(gr_geod_residuals) / gs.sqrt(len(y))
 

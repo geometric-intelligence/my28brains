@@ -18,8 +18,8 @@ import H2_SurfaceMatch.utils.input_output as h2_io
 import src.datasets.synthetic as synthetic
 import src.import_project_config as pc
 
-# from geomstats.geometry.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
-from src.regression.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
+from geomstats.geometry.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
+# from src.regression.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
 from src.regression.geodesic_regression import RiemannianGradientDescent
 
 
@@ -123,7 +123,7 @@ def load_synthetic_data(config):
                 true_intercept,
                 true_coef,
             ) = synthetic.generate_parameterized_geodesic(
-                start_mesh, end_mesh, n_X, config.n_steps
+                start_mesh, end_mesh, config, n_X, config.n_steps
             )
 
             os.makedirs(noiseless_mesh_dir)
