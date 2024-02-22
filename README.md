@@ -99,9 +99,9 @@ You can see all of your runs by logging into the Wandb webpage and looking under
 ```shell
 $ conda create -n my28brains --file conda-linux-64.lock
 $ conda activate my28brains
-$ poetry install --with=dev,gpu
+$ poetry install --no-root
 ```
-
+We use `--no-root` because we don't have a module named `my28brains`
 # Dev
 
 Only run if changes are made to the environment files.
