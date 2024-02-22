@@ -93,3 +93,26 @@ You can see all of your runs by logging into the Wandb webpage and looking under
 [Adele Myers](https://ahma2017.wixsite.com/adelemyers)
 
 [Nina Miolane](https://www.ninamiolane.com/)
+
+## How to Set up Your Environment
+
+```shell
+$ conda create -n my28brains --file conda-linux-64.lock
+$ conda activate my28brains
+$ poetry install --with=dev,gpu
+```
+
+# Dev
+
+Only run if changes are made to the environment files.
+
+To recreate the conda lock, after modifying conda.yaml:
+```shell
+pip install conda-lock
+make conda-linux-64.lock
+```
+
+To recreate the poetry lock, after modifying pyproject.toml:
+```shell
+make poetry.lock
+```
