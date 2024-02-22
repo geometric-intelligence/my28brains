@@ -60,7 +60,7 @@ with open(os.path.join(src_dir, "api_key.txt")) as f:
     api_key = f.read()
 
 # GPU Parameters
-use_cuda = True  # use cuda if available
+use_cuda = False  # use cuda if available
 device_id = 1
 n_gpus = 10
 torch_dtype = torch.float64

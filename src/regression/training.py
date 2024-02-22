@@ -14,8 +14,8 @@ from sklearn.preprocessing import PolynomialFeatures
 
 import H2_SurfaceMatch.utils.input_output as h2_io  # noqa: E402
 
-# from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
-from src.regression.discrete_surfaces import DiscreteSurfaces
+from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
+# from src.regression.discrete_surfaces import DiscreteSurfaces
 from src.regression.geodesic_regression import GeodesicRegression
 
 
@@ -33,6 +33,7 @@ def save_regression_results(
     model=None,
     y_hat=None,
     lr_score_array=None,
+    
 ):
     """Save regression results to files.
 

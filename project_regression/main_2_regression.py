@@ -170,6 +170,9 @@ def main_run(config):
         gr_linear_residuals = gs.array(y_pred_for_gr) - gs.array(y)
         rmsd_linear = gs.linalg.norm(gr_linear_residuals) / gs.sqrt(len(y))
 
+        print("y_pred_for_gr: ", y_pred_for_gr.shape)
+        print("y: ", y.shape)
+
         gr_geod_residuals = space.metric.dist(y_pred_for_gr, y)
         rmsd_geodesic = gs.linalg.norm(gr_geod_residuals) / gs.sqrt(len(y))
 
@@ -231,12 +234,13 @@ def main_run(config):
         training.save_regression_results(
             dataset_name=wandb_config.dataset_name,
             y=y,
+            X=X,
             space=space,
             true_coef=true_coef,
             regr_intercept=geodesic_intercept_hat,
             regr_coef=geodesic_coef_hat,
-            duration_time=geodesic_duration_time,
             results_dir=geodesic_regression_dir,
+            config = wandb_config,
             model="geodesic",
             linear_residuals=wandb_config.linear_residuals,
             y_hat=y_pred_for_gr,
