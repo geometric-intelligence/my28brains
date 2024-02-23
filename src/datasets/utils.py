@@ -9,6 +9,11 @@ import numpy as np
 import pandas as pd
 import torch
 import trimesh
+from geomstats.geometry.discrete_surfaces import (
+    DiscreteSurfaces,
+    ElasticMetric,
+    _ExpSolver,
+)
 from geomstats.geometry.euclidean import Euclidean
 from geomstats.geometry.hyperbolic import Hyperbolic
 from geomstats.geometry.hypersphere import Hypersphere
@@ -18,7 +23,6 @@ import H2_SurfaceMatch.utils.input_output as h2_io
 import src.datasets.synthetic as synthetic
 import src.import_project_config as pc
 
-from geomstats.geometry.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
 # from src.regression.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
 from src.regression.geodesic_regression import RiemannianGradientDescent
 
@@ -220,9 +224,7 @@ def load_synthetic_data(config):
     elif config.dataset_name in ["hyperboloid", "hypersphere"]:
         print(f"Creating synthetic dataset on {config.dataset_name}")
         if config.dataset_name == "hyperboloid":
-            space = Hyperbolic(
-                dim=config.space_dimension, default_coords_type="extrinsic"
-            )
+            space = Hyperbolic(dim=config.space_dimension, coords_type="extrinsic")
         else:
             space = Hypersphere(dim=config.space_dimension)
 

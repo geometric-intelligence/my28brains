@@ -115,7 +115,6 @@ use_cuda = False
 
 poly_degree = 3
 
-geodesic_initialization = ("warm_start",)
 linear_residuals = True  # [
 #     True,
 # ]
