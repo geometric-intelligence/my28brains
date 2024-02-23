@@ -41,7 +41,13 @@ def main_run(config):
     full_run = True
     try:
         print(f"run_start: {today}")
-        wandb.init(tags=[f"{today}"])
+        wandb.init(
+            tags=[
+                f"{today}",
+                f"model_{default_config.model}",
+                f"estimator_{config['estimator']}",
+            ]
+        )
         wandb_config = wandb.config
         wandb_config.update(config)
 
@@ -55,8 +61,6 @@ def main_run(config):
         for one_regress_dir in [linear_regression_dir, geodesic_regression_dir]:
             if not os.path.exists(one_regress_dir):
                 os.makedirs(one_regress_dir)
-
-        start_time = time.time()
 
         (
             space,
@@ -72,6 +76,8 @@ def main_run(config):
                 "X": np.array(X),
                 "true_intercept": np.array(true_intercept),
                 "true_coef": np.array(true_coef),
+                "estimator": wandb_config.estimator,
+                "model": wandb_config.model,
             }
         )
 
@@ -126,7 +132,9 @@ def main_run(config):
             tol = wandb_config.tol_factor
             wandb.log({"geodesic_tol": tol})
 
-        logging.info("\n- Linear Regression for 'warm-start' initialization")
+        logging.info("\n- Performing Linear Regression.")
+
+        start_time = time.time()
 
         (
             linear_intercept_hat,
@@ -134,47 +142,129 @@ def main_run(config):
             lr,
         ) = training.fit_linear_regression(y, X)
 
+        linear_duration_time = time.time() - start_time
+
+        logging.info("Computing points along linear regression prediction...")
+        y_pred_for_lr = lr.predict(X.reshape(len(X), 1))
+        y_pred_for_lr = y_pred_for_lr.reshape(y.shape)
+
+        lr_intercept_err = gs.linalg.norm(linear_intercept_hat - true_intercept)
+        lr_coef_err = gs.linalg.norm(linear_coef_hat - true_coef)
+
+        wandb.log(
+            {
+                "linear_duration_time": linear_duration_time,
+                "linear_intercept_hat": np.array(linear_intercept_hat),
+                "linear_coef_hat": np.array(linear_coef_hat),
+                "lr_intercept_err": lr_intercept_err,
+                "lr_coef_err": lr_coef_err,
+            }
+        )
+
         X_for_lr = gs.array(X.reshape(len(X), 1))
         y_pred_for_lr = lr.predict(X_for_lr)
         y_pred_for_lr = y_pred_for_lr.reshape(y.shape)
 
-        logging.info("\n- Geodesic Regression")
-        (
-            geodesic_intercept_hat,
-            geodesic_coef_hat,
-            gr,
-        ) = training.fit_geodesic_regression(
-            y,
-            space,
-            X,
-            tol=tol,
-            intercept_hat_guess=linear_intercept_hat,
-            coef_hat_guess=linear_coef_hat,
-            initialization=wandb_config.geodesic_initialization,
-            linear_residuals=wandb_config.linear_residuals,
-            use_cuda=default_config.use_cuda,
-        )
+        logging.info(f"Computing estimates for {wandb_config.estimator} estimator.")
 
-        geodesic_duration_time = time.time() - start_time
-        geodesic_intercept_err = gs.linalg.norm(geodesic_intercept_hat - true_intercept)
-        geodesic_coef_err = gs.linalg.norm(geodesic_coef_hat - true_coef)
+        if wandb_config.estimator == "Lin2015":
+            logging.info(
+                "Projecting linear regression to the manifold for Lin2015 estimator."
+            )
+            if wandb_config.dataset_name in ["synthetic_mesh", "menstrual_mesh"]:
+                linear_intercept_hat_mean = gs.mean(linear_intercept_hat)
+                estimator_intercept_hat = (
+                    linear_intercept_hat - linear_intercept_hat_mean
+                )
+            elif wandb_config.dataset_name in ["hypersphere", "hyperboloid"]:
+                estimator_intercept_hat = space.projection(linear_intercept_hat)
+            estimator_coef_hat = space.to_tangent(
+                linear_coef_hat, at_point=estimator_intercept_hat
+            )
 
-        n_iterations = gr.n_iterations
-        n_function_evaluations = gr.n_fevaluations
-        n_jacobian_evaluations = gr.n_jevaluations
+            estimator_duration_time = time.time() - start_time
+            logging.info(f">> Duration (Lin2015): {estimator_duration_time:.3f} secs.")
 
-        logging.info("Computing points along geodesic regression...")
-        y_pred_for_gr = gr.predict(X)
-        y_pred_for_gr = y_pred_for_gr.reshape(y.shape)
+            logging.info(
+                f"Computing points along {wandb_config.estimator} estimator prediction..."
+            )
+            estimated_geodesic = space.metric.geodesic(
+                initial_point=estimator_intercept_hat,
+                initial_tangent_vec=estimator_coef_hat,
+            )
+            estimator_y_prediction = estimated_geodesic(X)
 
-        gr_linear_residuals = gs.array(y_pred_for_gr) - gs.array(y)
-        rmsd_linear = gs.linalg.norm(gr_linear_residuals) / gs.sqrt(len(y))
+        elif wandb_config.estimator in ["GLS", "LLS"]:
+            logging.info(
+                f"\n- Geodesic Regression with {wandb_config.estimator} estimator."
+            )
 
-        print("y_pred_for_gr: ", y_pred_for_gr.shape)
+            if wandb_config.estimator == "GLS":
+                logging.info("Using GLS estimator.")
+                linear_residuals = False
+            elif wandb_config.estimator == "LLS":
+                logging.info("Using LLS estimator.")
+                linear_residuals = True
+
+            (
+                estimator_intercept_hat,
+                estimator_coef_hat,
+                gr,
+            ) = training.fit_geodesic_regression(
+                y,
+                space,
+                X,
+                tol=tol,
+                intercept_hat_guess=linear_intercept_hat,
+                coef_hat_guess=linear_coef_hat,
+                initialization="warm_start",
+                linear_residuals=linear_residuals,
+                use_cuda=default_config.use_cuda,
+            )
+
+            estimator_duration_time = time.time() - start_time
+            logging.info(
+                f">> Duration ({wandb_config.estimator}): {estimator_duration_time:.3f} secs."
+            )
+
+            n_iterations = gr.n_iterations
+            n_function_evaluations = gr.n_fevaluations
+            n_jacobian_evaluations = gr.n_jevaluations
+
+            # Compute and evaluate estimator prediction
+
+            logging.info(
+                f"Computing points along {wandb_config.estimator} estimator prediction..."
+            )
+            estimator_y_prediction = gr.predict(X)
+            estimator_y_prediction = estimator_y_prediction.reshape(y.shape)
+
+        print("estimator_y_prediction: ", estimator_y_prediction.shape)
         print("y: ", y.shape)
 
-        gr_geod_residuals = space.metric.dist(y_pred_for_gr, y)
-        rmsd_geodesic = gs.linalg.norm(gr_geod_residuals) / gs.sqrt(len(y))
+        logging.info("Computing errors on intercept and coef...")
+        # parallel_transport not implemented for mesh data
+        if wandb_config.dataset_name in ["synthetic_mesh", "menstrual_mesh"]:
+            estimator_intercept_err = space.metric.log(
+                point=true_intercept, base_point=estimator_intercept_hat
+            )
+            estimator_coef_err = gs.linalg.norm(estimator_coef_hat - true_coef)
+        elif wandb_config.dataset_name in ["hypersphere", "hyperboloid"]:
+            estimator_intercept_err = space.metric.log(
+                point=true_intercept, base_point=estimator_intercept_hat
+            )
+            estimator_coef_err = true_coef - space.metric.parallel_transport(
+                tangent_vec=estimator_coef_hat,
+                base_point=estimator_intercept_hat,
+                end_point=true_intercept,
+            )
+
+        logging.info("Computing RMSD...")
+        estimator_linear_residuals = gs.array(estimator_y_prediction) - gs.array(y)
+        rmsd_linear = gs.linalg.norm(estimator_linear_residuals) / gs.sqrt(len(y))
+
+        estimator_geod_residuals = space.metric.dist(estimator_y_prediction, y)
+        rmsd_geodesic = gs.linalg.norm(estimator_geod_residuals) / gs.sqrt(len(y))
 
         if wandb_config.dataset_name in ["synthetic_mesh", "menstrual_mesh"]:
 
@@ -185,50 +275,42 @@ def main_run(config):
 
             wandb.log(
                 {
-                    "geodesic_intercept_hat_fig": wandb.Object3D(
-                        geodesic_intercept_hat.numpy()
+                    "estimator_intercept_hat_fig": wandb.Object3D(
+                        estimator_intercept_hat.numpy()
                     ),
-                    "geodesic_coef_hat_fig": wandb.Object3D(geodesic_coef_hat.numpy()),
-                    "y_pred_for_gr_fig": wandb.Object3D(
-                        y_pred_for_gr.detach().numpy().reshape((-1, 3))
+                    "estimator_coef_hat_fig": wandb.Object3D(
+                        estimator_coef_hat.numpy()
+                    ),
+                    "estimator_y_prediction_fig": wandb.Object3D(
+                        estimator_y_prediction.detach().numpy().reshape((-1, 3))
                     ),
                     "n_faces": len(mesh_faces),
                     "n_vertices": len(mesh_sequence_vertices[0]),
                 }
             )
 
-        nrmsd_linear = rmsd_linear / gs.linalg.norm(y[0] - y[-1])
-        nrmsd_geodesic = rmsd_geodesic / gs.linalg.norm(y[0] - y[-1])
-
         wandb.log(
             {
-                "geodesic_duration_time": geodesic_duration_time,
-                "geodesic_intercept_err": geodesic_intercept_err,
-                "geodesic_coef_err": geodesic_coef_err,
-                "geodesic_initialization": wandb_config.geodesic_initialization,
+                "estimator_duration_time": estimator_duration_time,
+                "estimator_intercept_err": estimator_intercept_err,
+                "estimator_coef_err": estimator_coef_err,
                 "n_geod_iterations": n_iterations,
                 "n_geod_function_evaluations": n_function_evaluations,
                 "n_geod_jacobian_evaluations": n_jacobian_evaluations,
                 "rmsd_linear": rmsd_linear,
-                "nrmsd_linear": nrmsd_linear,
                 "rmsd_geodesic": rmsd_geodesic,
-                "nrmsd_geodesic": nrmsd_geodesic,
-                "gr_intercept_hat": np.array(geodesic_intercept_hat),
-                "gr_coef_hat": np.array(geodesic_coef_hat),
-                # "gr_linear_residuals": gr_linear_residuals.numpy(),
-                # "gr_geod_residuals": gr_geod_residuals.numpy(),
-                # "y_pred_for_gr": np.array(y_pred_for_gr),
+                "estimator_intercept_hat": np.array(estimator_intercept_hat),
+                "estimator_coef_hat": np.array(estimator_coef_hat),
             }
         )
 
-        logging.info(f">> Duration (geodesic): {geodesic_duration_time:.3f} secs.")
         logging.info(">> Regression errors (geodesic):")
         logging.info(
-            f"On intercept: {geodesic_intercept_err:.6f}, on coef: "
-            f"{geodesic_coef_err:.6f}"
+            f"On intercept: {estimator_intercept_err}, on coef: "
+            f"{estimator_coef_err}"
         )
 
-        print(f"y_pred_for_gr: " f"{y_pred_for_gr.shape}")
+        print(f"estimator_y_prediction: " f"{estimator_y_prediction.shape}")
 
         logging.info("Saving geodesic results...")
         training.save_regression_results(
@@ -237,20 +319,22 @@ def main_run(config):
             X=X,
             space=space,
             true_coef=true_coef,
-            regr_intercept=geodesic_intercept_hat,
-            regr_coef=geodesic_coef_hat,
+            regr_intercept=estimator_intercept_hat,
+            regr_coef=estimator_coef_hat,
             results_dir=geodesic_regression_dir,
-            config = wandb_config,
-            model="geodesic",
-            linear_residuals=wandb_config.linear_residuals,
-            y_hat=y_pred_for_gr,
+            config=wandb_config,
+            model=default_config.model,
+            estimator=wandb_config.estimator,
+            y_hat=estimator_y_prediction,
         )
 
         if (
             wandb_config.dataset_name in ["hypersphere", "hyperboloid"]
             and space.dim == 2
         ):
-            fig = viz.benchmark_data_sequence(space, y, y_pred_for_lr, y_pred_for_gr)
+            fig = viz.benchmark_data_sequence(
+                space, y, y_pred_for_lr, estimator_y_prediction
+            )
             plt = wandb.Image(fig)
 
             wandb.log(
@@ -273,22 +357,22 @@ def main():
 
     This launches experiments with wandb with different config parameters.
     """
-    for (
-        dataset_name,
-        geodesic_initialization,
-        linear_residuals,
-        tol_factor,
-    ) in itertools.product(
+    for (dataset_name, estimator, tol_factor, n_X, noise_factor,) in itertools.product(
         default_config.dataset_name,
-        default_config.geodesic_initialization,
-        default_config.linear_residuals,
+        default_config.estimator,
         default_config.tol_factor,
+        default_config.n_X,
+        default_config.noise_factor,
     ):
         main_config = {
             "dataset_name": dataset_name,
-            "geodesic_initialization": geodesic_initialization,
-            "linear_residuals": linear_residuals,
+            "estimator": estimator,
             "tol_factor": tol_factor,
+            "n_X": n_X,
+            "noise_factor": noise_factor,
+            "linear_noise": default_config.linear_noise,
+            "project_linear_noise": default_config.project_linear_noise,
+            "model": default_config.model,
             "use_cuda": default_config.use_cuda,
             "device_id": default_config.device_id,
             "torch_dtype": default_config.torch_dtype,
@@ -296,69 +380,43 @@ def main():
         }
         if dataset_name == "synthetic_mesh":
             for (
-                n_X,
-                noise_factor,
-                linear_noise,
-                project_linear_noise,
                 n_subdivisions,
                 (start_shape, end_shape),
                 n_steps,
             ) in itertools.product(
-                default_config.n_X,
-                default_config.noise_factor,
-                default_config.linear_noise,
-                default_config.project_linear_noise,
                 default_config.n_subdivisions,
                 zip(default_config.start_shape, default_config.end_shape),
                 default_config.n_steps,
             ):
                 config = {
-                    "n_X": n_X,
                     "start_shape": start_shape,
                     "end_shape": end_shape,
-                    "noise_factor": noise_factor,
-                    "linear_noise": linear_noise,
-                    "project_linear_noise": project_linear_noise,
                     "n_subdivisions": n_subdivisions,
                     "n_steps": n_steps,
                 }
                 config.update(main_config)
                 main_run(config)
 
-        elif dataset_name == "menstrual_mesh":
-            for hemisphere, n_steps in itertools.product(
-                default_config.hemisphere, default_config.n_steps
+        elif dataset_name == "hypersphere" or dataset_name == "hyperboloid":
+            for (space_dimension,) in itertools.product(
+                default_config.space_dimension,
             ):
                 config = {
-                    "hemisphere": hemisphere,
-                    "n_steps": n_steps,
+                    "space_dimension": space_dimension,
                 }
                 config.update(main_config)
                 main_run(config)
 
-        elif dataset_name == "hypersphere" or dataset_name == "hyperboloid":
-            for (
-                n_X,
-                noise_factor,
-                linear_noise,
-                project_linear_noise,
-                space_dimension,
-            ) in itertools.product(
-                default_config.n_X,
-                default_config.noise_factor,
-                default_config.linear_noise,
-                default_config.project_linear_noise,
-                default_config.space_dimension,
-            ):
-                config = {
-                    "n_X": n_X,
-                    "noise_factor": noise_factor,
-                    "space_dimension": space_dimension,
-                    "linear_noise": linear_noise,
-                    "project_linear_noise": project_linear_noise,
-                }
-                config.update(main_config)
-                main_run(config)
+        # elif dataset_name == "menstrual_mesh":
+        #     for hemisphere, n_steps in itertools.product(
+        #         default_config.hemisphere, default_config.n_steps
+        #     ):
+        #         config = {
+        #             "hemisphere": hemisphere,
+        #             "n_steps": n_steps,
+        #         }
+        #         config.update(main_config)
+        #         main_run(config)
 
 
 main()

@@ -153,6 +153,7 @@ def main_run(config):
             config=wandb_config,
             y_hat=y_pred_for_lr,
             lr_score_array=lr_score_array,
+            estimator="LLS",
         )
 
         logging.info("\n- Polynomial Regression")
@@ -198,6 +199,7 @@ def main_run(config):
             config=wandb_config,
             y_hat=y_pred_for_pr,
             lr_score_array=pr_score_array,
+            estimator="LLS",
         )
 
         logging.info("\n- Multi-variable Regression")
@@ -248,6 +250,7 @@ def main_run(config):
             config=wandb_config,
             y_hat=y_pred_for_mr,
             lr_score_array=mr_score_array,
+            estimator="LLS",
         )
 
         wandb_config.update({"full_run": full_run})
@@ -266,7 +269,6 @@ def main():
     """
     main_config = {
         "dataset_name": default_config.dataset_name,
-        "geodesic_initialization": default_config.geodesic_initialization,
         "linear_residuals": default_config.linear_residuals,
         "tol_factor": default_config.tol_factor,
         "project_dir": default_config.project_dir,
