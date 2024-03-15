@@ -15,6 +15,11 @@ project_blender/meshes/*
 temp_my28brains/*
 project_menstrual/results/*
 project_regression/results/*
+project_regression/notebooks/csv/*
+project_regression/notebooks/figs/*
+project_regression/notebooks/old_figs/*
+project_regression/notebooks/old_csv/*
+
 hide/*
 
 # anaconda stuff
