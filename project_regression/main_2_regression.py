@@ -46,6 +46,7 @@ def main_run(config):
                 f"{today}",
                 f"model_{default_config.model}",
                 f"estimator_{config['estimator']}",
+                # f"rmsd_y_noiseless",
             ]
         )
         wandb_config = wandb.config
@@ -142,22 +143,35 @@ def main_run(config):
             lr,
         ) = training.fit_linear_regression(y, X)
 
-        linear_duration_time = time.time() - start_time
+        lr_duration_time = time.time() - start_time
 
         logging.info("Computing points along linear regression prediction...")
         y_pred_for_lr = lr.predict(X.reshape(len(X), 1))
         y_pred_for_lr = y_pred_for_lr.reshape(y.shape)
 
-        lr_intercept_err = gs.linalg.norm(linear_intercept_hat - true_intercept)
-        lr_coef_err = gs.linalg.norm(linear_coef_hat - true_coef)
+        lr_intercept_err = linear_intercept_hat - true_intercept
+        lr_coef_err = linear_coef_hat - true_coef
+        lr_intercept_err_sum = gs.sum(lr_intercept_err)
+        lr_coef_err_sum = gs.sum(lr_coef_err)
+        lr_intercept_err_norm = gs.linalg.norm(lr_intercept_err)
+        lr_coef_err_norm = gs.linalg.norm(lr_coef_err)
+
+        logging.info(f">> Linear Intercept error sum: {lr_intercept_err_sum:.3f}.")
+        logging.info(f">> Linear Coef error sum: {lr_coef_err_sum:.3f}.")
+        logging.info(f">> Linear Intercept error norm: {lr_intercept_err_norm:.3f}.")
+        logging.info(f">> Linear Coef error norm: {lr_coef_err_norm:.3f}.")
 
         wandb.log(
             {
-                "linear_duration_time": linear_duration_time,
+                "lr_duration_time": lr_duration_time,
                 "linear_intercept_hat": np.array(linear_intercept_hat),
                 "linear_coef_hat": np.array(linear_coef_hat),
                 "lr_intercept_err": lr_intercept_err,
                 "lr_coef_err": lr_coef_err,
+                "lr_intercept_err_sum": lr_intercept_err_sum,
+                "lr_coef_err_sum": lr_coef_err_sum,
+                "lr_intercept_err_norm": lr_intercept_err_norm,
+                "lr_coef_err_norm": lr_coef_err_norm,
             }
         )
 
@@ -166,6 +180,21 @@ def main_run(config):
         y_pred_for_lr = y_pred_for_lr.reshape(y.shape)
 
         logging.info(f"Computing estimates for {wandb_config.estimator} estimator.")
+
+        if wandb_config.estimator == "LR":
+            logging.info("Using Linear Regression estimator.")
+            estimator_intercept_hat = gs.array(linear_intercept_hat)
+            estimator_coef_hat = gs.array(linear_coef_hat)
+            estimator_duration_time = lr_duration_time
+            if wandb_config.dataset_name in ["synthetic_mesh", "menstrual_mesh"]:
+                estimator_y_prediction = []
+                for pred_mesh in y_pred_for_lr:
+                    pred_mesh = gs.array(pred_mesh)
+                    pred_mesh_mean = gs.mean(pred_mesh)
+                    estimator_y_prediction.append(pred_mesh - pred_mesh_mean)
+                estimator_y_prediction = gs.array(estimator_y_prediction)
+            else:
+                estimator_y_prediction = space.projection(gs.array(y_pred_for_lr))
 
         if wandb_config.estimator == "Lin2015":
             logging.info(
@@ -179,7 +208,7 @@ def main_run(config):
             elif wandb_config.dataset_name in ["hypersphere", "hyperboloid"]:
                 estimator_intercept_hat = space.projection(linear_intercept_hat)
             estimator_coef_hat = space.to_tangent(
-                linear_coef_hat, at_point=estimator_intercept_hat
+                linear_coef_hat, base_point=estimator_intercept_hat
             )
 
             estimator_duration_time = time.time() - start_time
@@ -188,11 +217,16 @@ def main_run(config):
             logging.info(
                 f"Computing points along {wandb_config.estimator} estimator prediction..."
             )
-            estimated_geodesic = space.metric.geodesic(
-                initial_point=estimator_intercept_hat,
-                initial_tangent_vec=estimator_coef_hat,
-            )
-            estimator_y_prediction = estimated_geodesic(X)
+
+            estimator_y_prediction = []
+            for x_val in X:
+                estimator_y_prediction.append(
+                    space.metric.exp(
+                        tangent_vec=x_val * estimator_coef_hat,
+                        base_point=estimator_intercept_hat,
+                    )
+                )
+            estimator_y_prediction = gs.array(estimator_y_prediction)
 
         elif wandb_config.estimator in ["GLS", "LLS"]:
             logging.info(
@@ -239,6 +273,14 @@ def main_run(config):
             estimator_y_prediction = gr.predict(X)
             estimator_y_prediction = estimator_y_prediction.reshape(y.shape)
 
+            wandb.log(
+                {
+                    "n_gr_iterations": n_iterations,
+                    "n_gr_function_evaluations": n_function_evaluations,
+                    "n_gr_jacobian_evaluations": n_jacobian_evaluations,
+                }
+            )
+
         print("estimator_y_prediction: ", estimator_y_prediction.shape)
         print("y: ", y.shape)
 
@@ -248,7 +290,8 @@ def main_run(config):
             estimator_intercept_err = space.metric.log(
                 point=true_intercept, base_point=estimator_intercept_hat
             )
-            estimator_coef_err = gs.linalg.norm(estimator_coef_hat - true_coef)
+            estimator_coef_err = estimator_coef_hat - true_coef
+
         elif wandb_config.dataset_name in ["hypersphere", "hyperboloid"]:
             estimator_intercept_err = space.metric.log(
                 point=true_intercept, base_point=estimator_intercept_hat
@@ -258,6 +301,17 @@ def main_run(config):
                 base_point=estimator_intercept_hat,
                 end_point=true_intercept,
             )
+
+            wandb.log(
+                {
+                    "synthetic_tan_vec_length": wandb_config.synthetic_tan_vec_length,
+                }
+            )
+
+        estimator_intercept_err_sum = gs.sum(estimator_intercept_err)
+        estimator_coef_err_sum = gs.sum(estimator_coef_err)
+        estimator_intercept_err_norm = gs.linalg.norm(estimator_intercept_err)
+        estimator_coef_err_norm = gs.linalg.norm(estimator_coef_err)
 
         logging.info("Computing RMSD...")
         estimator_linear_residuals = gs.array(estimator_y_prediction) - gs.array(y)
@@ -269,9 +323,11 @@ def main_run(config):
         if wandb_config.dataset_name in ["synthetic_mesh", "menstrual_mesh"]:
 
             rmsd_linear = rmsd_linear / (len(mesh_sequence_vertices[0]) * mesh_diameter)
-            rmsd_geodesic = rmsd_geodesic / (
-                len(mesh_sequence_vertices[0]) * mesh_diameter
-            )
+
+            if rmsd_geodesic is not None:
+                rmsd_geodesic = rmsd_geodesic / (
+                    len(mesh_sequence_vertices[0]) * mesh_diameter
+                )
 
             wandb.log(
                 {
@@ -294,9 +350,10 @@ def main_run(config):
                 "estimator_duration_time": estimator_duration_time,
                 "estimator_intercept_err": estimator_intercept_err,
                 "estimator_coef_err": estimator_coef_err,
-                "n_geod_iterations": n_iterations,
-                "n_geod_function_evaluations": n_function_evaluations,
-                "n_geod_jacobian_evaluations": n_jacobian_evaluations,
+                "estimator_intercept_err_sum": estimator_intercept_err_sum,
+                "estimator_coef_err_sum": estimator_coef_err_sum,
+                "estimator_intercept_err_norm": estimator_intercept_err_norm,
+                "estimator_coef_err_norm": estimator_coef_err_norm,
                 "rmsd_linear": rmsd_linear,
                 "rmsd_geodesic": rmsd_geodesic,
                 "estimator_intercept_hat": np.array(estimator_intercept_hat),
@@ -332,8 +389,17 @@ def main_run(config):
             wandb_config.dataset_name in ["hypersphere", "hyperboloid"]
             and space.dim == 2
         ):
+
+            # create high-density sequence of true geodesic
+            true_n_X = 100
+            true_X = gs.linspace(0, 1, true_n_X)
+            true_X -= gs.mean(true_X)
+            true_geodesic = space.metric.exp(
+                true_X[:, None] * true_coef, base_point=true_intercept
+            )
+
             fig = viz.benchmark_data_sequence(
-                space, y, y_pred_for_lr, estimator_y_prediction
+                space, y, y_pred_for_lr, estimator_y_prediction, true_geodesic
             )
             plt = wandb.Image(fig)
 
@@ -357,7 +423,7 @@ def main():
 
     This launches experiments with wandb with different config parameters.
     """
-    for (dataset_name, estimator, tol_factor, n_X, noise_factor,) in itertools.product(
+    for (dataset_name, estimator, tol_factor, n_X, noise_factor) in itertools.product(
         default_config.dataset_name,
         default_config.estimator,
         default_config.tol_factor,
@@ -398,11 +464,12 @@ def main():
                 main_run(config)
 
         elif dataset_name == "hypersphere" or dataset_name == "hyperboloid":
-            for (space_dimension,) in itertools.product(
-                default_config.space_dimension,
+            for (space_dimension, synthetic_tan_vec_length) in itertools.product(
+                default_config.space_dimension, default_config.synthetic_tan_vec_length
             ):
                 config = {
                     "space_dimension": space_dimension,
+                    "synthetic_tan_vec_length": synthetic_tan_vec_length,
                 }
                 config.update(main_config)
                 main_run(config)

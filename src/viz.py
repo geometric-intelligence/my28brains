@@ -417,7 +417,9 @@ def plotly_mesh_sequence(mesh_sequence_vertices):
     fig.show()
 
 
-def benchmark_data_sequence(space, sequence_1, sequence_2, sequence_3=None):
+def benchmark_data_sequence(
+    space, sequence_1, sequence_2, sequence_3=None, sequence_4=None
+):
     """Compare two benchmark datasets.
 
     Examples
@@ -429,13 +431,16 @@ def benchmark_data_sequence(space, sequence_1, sequence_2, sequence_3=None):
     ----------
     space : space where data points lie.
     sequence_1:
-        for regression: true points sequence
+        for regression: noisy points sequence
         for line vs geodesic: line
     sequence_2:
         for regression: modeled points sequence (lr)
         for line vs geodesic: geodesic
     sequence_3:
         for regression: modeled points sequence (gr)
+        for line vs geodesic: None
+    sequence_4:
+        for regression: true points
         for line vs geodesic: None
     """
     sequence_1 = gs.array(sequence_1)
@@ -461,18 +466,39 @@ def benchmark_data_sequence(space, sequence_1, sequence_2, sequence_3=None):
     projected_sequence_1 = space.projection(sequence_1)
     if sequence_3 is not None:
         projected_sequence_3 = space.projection(sequence_3)
+    if sequence_4 is not None:
+        projected_sequence_4 = space.projection(sequence_4)
     manifold_visu.plot(
         gs.array([projected_intercept_hat]), ax=ax, marker=marker, c="r", s=size
     )
     manifold_visu.plot(
-        projected_sequence_1, ax=ax, marker=marker, c="b", s=size, label="True"
+        projected_sequence_1,
+        ax=ax,
+        marker=marker,
+        c="g",
+        s=size,
+        label="Noisy Points",  # green
     )
     manifold_visu.plot(
-        projected_sequence_2, ax=ax, marker=marker, c="g", s=size, label="LR"
+        projected_sequence_2, ax=ax, marker=marker, c="k", s=size, label="LR"  # black
     )
     if sequence_3 is not None:
         manifold_visu.plot(
-            projected_sequence_3, ax=ax, marker=marker, c="k", s=size, label="GR"
+            projected_sequence_3,
+            ax=ax,
+            marker=marker,
+            c="m",
+            s=size,
+            label="GR",  # magenta
+        )
+    if sequence_4 is not None:
+        manifold_visu.plot(
+            projected_sequence_4,
+            ax=ax,
+            marker=marker,
+            c="y",
+            s=size,
+            label="True Geodesic",  # yellow
         )
 
     ax.grid(False)

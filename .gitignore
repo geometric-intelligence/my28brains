@@ -14,6 +14,7 @@ src/notebooks/viz_plys/*
 project_blender/meshes/*
 temp_my28brains/*
 project_menstrual/results/*
+project_regression/results/*
 hide/*
 
 # anaconda stuff
