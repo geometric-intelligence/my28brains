@@ -220,7 +220,7 @@ def generate_cone_mesh():
     return trimesh.creation.cone(radius=1.0, height=2.0, sections=20)
 
 
-def generate_parameterized_geodesic(
+def generate_parameterized_mesh_geodesic(
     start_mesh,
     end_mesh,
     config,
@@ -290,7 +290,7 @@ def generate_parameterized_geodesic(
     return geod, start_mesh.faces, X, true_intercept, true_coef
 
 
-def generate_unparameterized_geodesic(start_mesh, end_mesh, config, gpu_id=1):
+def generate_unparameterized_mesh_geodesic(start_mesh, end_mesh, config, gpu_id=1):
     """Generate a synthetic geodesic between two unparameterized meshes.
 
     Parameters
@@ -346,15 +346,19 @@ def add_geodesic_noise(space, y, dataset_name, noise_factor=0.01):
         mesh_sequence_vertices = y
         diameter = data_utils.mesh_diameter(mesh_sequence_vertices[0])
         noise_std = noise_factor * diameter
+        # Generate normal noise
+        normal_noise = np.random.normal(
+            size=(n_samples, space.ambient_manifold.dim), scale=noise_std
+        )
     else:
         noise_std = noise_factor
         # Note: noise factor is a percentage of the "radius" of the manifold
         # which is 1 for hypersphere.
 
-    # Generate normal noise
-    normal_noise = np.random.normal(
-        size=(n_samples, space.embedding_space.dim), scale=noise_std
-    )
+        # Generate normal noise
+        normal_noise = np.random.normal(
+            size=(n_samples, space.embedding_space.dim), scale=noise_std
+        )
 
     normal_noise = gs.array(normal_noise)
     noise = space.to_tangent(normal_noise, base_point=y) / gs.pi / 2
@@ -375,7 +379,7 @@ def add_linear_noise(space, y, dataset_name, project_linear_noise, noise_factor=
         diameter = data_utils.mesh_diameter(mesh_sequence_vertices[0])
         noise_std = noise_factor * diameter
     else:
-        noise_std = abs(y[0] - y[-1]) * noise_factor
+        noise_std = noise_factor
 
     # Generate normal noise
     normal_noise = np.random.normal(loc=gs.array(0.0), scale=noise_std, size=y.shape)
@@ -395,8 +399,8 @@ def add_linear_noise(space, y, dataset_name, project_linear_noise, noise_factor=
     return y_noisy
 
 
-def generate_benchmark_data(space, n_samples=1):
-    """Generate a pair of random points on the hypersphere or hyperboloid.
+def generate_general_geodesic(space, n_samples=1, tan_vec_length=1):
+    """Generate a synthetic geodesic on the hypersphere or hyperboloid.
 
     Parameters
     ----------
@@ -420,7 +424,7 @@ def generate_benchmark_data(space, n_samples=1):
     vector_norm = gs.linalg.norm(vector)
     if vector_norm < 1e-6:
         vector = vector + 0.5
-    vector = vector / vector_norm
+    vector = tan_vec_length * (vector / vector_norm)
     coef = space.to_tangent(vector, base_point=intercept)
     print(f"coef shape: {coef.shape}")
     y = space.metric.exp(X[:, None] * coef, base_point=intercept)

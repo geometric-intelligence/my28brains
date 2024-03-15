@@ -73,11 +73,13 @@ def load_synthetic_data(config):
         n_X = config.n_X
         n_subdivisions = config.n_subdivisions
         noise_factor = config.noise_factor
+        project_linear_noise = config.project_linear_noise
+        linear_noise = config.linear_noise
 
         mesh_dir = os.path.join(
             data_dir,
             f"geodesic_{start_shape}_{end_shape}_{n_X}_subs{n_subdivisions}"
-            f"_noise{noise_factor}",
+            f"_noise{noise_factor}_projected{project_linear_noise}_linear_noise{linear_noise}",
         )
 
         mesh_sequence_vertices_path = os.path.join(
@@ -126,7 +128,7 @@ def load_synthetic_data(config):
                 X,
                 true_intercept,
                 true_coef,
-            ) = synthetic.generate_parameterized_geodesic(
+            ) = synthetic.generate_parameterized_mesh_geodesic(
                 start_mesh, end_mesh, config, n_X, config.n_steps
             )
 
@@ -179,25 +181,14 @@ def load_synthetic_data(config):
 
         print(f"No noisy synthetic geodesic found in {mesh_dir}. Creating one.")
         # projecting linear noise does not apply to meshes
-        project_linear_noise = config.project_linear_noise
-        mesh_sequence_vertices = synthetic.add_linear_noise(
-            space,
-            noiseless_mesh_sequence_vertices,
-            config.dataset_name,
-            project_linear_noise,
-            noise_factor=noise_factor,
-        )
-
-        print("Original mesh_sequence vertices: ", mesh_sequence_vertices.shape)
-        print("Original mesh faces: ", mesh_faces.shape)
-        print("X: ", X.shape)
-
-        os.makedirs(mesh_dir)
-        np.save(mesh_sequence_vertices_path, mesh_sequence_vertices)
-        np.save(mesh_faces_path, mesh_faces)
-        np.save(X_path, X)
-        np.save(true_intercept_path, true_intercept)
-        np.save(true_coef_path, true_coef)
+        # project_linear_noise = config.project_linear_noise
+        # mesh_sequence_vertices = synthetic.add_linear_noise(
+        #     space,
+        #     noiseless_mesh_sequence_vertices,
+        #     config.dataset_name,
+        #     project_linear_noise,
+        #     noise_factor=noise_factor,
+        # )
 
         space = DiscreteSurfaces(faces=gs.array(mesh_faces))
         print(f"space faces: {space.faces.shape}")
@@ -218,6 +209,36 @@ def load_synthetic_data(config):
         )
         space.metric = elastic_metric
 
+        if config.linear_noise:
+            print(f"noise factor: {config.noise_factor}")
+            print(f"dataset name: {config.dataset_name}")
+            print(f"y noiseless shape: {y_noiseless.shape}")
+            mesh_sequence_vertices = synthetic.add_linear_noise(
+                space,
+                noiseless_mesh_sequence_vertices,
+                config.dataset_name,
+                config.project_linear_noise,
+                noise_factor=config.noise_factor,
+            )
+        else:
+            mesh_sequence_vertices = synthetic.add_geodesic_noise(
+                space,
+                noiseless_mesh_sequence_vertices,
+                config.dataset_name,
+                noise_factor=config.noise_factor,
+            )
+
+        print("Noisy mesh_sequence vertices: ", mesh_sequence_vertices.shape)
+        print("Noisy mesh faces: ", mesh_faces.shape)
+        print("X: ", X.shape)
+
+        os.makedirs(mesh_dir)
+        np.save(mesh_sequence_vertices_path, mesh_sequence_vertices)
+        np.save(mesh_faces_path, mesh_faces)
+        np.save(X_path, X)
+        np.save(true_intercept_path, true_intercept)
+        np.save(true_coef_path, true_coef)
+
         y = mesh_sequence_vertices
         return space, y, y_noiseless, X, true_intercept, true_coef
 
@@ -229,8 +250,8 @@ def load_synthetic_data(config):
             space = Hypersphere(dim=config.space_dimension)
 
         # X, y_noiseless, y_noisy, true_intercept, true_coef = synthetic.generate_noisy_benchmark_data(space = space, linear_noise=config.linear_noise, dataset_name=config.dataset_name, n_samples=config.n_X, noise_factor=config.noise_factor)
-        X, y_noiseless, true_intercept, true_coef = synthetic.generate_benchmark_data(
-            space, config.n_X
+        X, y_noiseless, true_intercept, true_coef = synthetic.generate_general_geodesic(
+            space, config.n_X, config.synthetic_tan_vec_length
         )
         if config.linear_noise:
             print(f"noise factor: {config.noise_factor}")
