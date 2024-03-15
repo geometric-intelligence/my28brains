@@ -110,9 +110,7 @@ run_interpolate = False
 
 dataset_name = ["menstrual_mesh"]
 
-geodesic_initialization = [
-    "warm_start",
-]
+
 linear_residuals = [
     True,
 ]

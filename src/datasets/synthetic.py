@@ -14,6 +14,11 @@ import geomstats.backend as gs
 import numpy as np
 import torch
 import trimesh
+from geomstats.geometry.discrete_surfaces import (
+    DiscreteSurfaces,
+    ElasticMetric,
+    _ExpSolver,
+)
 from geomstats.geometry.hyperbolic import Hyperbolic
 from geomstats.geometry.hypersphere import Hypersphere
 from geomstats.learning.frechet_mean import FrechetMean, variance
@@ -24,11 +29,6 @@ import H2_SurfaceMatch.utils.utils  # noqa: E402
 import src.datasets.utils as data_utils
 import src.import_project_config as pc
 
-from geomstats.geometry.discrete_surfaces import (
-    DiscreteSurfaces,
-    ElasticMetric,
-    _ExpSolver,
-)
 # from src.regression.discrete_surfaces import DiscreteSurfaces, ElasticMetric, _ExpSolver
 
 
@@ -67,6 +67,8 @@ def generate_mesh(mesh_type, n_subdivisions=None):
         return generate_distorted_cube_mesh()
     if mesh_type == "twisted_cube":
         return generate_twisted_cube_mesh()
+    if mesh_type == "cone":
+        return generate_cone_mesh()
     raise ValueError(f"mesh_type {mesh_type} not recognized")
 
 
@@ -201,6 +203,21 @@ def generate_twisted_cube_mesh():
     )
 
     return trimesh.Trimesh(vertices=vertices, faces=faces)
+
+
+def generate_cone_mesh():
+    """Generate a cone mesh.
+
+    Parameters
+    ----------
+    radius : float
+        Radius of the cone.
+    height : float
+        Height of the cone.
+    sections : int
+        How many pie wedges per revolution
+    """
+    return trimesh.creation.cone(radius=1.0, height=2.0, sections=20)
 
 
 def generate_parameterized_geodesic(

@@ -68,7 +68,6 @@ Most Important General Paramters in `default_config.py` (see descriptions in `de
 
 - Elastic Metric Parameters: `a0`, `a1`, `b1`, `c1`, `d1`, `a2`
 - `dataset_name`
-- `geodesic_initialization`
 - `linear_residuals`
 - `n_X`
 

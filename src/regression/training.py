@@ -8,13 +8,13 @@ os.environ["GEOMSTATS_BACKEND"] = "pytorch"  # noqa: E402
 import inspect
 
 import geomstats.backend as gs
+from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import PolynomialFeatures
 
 import H2_SurfaceMatch.utils.input_output as h2_io  # noqa: E402
 
-from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 # from src.regression.discrete_surfaces import DiscreteSurfaces
 from src.regression.geodesic_regression import GeodesicRegression
 
@@ -29,11 +29,10 @@ def save_regression_results(
     regr_coef,
     results_dir,
     config,
-    linear_residuals=None,
+    estimator,
     model=None,
     y_hat=None,
     lr_score_array=None,
-    
 ):
     """Save regression results to files.
 
@@ -53,12 +52,8 @@ def save_regression_results(
     """
     if model is None:
         suffix = f"{dataset_name}"
-    elif model == "linear":
-        suffix = f"{dataset_name}_lr"
-    elif model == "geodesic" and linear_residuals:
-        suffix = f"{dataset_name}_gr_linear_residuals"
     else:
-        suffix = f"{dataset_name}_gr_geodesic_residuals"
+        suffix = f"{dataset_name}_model{model}_estimator{estimator}"
     true_intercept_path = os.path.join(results_dir, f"true_intercept_{suffix}")
     true_coef_path = os.path.join(results_dir, f"true_coef_{suffix}")
     regr_intercept_path = os.path.join(results_dir, f"regr_intercept_{suffix}")

@@ -61,7 +61,10 @@ with open(os.path.join(src_dir, "api_key.txt")) as f:
 
 # GPU Parameters
 use_cuda = False  # use cuda if available
-device_id = 1
+if use_cuda:
+    device_id = 1
+else:
+    device_id = -1
 n_gpus = 10
 torch_dtype = torch.float64
 
@@ -108,40 +111,75 @@ run_interpolate = False
 
 # 2. Regression Parameters
 
-dataset_name = [
-    "synthetic_mesh"
-    # "hyperboloid",
-    # "hypersphere",
-]  # "synthetic_mesh" "menstrual_mesh" "hypersphere", or "hyperboloid"
+# Noise Models:
+# Model 1: Geodesic Noise
+# Model 2: Unprojected Linear Noise
+# Model 3: Projected Linear Noise
+# Model 4: Submersed Linear Noise
 
-space_dimension = [2, 3, 5, 10]  # 2 or 3 (only for hypersphere and hyperboloid)
+model = 4  # 1, 2, 3, 4
 
-geodesic_initialization = [
-    "warm_start",
-]  # "warm_start" or "random" (but code not set up well for random)
-linear_residuals = [
-    True,
-    # False,
-]  # 'True' or 'False' (alternative is geodesic residuals)
-linear_noise = [True]  # , False]  # 'True' or 'False'
-project_linear_noise = [
-    True,
-    False,
-]  # 'True' or 'False'.
+if model == 1:
+    linear_noise = False
+    project_linear_noise = False
+    dataset_name = [
+        "hyperboloid",
+        "hypersphere",
+        "synthetic_mesh",
+    ]
+if model == 2:
+    linear_noise = True
+    project_linear_noise = False
+    dataset_name = [
+        "hyperboloid",
+        "hypersphere",
+        "synthetic_mesh",
+    ]
+if model == 3:
+    linear_noise = True
+    project_linear_noise = True
+    # Note that we only use hyperboloid and hypersphere data for this model
+    dataset_name = [
+        "hyperboloid",
+        "hypersphere",
+    ]
+if model == 4:
+    linear_noise = True
+    project_linear_noise = True
+    # note we only use mesh data for this model,
+    # and the "projection" is actually a submersion
+    dataset_name = ["synthetic_mesh"]
+
+# Estimators:
+# GLS: Geodesic Least Squares applied to geodesic regression --> don't apply to model 2
+# LLS: Linear Least Squares applied to geodesic regression
+# Lin2015: Linear Least Squares applied to linear regression, then projected to the manifold.
+if model == 2:
+    estimator = [
+        "LLS",
+        "Lin2015",
+    ]
+else:
+    estimator = [
+        "GLS",
+        "LLS",
+        "Lin2015",
+    ]
+
+
+space_dimension = [2, 3, 5, 10]  # 2 or 3 (only called for hypersphere and hyperboloid)
+
 n_steps = [3]  # n steps for the exp solver of geomstats. 3, 5
 tol_factor = [
-    # 0.001,
     0.01,
-    0.1,
-    # 0.5,
+    # 0.1,
 ]  # tolerance for geodesic regression. If none logged, value 0.001.
 n_X = [
-    # 5,
+    5,
     10,
     20,
     30,
-    # 50,
-]  # , 10, 15, 20, 30]  # Only for dataset_name == synthetic
+]  # Only for dataset_name == synthetic
 start_shape = [
     "cube"
 ]  # "cube", "distorted_cube", 'twisted_cube', "sphere", "ellipsoid",

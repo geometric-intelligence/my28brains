@@ -45,6 +45,8 @@ class DiscreteSurfaces(Manifold):
         self.n_faces = len(faces)
         self.n_vertices = int(gs.amax(self.faces) + 1)
         self.shape = (self.n_vertices, ambient_dim)
+        self.dtype = torch.float32
+        self.int_dtype = torch.int32
         super().__init__(
             dim=self.n_vertices * ambient_dim,
             shape=(self.n_vertices, 3),
@@ -251,14 +253,15 @@ class DiscreteSurfaces(Manifold):
         )
 
         # Added lines: to make GPU compatible
-        incident_areas = incident_areas.to(point.device, dtype=torch.float64)
+        incident_areas = incident_areas.to(point.device, dtype=self.dtype)
         id_vertices = id_vertices.to(point.device)
-        val = val.to(point.device, dtype=torch.float64)
+        val = val.to(point.device, dtype=self.dtype)
 
         incident_areas = gs.scatter_add(
             incident_areas, dim=len(batch_shape), index=id_vertices, src=val
         )
         vertex_areas = 2 * incident_areas / 3.0
+
         return vertex_areas
 
     def normals(self, point):
@@ -455,6 +458,19 @@ class DiscreteSurfaces(Manifold):
 
             id_vertices_201_repeated = gs.tile(id_vertices[1, :], (n_tangent_vecs, 1))
 
+            laplacian_at_tangent_vec = laplacian_at_tangent_vec.to(
+                tangent_vec.device, dtype=self.int_dtype
+            )
+            id_vertices_201_repeated = id_vertices_201_repeated.to(
+                tangent_vec.device, dtype=torch.int64
+            )
+            values = values.to(dtype=self.int_dtype)
+
+            print("values dtype", values.dtype)
+            print("laplacian_at_tangent_vec dtype", laplacian_at_tangent_vec.dtype)
+            print("id_vertices_201_repeated dtype", id_vertices_201_repeated.dtype)
+            print("self dtype", self.dtype)
+
             for i_dim in range(3):
                 laplacian_at_tangent_vec[:, :, i_dim] = gs.scatter_add(
                     input=laplacian_at_tangent_vec[:, :, i_dim],
@@ -462,11 +478,19 @@ class DiscreteSurfaces(Manifold):
                     index=id_vertices_201_repeated,
                     src=values[:, :, i_dim],
                 )
-            return (
+
+            laplacian_at_tangent_vec = (
                 gs.squeeze(laplacian_at_tangent_vec, axis=0)
                 if to_squeeze
                 else laplacian_at_tangent_vec
             )
+
+            return laplacian_at_tangent_vec.to(self.dtype)
+            # return (
+            #     gs.squeeze(laplacian_at_tangent_vec, axis=0)
+            #     if to_squeeze
+            #     else laplacian_at_tangent_vec
+            # )
 
         return _laplacian
 
@@ -554,6 +578,8 @@ class ElasticMetric(RiemannianMetric):
             Sobolev metrics: a comprehensive numerical framework".
             arXiv:2204.04238 [cs.CV], 25 Sep 2022.
         """
+        a0 = gs.array(self.a0)
+        a0 = a0.to(tangent_vec_a.device)
         return self.a0 * gs.sum(
             vertex_areas_bp
             * gs.einsum("...bi,...bi->...b", tangent_vec_a, tangent_vec_b),
@@ -801,7 +827,12 @@ class ElasticMetric(RiemannianMetric):
         for base_point_i, vertex_areas_bp_i, tangent_vec_a_i, tangent_vec_b_i in zip(
             base_point, vertex_areas_bp, tangent_vec_a, tangent_vec_b
         ):
+            print("tangent_vec_a_i dtype", tangent_vec_a_i.dtype)
+            print("tangent_vec_b_i dtype", tangent_vec_b_i.dtype)
+            print("vertex_areas_bp_i dtype", vertex_areas_bp_i.dtype)
+
             laplacian_at_base_point = self._space.laplacian(base_point_i)
+
             einsum_i = gs.sum(
                 gs.einsum(
                     "...bi,...bi->...b",
@@ -880,6 +911,7 @@ class ElasticMetric(RiemannianMetric):
         inner_prod = gs.zeros(
             (gs.maximum(len(tangent_vec_a), len(tangent_vec_b)))
         )  # CHANGE ALERT: gs.zeros((gs.maximum(len(tangent_vec_a), len(tangent_vec_b)), 1))
+        inner_prod = inner_prod.to(base_point.device)
         if self.a0 > 0 or self.a2 > 0:
             vertex_areas_bp = self._space.vertex_areas(base_point)
             if self.a0 > 0:
