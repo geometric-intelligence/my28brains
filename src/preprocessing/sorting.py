@@ -16,9 +16,11 @@ import src.import_project_config as pc
 
 
 def sort_meshes_by_hormones_and_write(
-    input_dir, output_dir, hemisphere, structure_id, area_threshold, config
+    input_dir, output_dir, hemisphere, structure_id, area_threshold, project_dir
 ):
     """Sort meshes in meshes_parameterized by hormone level.
+
+    WARNING: THIS IS FOR MENSTRUAL DATA
 
     Parameters
     ----------
@@ -34,9 +36,10 @@ def sort_meshes_by_hormones_and_write(
         Structure ID to process.
     area_threshold : float
         Area threshold to process.
-    config : project config.
+    project_config : project config.
         Config object.
     """
+    project_config = pc.import_default_config(project_dir)
     string_base = os.path.join(
         input_dir, f"{hemisphere}_structure_{structure_id}**.ply"
     )
@@ -45,18 +48,18 @@ def sort_meshes_by_hormones_and_write(
         f"\ne. (Sort) Found {len(paths)} .plys for ({hemisphere}, {structure_id}) in {input_dir}"
     )
 
-    hormones_path = os.path.join(config.data_dir, "hormones.csv")
+    hormones_path = os.path.join(project_config.data_dir, "hormones.csv")
     df = pd.read_csv(hormones_path, delimiter=",")
-    days_used = df[df["dayID"] < config.day_range[1] + 1]
-    days_used = days_used[days_used["dayID"] > config.day_range[0] - 1]
+    days_used = df[df["dayID"] < project_config.day_range[1] + 1]
+    days_used = days_used[days_used["dayID"] > project_config.day_range[0] - 1]
 
     print(days_used)
     hormone_levels = days_used["Prog"]
 
     # Load meshes
     mesh_sequence_vertices, mesh_sequence_faces = [], []
-    first_day = int(config.day_range[0])
-    last_day = int(config.day_range[1])
+    first_day = int(project_config.day_range[0])
+    last_day = int(project_config.day_range[1])
     for day in range(first_day, last_day + 1):
         mesh_path = os.path.join(
             input_dir,

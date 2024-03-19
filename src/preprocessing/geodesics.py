@@ -9,6 +9,7 @@ import geomstats.backend as gs
 import numpy as np
 import torch
 import trimesh
+from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 
 import H2_SurfaceMatch.H2_match  # noqa: E402
 import H2_SurfaceMatch.utils.input_output as h2_io  # noqa: E402
@@ -16,7 +17,6 @@ import H2_SurfaceMatch.utils.utils  # noqa: E402
 import src.import_project_config as pc
 import src.preprocessing.writing as write
 
-from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 # from src.regression.discrete_surfaces import DiscreteSurfaces
 
 
@@ -85,7 +85,7 @@ def remove_degenerate_faces_and_write(
         write.trimesh_to_ply(new_mesh, ply_path)
 
 
-def scale_decimate(path, config):
+def scale_decimate(path, project_dir):
     """Scale and decimate a mesh.
 
     Parameters
@@ -108,7 +108,6 @@ def scale_decimate(path, config):
         - faces: np.ndarray
             Faces of the mesh.
     """
-    project_dir = config.project_dir
     project_config = pc.import_default_config(project_dir)
     vertices, faces, _ = h2_io.loadData(path)
     vertices = vertices / project_config.scaling_factor  # was / 10
@@ -122,7 +121,7 @@ def scale_decimate(path, config):
 
 
 def scale_decimate_and_compute_geodesic(
-    start_path, end_path, config, template_path=None, gpu_id=1
+    start_path, end_path, project_dir, template_path=None, gpu_id=1
 ):
     """Compute the geodesic between two meshes, after scaling and decimation of both.
 
@@ -139,17 +138,18 @@ def scale_decimate_and_compute_geodesic(
     config : object
         Config object containing parameters of the experiment.
     """
-    project_dir = config.project_dir
     project_config = pc.import_default_config(project_dir)
-    device = torch.device(f"cuda:{gpu_id}" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        f"cuda:{gpu_id}" if torch.cuda.is_available() and gpu_id is not None else "cpu"
+    )
     start_time = time.time()
 
-    source = scale_decimate(path=start_path, config=config)
-    target = scale_decimate(path=end_path, config=config)
+    source = scale_decimate(path=start_path, project_dir=project_dir)
+    target = scale_decimate(path=end_path, project_dir=project_dir)
 
     template = None
     if template_path:
-        template = scale_decimate(path=template_path, config=config)
+        template = scale_decimate(path=template_path, project_dir=project_dir)
 
     # decimation also happens at the start of h2_match.H2multires
     geod, F0 = H2_SurfaceMatch.H2_match.H2MultiRes(
@@ -208,7 +208,7 @@ def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id, config):
         return
 
     geod, F0 = scale_decimate_and_compute_geodesic(
-        start_path=start_path, end_path=end_path, gpu_id=gpu_id, config=config
+        start_path=start_path, end_path=end_path, gpu_id=gpu_id, project_dir=project_dir
     )
 
     for i_geodesic_time in range(geod.shape[0]):
@@ -223,7 +223,9 @@ def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id, config):
     print(f"\tGeodesic interpolation {i_pair} saved to: " f"{output_dir}.")
 
 
-def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id, config):
+def reparameterize_with_geodesic(
+    input_paths, output_dir, i_path, project_dir, gpu_id=None
+):
     """Auxiliary function that will be run in parallel on different GPUs.
 
     The start path is the path whose parameterization is used as reference.
@@ -247,7 +249,6 @@ def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id, config
     gpu_id : int
         ID of the GPU to use.
     """
-    project_dir = config.project_dir
     project_config = pc.import_default_config(project_dir)
     start_path = input_paths[project_config.template_day]
     end_path = input_paths[i_path]
@@ -258,7 +259,7 @@ def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id, config
         return
 
     geod, F0 = scale_decimate_and_compute_geodesic(
-        start_path=start_path, end_path=end_path, gpu_id=gpu_id, config=config
+        start_path=start_path, end_path=end_path, gpu_id=gpu_id, project_dir=project_dir
     )
 
     h2_io.plotGeodesic(

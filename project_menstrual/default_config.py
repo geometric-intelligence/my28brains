@@ -45,6 +45,10 @@ os.chdir(gitroot_path[:-1])
 work_dir = os.getcwd()  # code/my28brains/
 code_dir = os.path.dirname(work_dir)  # code/
 raw_dir = "/home/data/28andMeOC_correct"
+raw_end_day = 60
+day_dirs = [os.path.join(raw_dir, f"Day{i:02d}") for i in range(1, raw_end_day + 1)]
+
+
 project_dir = os.path.join(
     os.getcwd(), "project_menstrual"
 )  # code/my28brains/project_regression/

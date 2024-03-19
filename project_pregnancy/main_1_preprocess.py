@@ -35,7 +35,6 @@ To fix this, run the following commands:
 - remove: rm -rf ~/.cache/keops*/build
 - rebuild from python console.
     >>> import pykeops
-(P.S. could help fix other pykeops issues too.)
 
 Meshed surfaces are stored into .ply files.
 
@@ -50,7 +49,7 @@ import multiprocessing
 import os
 import warnings
 
-import project_regression.default_config as default_config
+import project_pregnancy.default_config as default_config
 import src.preprocessing.centering as centering
 import src.preprocessing.extraction as extraction
 import src.preprocessing.geodesics as geodesics
@@ -58,7 +57,7 @@ import src.preprocessing.sorting as sorting
 
 warnings.filterwarnings("ignore")
 raw_dir = default_config.raw_dir
-day_dirs = [os.path.join(raw_dir, f"Day{i:02d}") for i in range(1, 61)]
+day_dirs = default_config.day_dirs
 
 meshed_dir = default_config.meshed_dir
 centered_dir = default_config.centered_dir
@@ -166,13 +165,18 @@ if __name__ == "__main__":
 
         func = geodesics.reparameterize_with_geodesic
         func_args_queue = [
-            (func, input_paths, output_dir, i_path, queue) for i_path in i_paths
+            (func, input_paths, output_dir, i_path, default_config.project_dir, queue)
+            for i_path in i_paths
         ]
 
         for _ in pool.imap_unordered(run_func_in_parallel_with_queue, func_args_queue):
             pass
         pool.close()
         pool.join()
+
+    if not default_config.sort:
+        print("\ne. Skipping sorting. Preprocessing done!")
+        exit()
 
     # e. Sort meshes by hormone levels
     for hemisphere, structure_id, area_threshold in itertools.product(
