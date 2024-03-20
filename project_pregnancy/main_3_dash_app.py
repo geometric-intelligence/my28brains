@@ -71,19 +71,19 @@ test_indices = np.sort(test_indices)
 progesterone_levels = gs.array(all_hormone_levels["prog"].values)
 estrogen_levels = gs.array(all_hormone_levels["estro"].values)
 lh_levels = gs.array(all_hormone_levels["lh"].values)
-gest_week = gs.array(all_hormone_levels["gestWeek"].values)
+# gest_week = gs.array(all_hormone_levels["gestWeek"].values)
 
 progesterone_average = gs.mean(progesterone_levels)
 estrogen_average = gs.mean(estrogen_levels)
 lh_average = gs.mean(lh_levels)
-gest_week_average = gs.mean(gest_week)
+# gest_week_average = gs.mean(gest_week)
 
 X_multiple = gs.vstack(
     (
         progesterone_levels,
         estrogen_levels,
         lh_levels,
-        gest_week,
+        # gest_week,
     )
 ).T  # NOTE: copilot thinks this should be transposed.
 
@@ -102,32 +102,11 @@ mr_score_array = training.compute_R2(y, X_multiple, test_indices, train_indices)
 # Parameters for sliders
 
 hormones_info = {
-    "progesterone": {"min_value": 0, "max_value": 15, "step": 1},
-    "LH": {"min_value": 0, "max_value": 50, "step": 5},
-    "estrogen": {"min_value": 0, "max_value": 250, "step": 10},
-    "gest_week": {"min_value": -3, "max_value": 162, "step": 10},
+    "progesterone": {"min_value": 1, "max_value": 103, "step": 10},
+    "LH": {"min_value": 1, "max_value": 8, "step": 1},
+    "estrogen": {"min_value": 3, "max_value": 10200, "step": 100},
+    # "gest_week": {"min_value": -3, "max_value": 162, "step": 10},
 }
-
-# def gaussian_smoothing(point_cloud, k=10, sigma=1.0):
-#     # Build a KDTree for efficient neighbor searches
-#     tree = KDTree(point_cloud)
-
-#     # Query the KDTree for the k nearest neighbors of each point
-#     distances, indices = tree.query(point_cloud, k=k+1)  # +1 because a point is its own nearest neighbor
-
-#     # Compute Gaussian weights based on distances
-#     weights = np.exp(-distances**2 / (2*sigma**2))
-#     weights[:, 0] = 0  # Exclude the point itself (distance=0) from its neighbors
-
-#     # Normalize weights
-#     weights /= weights.sum(axis=1)[:, np.newaxis]
-
-#     # Compute the new points as weighted averages of neighbors
-#     new_points = np.zeros_like(point_cloud)
-#     for i, neighbors in enumerate(indices):
-#         new_points[i] = np.sum(point_cloud[neighbors] * weights[i, :, np.newaxis], axis=0)
-
-#     return new_points
 
 app = Dash(__name__)  # , external_stylesheets=external_stylesheets)
 
@@ -189,22 +168,22 @@ app.layout = html.Div(
                         )
                     },
                 ),
-                html.H6("Gestation Week"),
-                dcc.Slider(
-                    id="gest_week-slider",
-                    min=hormones_info["gest_week"]["min_value"],
-                    max=hormones_info["gest_week"]["max_value"],
-                    step=hormones_info["gest_week"]["step"],
-                    value=gest_week_average,
-                    marks={
-                        str(i): str(i)
-                        for i in range(
-                            hormones_info["gest_week"]["min_value"],
-                            hormones_info["gest_week"]["max_value"],
-                            hormones_info["gest_week"]["step"],
-                        )
-                    },
-                ),
+                # html.H6("Gestation Week"),
+                # dcc.Slider(
+                #     id="gest_week-slider",
+                #     min=hormones_info["gest_week"]["min_value"],
+                #     max=hormones_info["gest_week"]["max_value"],
+                #     step=hormones_info["gest_week"]["step"],
+                #     value=gest_week_average,
+                #     marks={
+                #         str(i): str(i)
+                #         for i in range(
+                #             hormones_info["gest_week"]["min_value"],
+                #             hormones_info["gest_week"]["max_value"],
+                #             hormones_info["gest_week"]["step"],
+                #         )
+                #     },
+                # ),
             ],
             style={"width": "60%", "display": "inline-block"},
         ),
@@ -217,14 +196,14 @@ app.layout = html.Div(
     Input("progesterone-slider", "value"),
     Input("LH-slider", "value"),
     Input("estrogen-slider", "value"),
-    Input("gest_week-slider", "value"),
+    # Input("gest_week-slider", "value"),
 )
-def plot_hormone_levels_plotly(progesterone, LH, estrogen, gest_week):
+def plot_hormone_levels_plotly(progesterone, LH, estrogen):  # , gest_week):
     """Update the mesh plot based on the hormone levels."""
     progesterone = gs.array(progesterone)
     LH = gs.array(LH)
     estrogen = gs.array(estrogen)
-    gest_week = gs.array(gest_week)
+    # gest_week = gs.array(gest_week)
 
     # Predict Mesh
     X_multiple = gs.vstack(
@@ -232,7 +211,7 @@ def plot_hormone_levels_plotly(progesterone, LH, estrogen, gest_week):
             progesterone,
             estrogen,
             LH,
-            gest_week,
+            # gest_week,
         )
     ).T
 

@@ -320,11 +320,12 @@ def load_real_data(config):
 
         # make sure there are meshes in the directory
         mesh_string_base = os.path.join(
-            mesh_dir, f"{config.hemisphere}_structure_{config.structure_id}**.ply"
+            mesh_dir,
+            f"{config.hemispheres[0]}_structure_{config.structure_ids[0]}**.ply",
         )
         mesh_paths = sorted(glob.glob(mesh_string_base))
         print(
-            f"\ne. (Sort) Found {len(mesh_paths)} .plys for ({config.hemisphere}, {config.structure_id}) in {mesh_dir}"
+            f"\ne. (Sort) Found {len(mesh_paths)} .plys for ({config.hemispheres[0]}, {config.structure_ids[0]}) in {mesh_dir}"
         )
 
         # load meshes
@@ -336,10 +337,10 @@ def load_real_data(config):
         for day in range(first_day, last_day + 1):
             mesh_path = os.path.join(
                 mesh_dir,
-                f"{config.hemisphere}_structure_{config.structure_id}_day{day:02d}"
-                f"_at_{config.area_threshold}.ply",
+                f"{config.hemispheres[0]}_structure_{config.structure_ids[0]}_day{day:02d}"
+                f"_at_{config.area_thresholds[0]}.ply",
             )
-            if not mesh_path.exists():
+            if not os.path.exists(mesh_path):
                 print(f"Day {day} has no data. Skipping.")
                 print(f"DayID not to use: {day}")
                 days_to_ignore.append(day)
@@ -395,23 +396,43 @@ def load_real_data(config):
         hormones_path = os.path.join(project_config.data_dir, "28Baby_Hormones.csv")
         df = pd.read_csv(hormones_path, delimiter=",")
         df["dayID"] = [int(entry.split("-")[1]) for entry in df["sessionID"]]
-        df = df[df["dayID"] != 27]  # sess 27 is a repeat of sess 26
+        df = df.drop(df[df["dayID"] == 27].index)  # sess 27 is a repeat of sess 26
+        # df = df[df["dayID"] != 27]  # sess 27 is a repeat of sess 26
 
-    days_used = df[df["dayID"] < project_config.day_range[1] + 1]
-    days_used = days_used[days_used["dayID"] > project_config.day_range[0] - 1]
+    df = df[df["dayID"] < project_config.day_range[1] + 1]
+    df = df[df["dayID"] > project_config.day_range[0] - 1]
     if days_to_ignore is not None:
         for day in days_to_ignore:
             day = int(day)
-            days_used = days_used[days_used["dayID"] != day]
+            df = df.drop(df[df["dayID"] == day].index).reset_index(drop=True)
+            # df = df[df["dayID"] != day]
             print("Hormones excluded from day: ", day)
-    print(days_used)
-    all_hormone_levels = days_used
+    print(df)
 
     print(f"space faces: {space.faces.shape}")
     print(f"y shape: {y.shape}")
-    print(f"X shape: {all_hormone_levels.shape}")
+    print(f"X shape: {df.shape}")
     print(f"true intercept shape: {true_intercept.shape}")
     print(f"true coef shape: {true_coef.shape}")
+
+    if project_config.dataset_name == "pregnancy_mesh":
+        print("df index: ", df.index)
+        missing_days = df[df.isnull().any(axis=1)].index
+        print(f"Missing days: {missing_days}")
+
+        # Remove rows with missing hormone values from the dataframe
+        df = df.dropna()
+
+        # Remove corresponding brain meshes from the array
+        y = np.delete(y, missing_days, axis=0)
+
+    print(f"space faces: {space.faces.shape}")
+    print(f"y shape: {y.shape}")
+    print(f"X shape: {df.shape}")
+    print(f"true intercept shape: {true_intercept.shape}")
+    print(f"true coef shape: {true_coef.shape}")
+
+    all_hormone_levels = df
 
     return space, y, all_hormone_levels, true_intercept, true_coef
 

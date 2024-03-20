@@ -94,10 +94,15 @@ def _extract_mesh(img_fdata, structure_id):
         img_mask = img_fdata != 0
     else:
         img_mask = img_fdata == structure_id
-    meshing_result = skimage.measure.marching_cubes(
+    (
+        vertices,
+        faces,
+        _,
+        values,
+    ) = skimage.measure.marching_cubes(  # omitted value is "normals"
         img_mask, level=0, step_size=1, allow_degenerate=False, method="lorensen"
     )
-    mesh = trimesh.Trimesh(vertices=meshing_result[0], faces=meshing_result[1])
+    mesh = trimesh.Trimesh(vertices=vertices, faces=faces, vertex_colors=values)
     return mesh
 
 
