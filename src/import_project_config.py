@@ -9,8 +9,6 @@ def import_default_config(project_dir):
     """Recovers default_config in the directory of the calling script's path."""
     default_config_path = os.path.join(project_dir, "default_config.py")
 
-    print(f"project_dir: {project_dir}")
-
     # Check if the file exists before attempting to import
     if os.path.isfile(default_config_path):
         spec = importlib.util.spec_from_file_location(

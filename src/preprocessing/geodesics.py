@@ -249,6 +249,8 @@ def reparameterize_with_geodesic(
     gpu_id : int
         ID of the GPU to use.
     """
+    print("i_path: ", i_path)
+
     project_config = pc.import_default_config(project_dir)
     start_path = input_paths[project_config.template_day]
     end_path = input_paths[i_path]

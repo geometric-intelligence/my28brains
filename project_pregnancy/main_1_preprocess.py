@@ -67,7 +67,8 @@ sorted_dir = default_config.sorted_dir
 interpolated_dir = default_config.interpolated_dir
 
 day_range = default_config.day_range
-day_range_index = [day_range[0] - 1, day_range[1] - 1]
+blank_days = default_config.blank_days
+day_range_index = [day_range[0] - 1, day_range[1] - 1 - len(blank_days)]
 
 
 def run_func_in_parallel_with_queue(func_args_queue):
@@ -99,7 +100,7 @@ def run_func_in_parallel_with_queue(func_args_queue):
 if __name__ == "__main__":
     # a. Mesh by segmenting surfaces of the hippocampus and its substructures.
     for hemisphere, structure_id in itertools.product(
-        default_config.hemisphere, set(default_config.structure_ids + [-1])
+        default_config.hemispheres, set(default_config.structure_ids + [-1])
     ):
         # Add the whole hippocampus id=[-1] to list of structure ids,
         # in order to be able to compute its center and center the substructures.
@@ -111,7 +112,7 @@ if __name__ == "__main__":
         )
 
     # b. Center meshes by putting whole hippocampus barycenter at 0.
-    for hemisphere in default_config.hemisphere:
+    for hemisphere in default_config.hemispheres:
         hippocampus_centers = centering.center_whole_hippocampus_and_write(
             input_dir=meshed_dir, output_dir=centered_dir, hemisphere=hemisphere
         )
@@ -127,7 +128,7 @@ if __name__ == "__main__":
 
     # c. Remove degenerate faces using area thresholds
     for hemisphere, structure_id, area_threshold in itertools.product(
-        default_config.hemisphere,
+        default_config.hemispheres,
         default_config.structure_ids,
         default_config.area_thresholds,
     ):
@@ -141,7 +142,7 @@ if __name__ == "__main__":
 
     # d. Reparameterize meshes: use parameterization of the first mesh
     for hemisphere, structure_id, area_threshold in itertools.product(
-        default_config.hemisphere,
+        default_config.hemispheres,
         default_config.structure_ids,
         default_config.area_thresholds,
     ):
@@ -162,6 +163,7 @@ if __name__ == "__main__":
 
         pool = multiprocessing.Pool(processes=default_config.n_gpus)
         i_paths = list(range(day_range_index[0], day_range_index[1] + 1))
+        print("i_paths: ", i_paths)
 
         func = geodesics.reparameterize_with_geodesic
         func_args_queue = [
@@ -180,7 +182,7 @@ if __name__ == "__main__":
 
     # e. Sort meshes by hormone levels
     for hemisphere, structure_id, area_threshold in itertools.product(
-        default_config.hemisphere,
+        default_config.hemispheres,
         default_config.structure_ids,
         default_config.area_thresholds,
     ):
@@ -197,7 +199,7 @@ if __name__ == "__main__":
         exit()
     # f. (Optional) Geodesic interpolation between t and t+1
     for hemisphere, structure_id, area_threshold in itertools.product(
-        default_config.hemisphere,
+        default_config.hemispheres,
         default_config.structure_ids,
         default_config.area_thresholds,
     ):

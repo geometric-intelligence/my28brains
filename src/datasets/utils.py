@@ -339,6 +339,12 @@ def load_real_data(config):
                 f"{config.hemisphere}_structure_{config.structure_id}_day{day:02d}"
                 f"_at_{config.area_threshold}.ply",
             )
+            if not mesh_path.exists():
+                print(f"Day {day} has no data. Skipping.")
+                print(f"DayID not to use: {day}")
+                days_to_ignore.append(day)
+                continue
+
             vertices, faces, _ = h2_io.loadData(mesh_path)
             if vertices.shape[0] == 0:
                 print(f"Day {day} has no data. Skipping.")
@@ -389,6 +395,7 @@ def load_real_data(config):
         hormones_path = os.path.join(project_config.data_dir, "28Baby_Hormones.csv")
         df = pd.read_csv(hormones_path, delimiter=",")
         df["dayID"] = [int(entry.split("-")[1]) for entry in df["sessionID"]]
+        df = df[df["dayID"] != 27]  # sess 27 is a repeat of sess 26
 
     days_used = df[df["dayID"] < project_config.day_range[1] + 1]
     days_used = days_used[days_used["dayID"] > project_config.day_range[0] - 1]

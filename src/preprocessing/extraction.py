@@ -18,6 +18,7 @@ Structure_ID names, numbers, and colors:
 import os
 
 import nibabel
+import numpy as np
 import skimage
 import trimesh
 
@@ -47,20 +48,28 @@ def extract_meshes_from_nii_and_write(input_dir, output_dir, hemisphere, structu
     """
     print(f"Looking into: {input_dir}")
     nii_paths = []
-    for day_dir in input_dir:
+    valid_day_numbers = []
+    for i_day, day_dir in enumerate(input_dir):
+        file_found = False
         for file_name in os.listdir(day_dir):
             if file_name.startswith(hemisphere) and file_name.endswith(".nii.gz"):
                 nii_paths.append(os.path.join(day_dir, file_name))
+                file_found = True
+                print(f"Found {file_name} in {day_dir}")
+                valid_day_numbers.append(i_day + 1)
                 break
+        if not file_found:
+            print(f"File not found in {day_dir}")
+    valid_day_numbers = np.array(valid_day_numbers)
 
     print(
         f"\na. (Mesh) Found {len(nii_paths)} nii paths for hemisphere {hemisphere} in {input_dir}"
+        f"\nValid day numbers: {valid_day_numbers}"
     )
     for path in nii_paths:
         print(path)
 
-    for i_path, nii_path in enumerate(nii_paths):
-        day = i_path + 1
+    for day, nii_path in zip(valid_day_numbers, nii_paths):
         ply_path = os.path.join(
             output_dir,
             f"{hemisphere}_structure_{structure_id}_day{day:02}.ply",
@@ -74,7 +83,7 @@ def extract_meshes_from_nii_and_write(input_dir, output_dir, hemisphere, structu
 
 def _extract_mesh(img_fdata, structure_id):
     """Extract one surface mesh from the fdata of a segmented image.
-    
+
     Parameters
     ----------
     img_fdata: array-like, shape = [n_x, n_y, n_z]. Voxels which are colored
