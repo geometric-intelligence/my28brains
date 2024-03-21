@@ -81,7 +81,9 @@ def remove_degenerate_faces_and_write(
         new_vertices, new_faces, new_colors = remove_degenerate_faces(
             mesh.vertices, mesh.faces, mesh.visual.vertex_colors, area_threshold
         )
-        new_mesh = trimesh.Trimesh(vertices=new_vertices, faces=new_faces)
+        new_mesh = trimesh.Trimesh(
+            vertices=new_vertices, faces=new_faces, vertex_colors=new_colors
+        )
         write.trimesh_to_ply(new_mesh, ply_path)
 
 
