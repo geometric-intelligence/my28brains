@@ -79,7 +79,7 @@ def extract_meshes_from_nii_and_write(input_dir, output_dir, hemisphere, structu
             continue
         mesh = extract_mesh(nii_path=nii_path, structure_id=structure_id)
         writing.trimesh_to_ply(mesh=mesh, ply_path=ply_path)
-        writing.save_colors_as_txt(mesh, ply_path)
+        writing.save_colors_as_np_array(mesh, ply_path)
 
 
 def _extract_mesh(img_fdata, structure_id):
@@ -127,16 +127,10 @@ def _extract_mesh(img_fdata, structure_id):
     }
 
     colors = np.array([np.array(color_dict[value]) for value in values])
-    # colors_normalized = colors / 255.0
-    # colors = []
-    # for value in values:
-    #     colors.append(np.array(color_dict[value]))
-    # colors = np.array(colors)
     print(f"Colors.shape = {colors.shape}")
     print("Colors:", colors)
 
     mesh = trimesh.Trimesh(vertices=vertices, faces=faces, vertex_colors=colors)
-    # mesh.visual.vertex_colors = colors
     return mesh
 
 

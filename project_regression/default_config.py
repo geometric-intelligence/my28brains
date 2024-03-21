@@ -96,7 +96,7 @@ scaling_factor = 2 * initial_decimation_fact
 # for all mesh in the interpolation
 # Every mesh will have the same number of vertices and faces.
 i_template = 0
-template_day = 2
+template_day_index = 2
 
 # range of days to interpolate in between
 # Looking at the first 10 days is interesting because:

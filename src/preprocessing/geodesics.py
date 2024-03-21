@@ -252,7 +252,7 @@ def reparameterize_with_geodesic(
     print("i_path: ", i_path)
 
     project_config = pc.import_default_config(project_dir)
-    start_path = input_paths[project_config.template_day]
+    start_path = input_paths[project_config.template_day_index]
     end_path = input_paths[i_path]
     ply_path = os.path.join(output_dir, os.path.basename(end_path))
 

@@ -2,6 +2,7 @@
 
 import os
 
+import numpy as np
 import trimesh
 
 
@@ -30,7 +31,7 @@ def trimesh_to_ply(mesh, ply_path):
         f.write(ply_text)
 
 
-def save_colors_as_txt(mesh, ply_path):
+def save_colors_as_np_array(mesh, ply_path):
     """Save the colors of a mesh into a .txt file.
 
     Parameters
@@ -41,9 +42,12 @@ def save_colors_as_txt(mesh, ply_path):
         Absolute path to write the colors.
         Needs to end with .txt extension.
     """
-    txt_path = ply_path.replace(".ply", "_colors.txt")
-    print(f"- Write colors to {txt_path}")
+    arr_path = ply_path.replace(".ply", "_colors.npy")
+    print(f"- Write colors to {arr_path}")
     print(f"mesh.visual.vertex_colors: {mesh.visual.vertex_colors}")
-    with open(txt_path, "w") as f:
-        for color in mesh.visual.vertex_colors:
-            f.write(f"{color[0]} {color[1]} {color[2]} {color[3]}\n")
+    colors = mesh.visual.vertex_colors
+    np.save(arr_path, colors)
+
+    # with open(txt_path, "w") as f:
+    #     for color in mesh.visual.vertex_colors:
+    #         f.write(f"{color[0]} {color[1]} {color[2]} {color[3]}\n")

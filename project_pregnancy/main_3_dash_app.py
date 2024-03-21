@@ -48,6 +48,7 @@ os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 (
     space,
     y,
+    vertex_colors,
     all_hormone_levels,
     true_intercept,
     true_coef,
@@ -238,7 +239,8 @@ def plot_hormone_levels_plotly(progesterone, LH, estrogen):  # , gest_week):
                 y=y,
                 z=z,
                 colorbar_title="z",
-                colorscale=[[0, "gold"], [0.5, "mediumturquoise"], [1, "magenta"]],
+                # colorscale=[[0, "gold"], [0.5, "mediumturquoise"], [1, "magenta"]],
+                vertexcolor=vertex_colors,
                 # i, j and k give the vertices of triangles
                 i=i,
                 j=j,

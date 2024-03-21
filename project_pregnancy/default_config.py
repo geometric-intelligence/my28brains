@@ -92,7 +92,7 @@ area_thresholds = [0.00]  # 0.0001, 0.001, 0.01, 0.1, 1.0]
 # for all mesh in the interpolation
 # Every mesh will have the same number of vertices and faces.
 i_template = 0
-template_day = 2
+template_day_index = 2
 
 # WORKING
 initial_decimation_fact = 10  # was 10

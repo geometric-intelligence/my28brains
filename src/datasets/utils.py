@@ -283,6 +283,20 @@ def load_real_data(config):
     project_dir = config.project_dir
     project_config = pc.import_default_config(project_dir)
 
+    # load template day vertex colors
+    template_day_index = project_config.template_day_index
+    template_day = template_day_index + 1
+    meshed_dir = project_config.meshed_dir
+    colors_path = os.path.join(
+        meshed_dir,
+        f"{project_config.hemispheres[0]}_structure_{project_config.structure_ids[0]}_day{template_day:02}_colors.npy",
+    )
+    vertex_colors = np.load(colors_path)
+
+    # take off the opacity value, so that it is only RGB
+    vertex_colors = vertex_colors[:, 0:3]
+    print(vertex_colors)
+
     # load meshes
     mesh_sequence_vertices = []
     mesh_sequence_faces = []
@@ -347,6 +361,10 @@ def load_real_data(config):
                 continue
 
             vertices, faces, _ = h2_io.loadData(mesh_path)
+            # mesh = o3d.io.read_triangle_mesh(file_name)
+            # vertices = gs.array(mesh.vertices)
+            # faces = gs.array(mesh.faces)
+            # vertex_colors = gs.array(mesh.vertex_colors)
             if vertices.shape[0] == 0:
                 print(f"Day {day} has no data. Skipping.")
                 print(f"DayID not to use: {day}")
@@ -433,7 +451,7 @@ def load_real_data(config):
 
     all_hormone_levels = df
 
-    return space, y, all_hormone_levels, true_intercept, true_coef
+    return space, y, vertex_colors, all_hormone_levels, true_intercept, true_coef
 
 
 def load_mesh(mesh_type, n_subdivisions, config):
