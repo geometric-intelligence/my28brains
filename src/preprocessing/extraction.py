@@ -79,6 +79,7 @@ def extract_meshes_from_nii_and_write(input_dir, output_dir, hemisphere, structu
             continue
         mesh = extract_mesh(nii_path=nii_path, structure_id=structure_id)
         writing.trimesh_to_ply(mesh=mesh, ply_path=ply_path)
+        writing.save_colors_as_txt(mesh, ply_path)
 
 
 def _extract_mesh(img_fdata, structure_id):
@@ -90,19 +91,52 @@ def _extract_mesh(img_fdata, structure_id):
         according to substructure assignment. For example, color of voxel
         (0, 0, 0) is an integer value that can be anywhere from 0-9.
     """
+    print(f"Img fdata shape: {img_fdata.shape}")
     if structure_id == -1:
         img_mask = img_fdata != 0
     else:
         img_mask = img_fdata == structure_id
+
+    masked_img_fdata = np.where(img_mask, img_fdata, 0)
+    print(f"Masked img fdata shape: {masked_img_fdata.shape}")
     (
         vertices,
         faces,
         _,
         values,
     ) = skimage.measure.marching_cubes(  # omitted value is "normals"
-        img_mask, level=0, step_size=1, allow_degenerate=False, method="lorensen"
+        masked_img_fdata,
+        level=0,
+        step_size=1,
+        allow_degenerate=False,
+        method="lorensen",
     )
-    mesh = trimesh.Trimesh(vertices=vertices, faces=faces, vertex_colors=values)
+    print(f"Colors: {values.min()}, {values.max()}")
+    print(f"Vertices.shape = {vertices.shape}")
+
+    color_dict = {  # trimesh uses format [r, g, b, a] where a is alpha
+        1: [255, 0, 0, 255],
+        2: [0, 255, 0, 255],
+        3: [0, 0, 255, 255],
+        4: [255, 255, 0, 255],
+        5: [0, 255, 255, 255],
+        6: [255, 0, 255, 255],
+        7: [80, 179, 221, 255],
+        8: [255, 215, 0, 255],
+        9: [184, 115, 51, 255],
+    }
+
+    colors = np.array([np.array(color_dict[value]) for value in values])
+    # colors_normalized = colors / 255.0
+    # colors = []
+    # for value in values:
+    #     colors.append(np.array(color_dict[value]))
+    # colors = np.array(colors)
+    print(f"Colors.shape = {colors.shape}")
+    print("Colors:", colors)
+
+    mesh = trimesh.Trimesh(vertices=vertices, faces=faces, vertex_colors=colors)
+    # mesh.visual.vertex_colors = colors
     return mesh
 
 

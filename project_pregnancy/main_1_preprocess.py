@@ -100,7 +100,7 @@ def run_func_in_parallel_with_queue(func_args_queue):
 if __name__ == "__main__":
     # a. Mesh by segmenting surfaces of the hippocampus and its substructures.
     for hemisphere, structure_id in itertools.product(
-        default_config.hemispheres, set(default_config.structure_ids + [-1])
+        default_config.hemispheres, set(default_config.structure_ids)  # + [-1])
     ):
         # Add the whole hippocampus id=[-1] to list of structure ids,
         # in order to be able to compute its center and center the substructures.

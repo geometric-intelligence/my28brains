@@ -405,7 +405,6 @@ def load_real_data(config):
         for day in days_to_ignore:
             day = int(day)
             df = df.drop(df[df["dayID"] == day].index).reset_index(drop=True)
-            # df = df[df["dayID"] != day]
             print("Hormones excluded from day: ", day)
     print(df)
 
