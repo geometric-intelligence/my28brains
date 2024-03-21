@@ -20,7 +20,7 @@ import src.preprocessing.writing as write
 # from src.regression.discrete_surfaces import DiscreteSurfaces
 
 
-def remove_degenerate_faces(vertices, faces, area_threshold=0.01):
+def remove_degenerate_faces(vertices, faces, vertex_colors, area_threshold=0.01):
     """Remove degenerate faces of a surfaces.
 
     This returns a new surface with fewer vertices where the faces with area 0
@@ -29,13 +29,13 @@ def remove_degenerate_faces(vertices, faces, area_threshold=0.01):
     A new DiscreteSurfaces object should be created afterwards,
     since one manifold corresponds to a predefined number of vertices and faces.
     """
-    mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+    mesh = trimesh.Trimesh(vertices=vertices, faces=faces, vertex_colors=vertex_colors)
 
     discrete_surfaces = DiscreteSurfaces(faces=faces)
     face_areas = discrete_surfaces.face_areas(gs.array(vertices))
     face_mask = ~gs.less(face_areas, area_threshold)
     mesh.update_faces(face_mask)
-    return mesh.vertices, mesh.faces
+    return mesh.vertices, mesh.faces, mesh.visual.vertex_colors
 
 
 def remove_degenerate_faces_and_write(
@@ -78,8 +78,8 @@ def remove_degenerate_faces_and_write(
             continue
         print(f"Load mesh from {path}")
         mesh = trimesh.load(path)
-        new_vertices, new_faces = remove_degenerate_faces(
-            mesh.vertices, mesh.faces, area_threshold
+        new_vertices, new_faces, new_colors = remove_degenerate_faces(
+            mesh.vertices, mesh.faces, mesh.visual.vertex_colors, area_threshold
         )
         new_mesh = trimesh.Trimesh(vertices=new_vertices, faces=new_faces)
         write.trimesh_to_ply(new_mesh, ply_path)
