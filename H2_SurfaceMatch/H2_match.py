@@ -292,7 +292,7 @@ def StandardH2Matching(source, target, geod, F_init, a0, a1, b1, c1, d1, a2, par
 
 
 def H2MultiRes(
-    source,
+    source,  #[vertices, faces, colors]
     target,
     a0,
     a1,
@@ -311,7 +311,7 @@ def H2MultiRes(
     Parameters
     ----------
     source : tuple
-        Tuple of source vertices and faces.
+        Tuple of source vertices and faces. # and colors
     target : tuple
         Tuple of target vertices and faces.
     a0, a1, b1, c1, d1, a2 : float
@@ -341,15 +341,15 @@ def H2MultiRes(
         Faces describing the mesh, where each face is a set of 3 vertices' indices.
     """
     N = 2
-    [VS, FS] = source
-    [VT, FT] = target
+    [VS, FS, CS] = source  #[VS, FS, CS]
+    [VT, FT, CT] = target
 
-    sources = [[VS, FS]]
-    targets = [[VT, FT]]
+    sources = [[VS, FS, CS]]
+    targets = [[VT, FT, CT]]
 
-    print("before starting: Vertices then Faces for S then T")
-    print(VS.shape, FS.shape)
-    print(VT.shape, FT.shape)
+    print("before starting: Vertices then Faces then colors for S then T")
+    print(VS.shape, FS.shape, CS.shape)
+    print(VT.shape, FT.shape, CT.shape)
 
     # QUESTION: why are source and target being decimated here?
     # we already decimated them in main.py.
@@ -358,14 +358,15 @@ def H2MultiRes(
         print(f"FS decimation target: {int(FS.shape[0] / decimation_fact)}")
         print(f"FT decimation target: {int(FT.shape[0] / decimation_fact)}")
 
-        [VS, FS] = io.decimate_mesh(VS, FS, int(FS.shape[0] / decimation_fact))  # was 4
+        # TODO: Add colors to the inputs and outputs of decimate
+        [VS, FS, CS] = io.decimate_mesh(VS, FS, int(FS.shape[0] / decimation_fact), colors = CS)  # was 4
         # QUESTION: why do we decimate the mesh and then add it to the original sources?
-        sources = [[VS, FS]] + sources
-        [VT, FT] = io.decimate_mesh(VT, FT, int(FT.shape[0] / decimation_fact))  # was 4
-        targets = [[VT, FT]] + targets
-        print(f"Resol {i}: Vertices for S then T")
-        print(VS.shape, FS.shape)
-        print(VT.shape, FT.shape)
+        sources = [[VS, FS, CS]] + sources
+        [VT, FT, CT] = io.decimate_mesh(VT, FT, int(FT.shape[0] / decimation_fact), colors = CT)  # was 4
+        targets = [[VT, FT, CT]] + targets
+        print(f"Resol {i}: Vertices and faces and colors for S then T")
+        print(VS.shape, FS.shape, CS.shape)
+        print(VT.shape, FT.shape, CT.shape)
 
     source_init = sources[0]
     target_init = sources[0]
@@ -385,6 +386,7 @@ def H2MultiRes(
     else:
         geod = np.zeros((N, source_init[0].shape[0], source_init[0].shape[1]))
         F0 = source_init[1]
+        color0 = source_init[2]
         for i in range(0, N):
             geod[i, :, :] = source_init[0]
 
@@ -396,7 +398,7 @@ def H2MultiRes(
         index = params["index"]
         geod = np.array(geod)
         [N, n, three] = geod.shape
-        geod, ener, Dic = SymmetricH2Matching(
+        geod, ener, Dic = SymmetricH2Matching( #Nina and i think this will not change colors because it will not change faces
             sources[index],
             targets[index],
             geod,
@@ -416,7 +418,7 @@ def H2MultiRes(
         if time_steps > 2:
             # Note: here, geod is still an array.
             print("in timesteps:")
-            geod = H2Midpoint(
+            geod = H2Midpoint( # Nina and I think this will not change parameterization of each mesh, so it will not change colors
                 geod, time_steps, F0, a0, a1, b1, c1, d1, a2, params, device=device
             )
             print("geod.shape:", geod.shape)
@@ -425,17 +427,20 @@ def H2MultiRes(
             print("in  triupsample:")
             geod_sub = []
             F_Sub = []
+            color_Sub = []
             for i in range(0, N):
                 print(f"iteration {i} in range(N) to subdivide mesh")
                 # Re upsampling by a factor of 4
-                geod_subi, F_Subi = io.subdivide_mesh(geod[i], F0, order=1)
+                geod_subi, F_Subi, color_Subi = io.subdivide_mesh(geod[i], F0, color = color0, order=1)# add colors by doing rho = colors\
                 F_Sub.append(F_Subi)
+                color_Sub.append()
                 geod_sub.append(geod_subi)
             geod = geod_sub
             F0 = F_Sub[0]
+            color0 = color_Sub[0]
             print("len(geod):", len(geod))
     print(len(paramlist), F0.shape)
-    return geod, F0
+    return geod, F0, color0 #F0 is faces, here, we need color0 too.
 
 
 def H2StandardIterative(

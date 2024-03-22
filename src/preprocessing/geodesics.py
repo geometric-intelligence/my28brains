@@ -111,15 +111,20 @@ def scale_decimate(path, project_dir):
             Faces of the mesh.
     """
     project_config = pc.import_default_config(project_dir)
-    vertices, faces, _ = h2_io.loadData(path)
+    vertices, faces, colors = h2_io.loadData(path)
     vertices = vertices / project_config.scaling_factor  # was / 10
     n_faces_after_decimation = int(
         faces.shape[0] / project_config.initial_decimation_fact
     )
-    vertices, faces = H2_SurfaceMatch.utils.utils.decimate_mesh(
-        vertices, faces, n_faces_after_decimation
+    (
+        vertices_after_decimation,
+        faces_after_decimation,
+        colors_after_decimation,
+    ) = H2_SurfaceMatch.utils.utils.decimate_mesh(
+        vertices, faces, n_faces_after_decimation, colors=colors
     )
-    return [vertices, faces]
+
+    return [vertices_after_decimation, faces_after_decimation, colors_after_decimation]
 
 
 def scale_decimate_and_compute_geodesic(
@@ -146,7 +151,9 @@ def scale_decimate_and_compute_geodesic(
     )
     start_time = time.time()
 
-    source = scale_decimate(path=start_path, project_dir=project_dir)
+    source = scale_decimate(
+        path=start_path, project_dir=project_dir
+    )  # [vertices, faces, colors]
     target = scale_decimate(path=end_path, project_dir=project_dir)
 
     template = None
@@ -154,7 +161,7 @@ def scale_decimate_and_compute_geodesic(
         template = scale_decimate(path=template_path, project_dir=project_dir)
 
     # decimation also happens at the start of h2_match.H2multires
-    geod, F0 = H2_SurfaceMatch.H2_match.H2MultiRes(
+    geod, F0, color0 = H2_SurfaceMatch.H2_match.H2MultiRes(
         source=source,
         target=target,
         a0=project_config.a0,
@@ -170,7 +177,7 @@ def scale_decimate_and_compute_geodesic(
     )
     comp_time = time.time() - start_time
     print(f"Geodesic computation took: {comp_time / 60:.2f} minutes.")
-    return geod, F0
+    return geod, F0, color0
 
 
 def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id, config):
@@ -262,13 +269,14 @@ def reparameterize_with_geodesic(
         print(f"File exists (no rewrite): {ply_path}")
         return
 
-    geod, F0 = scale_decimate_and_compute_geodesic(
+    geod, F0, color0 = scale_decimate_and_compute_geodesic(
         start_path=start_path, end_path=end_path, gpu_id=gpu_id, project_dir=project_dir
     )
 
-    h2_io.plotGeodesic(
+    h2_io.plotGeodesic(  # if this does not work, then might have to make a specific color thing in utils.makeGeodMeshes instead of using Rho
         [geod[-1]],
         F0,
+        color0,
         stepsize=project_config.stepsize[
             "menstrual_mesh"
         ],  # open3d plotting parameter - unused
