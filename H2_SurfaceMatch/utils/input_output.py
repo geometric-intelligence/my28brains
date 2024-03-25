@@ -43,7 +43,7 @@ def loadData(file_name):
     # Load .ply file
     else:
         mesh = o3d.io.read_triangle_mesh(file_name)
-        V, F, Rho = getDataFromMesh(mesh)
+        V, F, Rho = getDataFromMesh(mesh) # here, Rho is color, not weights
 
     return V, F, Rho
 
@@ -204,6 +204,7 @@ def plotMatchingResult(
 def plotGeodesic(
     geod,
     F,
+    color=None,
     source=None,
     target=None,
     file_name=None,
@@ -236,6 +237,7 @@ def plotGeodesic(
         F,
         source,
         target,
+        color = color,
         offsetstep=offsetstep,
         stepsize=stepsize,
         axis=axis,

@@ -165,7 +165,8 @@ if __name__ == "__main__":
 
         func = geodesics.reparameterize_with_geodesic
         func_args_queue = [
-            (func, input_paths, output_dir, i_path, queue) for i_path in i_paths
+            (func, input_paths, output_dir, i_path, default_config.project_dir, queue)
+            for i_path in i_paths
         ]
 
         for _ in pool.imap_unordered(run_func_in_parallel_with_queue, func_args_queue):

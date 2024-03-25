@@ -18,6 +18,7 @@ Structure_ID names, numbers, and colors:
 import os
 
 import nibabel
+import numpy as np
 import skimage
 import trimesh
 
@@ -47,20 +48,28 @@ def extract_meshes_from_nii_and_write(input_dir, output_dir, hemisphere, structu
     """
     print(f"Looking into: {input_dir}")
     nii_paths = []
-    for day_dir in input_dir:
+    valid_day_numbers = []
+    for i_day, day_dir in enumerate(input_dir):
+        file_found = False
         for file_name in os.listdir(day_dir):
             if file_name.startswith(hemisphere) and file_name.endswith(".nii.gz"):
                 nii_paths.append(os.path.join(day_dir, file_name))
+                file_found = True
+                print(f"Found {file_name} in {day_dir}")
+                valid_day_numbers.append(i_day + 1)
                 break
+        if not file_found:
+            print(f"File not found in {day_dir}")
+    valid_day_numbers = np.array(valid_day_numbers)
 
     print(
         f"\na. (Mesh) Found {len(nii_paths)} nii paths for hemisphere {hemisphere} in {input_dir}"
+        f"\nValid day numbers: {valid_day_numbers}"
     )
     for path in nii_paths:
         print(path)
 
-    for i_path, nii_path in enumerate(nii_paths):
-        day = i_path + 1
+    for day, nii_path in zip(valid_day_numbers, nii_paths):
         ply_path = os.path.join(
             output_dir,
             f"{hemisphere}_structure_{structure_id}_day{day:02}.ply",
@@ -70,25 +79,58 @@ def extract_meshes_from_nii_and_write(input_dir, output_dir, hemisphere, structu
             continue
         mesh = extract_mesh(nii_path=nii_path, structure_id=structure_id)
         writing.trimesh_to_ply(mesh=mesh, ply_path=ply_path)
+        writing.save_colors_as_np_array(mesh, ply_path)
 
 
 def _extract_mesh(img_fdata, structure_id):
     """Extract one surface mesh from the fdata of a segmented image.
-    
+
     Parameters
     ----------
     img_fdata: array-like, shape = [n_x, n_y, n_z]. Voxels which are colored
         according to substructure assignment. For example, color of voxel
         (0, 0, 0) is an integer value that can be anywhere from 0-9.
     """
+    print(f"Img fdata shape: {img_fdata.shape}")
     if structure_id == -1:
         img_mask = img_fdata != 0
     else:
         img_mask = img_fdata == structure_id
-    meshing_result = skimage.measure.marching_cubes(
-        img_mask, level=0, step_size=1, allow_degenerate=False, method="lorensen"
+
+    masked_img_fdata = np.where(img_mask, img_fdata, 0)
+    print(f"Masked img fdata shape: {masked_img_fdata.shape}")
+    (
+        vertices,
+        faces,
+        _,
+        values,
+    ) = skimage.measure.marching_cubes(  # omitted value is "normals"
+        masked_img_fdata,
+        level=0,
+        step_size=1,
+        allow_degenerate=False,
+        method="lorensen",
     )
-    mesh = trimesh.Trimesh(vertices=meshing_result[0], faces=meshing_result[1])
+    print(f"Colors: {values.min()}, {values.max()}")
+    print(f"Vertices.shape = {vertices.shape}")
+
+    color_dict = {  # trimesh uses format [r, g, b, a] where a is alpha
+        1: [255, 0, 0, 255],
+        2: [0, 255, 0, 255],
+        3: [0, 0, 255, 255],
+        4: [255, 255, 0, 255],
+        5: [0, 255, 255, 255],
+        6: [255, 0, 255, 255],
+        7: [80, 179, 221, 255],
+        8: [255, 215, 0, 255],
+        9: [184, 115, 51, 255],
+    }
+
+    colors = np.array([np.array(color_dict[value]) for value in values])
+    print(f"Colors.shape = {colors.shape}")
+    print("Colors:", colors)
+
+    mesh = trimesh.Trimesh(vertices=vertices, faces=faces, vertex_colors=colors)
     return mesh
 
 

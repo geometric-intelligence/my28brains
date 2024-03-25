@@ -9,6 +9,7 @@ import geomstats.backend as gs
 import numpy as np
 import torch
 import trimesh
+from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 
 import H2_SurfaceMatch.H2_match  # noqa: E402
 import H2_SurfaceMatch.utils.input_output as h2_io  # noqa: E402
@@ -16,11 +17,10 @@ import H2_SurfaceMatch.utils.utils  # noqa: E402
 import src.import_project_config as pc
 import src.preprocessing.writing as write
 
-from geomstats.geometry.discrete_surfaces import DiscreteSurfaces
 # from src.regression.discrete_surfaces import DiscreteSurfaces
 
 
-def remove_degenerate_faces(vertices, faces, area_threshold=0.01):
+def remove_degenerate_faces(vertices, faces, vertex_colors, area_threshold=0.01):
     """Remove degenerate faces of a surfaces.
 
     This returns a new surface with fewer vertices where the faces with area 0
@@ -29,13 +29,13 @@ def remove_degenerate_faces(vertices, faces, area_threshold=0.01):
     A new DiscreteSurfaces object should be created afterwards,
     since one manifold corresponds to a predefined number of vertices and faces.
     """
-    mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+    mesh = trimesh.Trimesh(vertices=vertices, faces=faces, vertex_colors=vertex_colors)
 
     discrete_surfaces = DiscreteSurfaces(faces=faces)
     face_areas = discrete_surfaces.face_areas(gs.array(vertices))
     face_mask = ~gs.less(face_areas, area_threshold)
     mesh.update_faces(face_mask)
-    return mesh.vertices, mesh.faces
+    return mesh.vertices, mesh.faces, mesh.visual.vertex_colors
 
 
 def remove_degenerate_faces_and_write(
@@ -78,14 +78,16 @@ def remove_degenerate_faces_and_write(
             continue
         print(f"Load mesh from {path}")
         mesh = trimesh.load(path)
-        new_vertices, new_faces = remove_degenerate_faces(
-            mesh.vertices, mesh.faces, area_threshold
+        new_vertices, new_faces, new_colors = remove_degenerate_faces(
+            mesh.vertices, mesh.faces, mesh.visual.vertex_colors, area_threshold
         )
-        new_mesh = trimesh.Trimesh(vertices=new_vertices, faces=new_faces)
+        new_mesh = trimesh.Trimesh(
+            vertices=new_vertices, faces=new_faces, vertex_colors=new_colors
+        )
         write.trimesh_to_ply(new_mesh, ply_path)
 
 
-def scale_decimate(path, config):
+def scale_decimate(path, project_dir):
     """Scale and decimate a mesh.
 
     Parameters
@@ -108,21 +110,25 @@ def scale_decimate(path, config):
         - faces: np.ndarray
             Faces of the mesh.
     """
-    project_dir = config.project_dir
     project_config = pc.import_default_config(project_dir)
-    vertices, faces, _ = h2_io.loadData(path)
+    vertices, faces, colors = h2_io.loadData(path)
     vertices = vertices / project_config.scaling_factor  # was / 10
     n_faces_after_decimation = int(
         faces.shape[0] / project_config.initial_decimation_fact
     )
-    vertices, faces = H2_SurfaceMatch.utils.utils.decimate_mesh(
-        vertices, faces, n_faces_after_decimation
+    (
+        vertices_after_decimation,
+        faces_after_decimation,
+        colors_after_decimation,
+    ) = H2_SurfaceMatch.utils.utils.decimate_mesh(
+        vertices, faces, n_faces_after_decimation, colors=colors
     )
-    return [vertices, faces]
+
+    return [vertices_after_decimation, faces_after_decimation, colors_after_decimation]
 
 
 def scale_decimate_and_compute_geodesic(
-    start_path, end_path, config, template_path=None, gpu_id=1
+    start_path, end_path, project_dir, template_path=None, gpu_id=1
 ):
     """Compute the geodesic between two meshes, after scaling and decimation of both.
 
@@ -139,20 +145,23 @@ def scale_decimate_and_compute_geodesic(
     config : object
         Config object containing parameters of the experiment.
     """
-    project_dir = config.project_dir
     project_config = pc.import_default_config(project_dir)
-    device = torch.device(f"cuda:{gpu_id}" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        f"cuda:{gpu_id}" if torch.cuda.is_available() and gpu_id is not None else "cpu"
+    )
     start_time = time.time()
 
-    source = scale_decimate(path=start_path, config=config)
-    target = scale_decimate(path=end_path, config=config)
+    source = scale_decimate(
+        path=start_path, project_dir=project_dir
+    )  # [vertices, faces, colors]
+    target = scale_decimate(path=end_path, project_dir=project_dir)
 
     template = None
     if template_path:
-        template = scale_decimate(path=template_path, config=config)
+        template = scale_decimate(path=template_path, project_dir=project_dir)
 
     # decimation also happens at the start of h2_match.H2multires
-    geod, F0 = H2_SurfaceMatch.H2_match.H2MultiRes(
+    geod, F0, color0 = H2_SurfaceMatch.H2_match.H2MultiRes(
         source=source,
         target=target,
         a0=project_config.a0,
@@ -168,7 +177,7 @@ def scale_decimate_and_compute_geodesic(
     )
     comp_time = time.time() - start_time
     print(f"Geodesic computation took: {comp_time / 60:.2f} minutes.")
-    return geod, F0
+    return geod, F0, color0
 
 
 def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id, config):
@@ -208,7 +217,7 @@ def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id, config):
         return
 
     geod, F0 = scale_decimate_and_compute_geodesic(
-        start_path=start_path, end_path=end_path, gpu_id=gpu_id, config=config
+        start_path=start_path, end_path=end_path, gpu_id=gpu_id, project_dir=project_dir
     )
 
     for i_geodesic_time in range(geod.shape[0]):
@@ -223,7 +232,9 @@ def interpolate_with_geodesic(input_paths, output_dir, i_pair, gpu_id, config):
     print(f"\tGeodesic interpolation {i_pair} saved to: " f"{output_dir}.")
 
 
-def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id, config):
+def reparameterize_with_geodesic(
+    input_paths, output_dir, i_path, project_dir, gpu_id=None
+):
     """Auxiliary function that will be run in parallel on different GPUs.
 
     The start path is the path whose parameterization is used as reference.
@@ -247,9 +258,10 @@ def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id, config
     gpu_id : int
         ID of the GPU to use.
     """
-    project_dir = config.project_dir
+    print("i_path: ", i_path)
+
     project_config = pc.import_default_config(project_dir)
-    start_path = input_paths[project_config.template_day]
+    start_path = input_paths[project_config.template_day_index]
     end_path = input_paths[i_path]
     ply_path = os.path.join(output_dir, os.path.basename(end_path))
 
@@ -257,13 +269,14 @@ def reparameterize_with_geodesic(input_paths, output_dir, i_path, gpu_id, config
         print(f"File exists (no rewrite): {ply_path}")
         return
 
-    geod, F0 = scale_decimate_and_compute_geodesic(
-        start_path=start_path, end_path=end_path, gpu_id=gpu_id, config=config
+    geod, F0, color0 = scale_decimate_and_compute_geodesic(
+        start_path=start_path, end_path=end_path, gpu_id=gpu_id, project_dir=project_dir
     )
 
-    h2_io.plotGeodesic(
+    h2_io.plotGeodesic(  # if this does not work, then might have to make a specific color thing in utils.makeGeodMeshes instead of using Rho
         [geod[-1]],
         F0,
+        color0,
         stepsize=project_config.stepsize[
             "menstrual_mesh"
         ],  # open3d plotting parameter - unused

@@ -282,141 +282,176 @@ def load_real_data(config):
     print(config)
     project_dir = config.project_dir
     project_config = pc.import_default_config(project_dir)
-    if config.dataset_name == "menstrual_mesh":
 
-        # hormone_labels = ["Prog", "Estro", "DHEAS", "LH", "FSH", "SHBG", "EthinylEstradiol", "Levonorgestrel"]
+    # load template day vertex colors
+    template_day_index = project_config.template_day_index
+    template_day = template_day_index + 1
+    meshed_dir = project_config.meshed_dir
+    colors_path = os.path.join(
+        meshed_dir,
+        f"{project_config.hemispheres[0]}_structure_{project_config.structure_ids[0]}_day{template_day:02}_colors.npy",
+    )
+    vertex_colors = np.load(colors_path)
 
-        # all_hormone_levels_array = []
-        # for hormone in hormone_labels:
-        #     all_hormone_levels_array.append(days_used[hormone])
-        # all_hormone_levels = gs.array(all_hormone_levels_array)
+    # take off the opacity value, so that it is only RGB
+    vertex_colors = vertex_colors[:, 0:3]
+    print(vertex_colors)
+
+    # load meshes
+    mesh_sequence_vertices = []
+    mesh_sequence_faces = []
+    if project_config.sort:
+        days_to_ignore = None
+        print("Using menstrual mesh data (from progesterone sorted directory)")
+        mesh_dir = project_config.sorted_dir
+
+        sorted_hormone_levels_path = os.path.join(mesh_dir, "sorted_hormone_levels.npy")
+        sorted_hormone_levels = np.loadtxt(sorted_hormone_levels_path, delimiter=",")
+
+        for i, hormone_level in enumerate(sorted_hormone_levels):
+            file_suffix = f"hormone_level{hormone_level}.ply"
+
+            # List all files in the directory
+            files_in_directory = os.listdir(mesh_dir)
+
+            # Filter files that end with the specified format
+            matching_files = [
+                file for file in files_in_directory if file.endswith(file_suffix)
+            ]
+
+            # Construct the full file paths using os.path.join
+            mesh_paths = [os.path.join(mesh_dir, file) for file in matching_files]
+
+            # Print the result
+            for mesh_path in mesh_paths:
+                print(f"Mesh Path {i + 1}: {mesh_path}")
+                vertices, faces, _ = h2_io.loadData(mesh_path)
+                mesh_sequence_vertices.append(vertices)
+                mesh_sequence_faces.append(faces)
+    else:
+        print("Using menstrual mesh data (from reparameterized directory)")
+        mesh_dir = project_config.reparameterized_dir
+
+        # make sure there are meshes in the directory
+        mesh_string_base = os.path.join(
+            mesh_dir,
+            f"{config.hemispheres[0]}_structure_{config.structure_ids[0]}**.ply",
+        )
+        mesh_paths = sorted(glob.glob(mesh_string_base))
+        print(
+            f"\ne. (Sort) Found {len(mesh_paths)} .plys for ({config.hemispheres[0]}, {config.structure_ids[0]}) in {mesh_dir}"
+        )
 
         # load meshes
-        mesh_sequence_vertices = []
-        mesh_sequence_faces = []
-        if project_config.sort:
-            days_to_ignore = None
-            print("Using menstrual mesh data (from progesterone sorted directory)")
-            mesh_dir = project_config.sorted_dir
+        mesh_sequence_vertices, mesh_sequence_faces = [], []
+        first_day = int(project_config.day_range[0])
+        last_day = int(project_config.day_range[1])
 
-            sorted_hormone_levels_path = os.path.join(
-                mesh_dir, "sorted_hormone_levels.npy"
+        days_to_ignore = []
+        for day in range(first_day, last_day + 1):
+            mesh_path = os.path.join(
+                mesh_dir,
+                f"{config.hemispheres[0]}_structure_{config.structure_ids[0]}_day{day:02d}"
+                f"_at_{config.area_thresholds[0]}.ply",
             )
-            sorted_hormone_levels = np.loadtxt(
-                sorted_hormone_levels_path, delimiter=","
-            )
+            if not os.path.exists(mesh_path):
+                print(f"Day {day} has no data. Skipping.")
+                print(f"DayID not to use: {day}")
+                days_to_ignore.append(day)
+                continue
 
-            for i, hormone_level in enumerate(sorted_hormone_levels):
-                file_suffix = f"hormone_level{hormone_level}.ply"
+            vertices, faces, _ = h2_io.loadData(mesh_path)
+            # mesh = o3d.io.read_triangle_mesh(file_name)
+            # vertices = gs.array(mesh.vertices)
+            # faces = gs.array(mesh.faces)
+            # vertex_colors = gs.array(mesh.vertex_colors)
+            if vertices.shape[0] == 0:
+                print(f"Day {day} has no data. Skipping.")
+                print(f"DayID not to use: {day}")
+                days_to_ignore.append(day)
+                continue
+            mesh_sequence_vertices.append(vertices)
+            print("vertices.shape ", vertices.shape)
+            mesh_sequence_faces.append(faces)
+        days_to_ignore = gs.array(days_to_ignore)
 
-                # List all files in the directory
-                files_in_directory = os.listdir(mesh_dir)
+    mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
 
-                # Filter files that end with the specified format
-                matching_files = [
-                    file for file in files_in_directory if file.endswith(file_suffix)
-                ]
+    # parameterized = all(
+    # faces == mesh_sequence_faces[0] for faces in mesh_sequence_faces)
+    for faces in mesh_sequence_faces:
+        if (faces != mesh_sequence_faces[0]).all():
+            raise ValueError("Meshes are not parameterized")
 
-                # Construct the full file paths using os.path.join
-                mesh_paths = [os.path.join(mesh_dir, file) for file in matching_files]
+    mesh_faces = gs.array(mesh_sequence_faces[0])
+    true_intercept = gs.array(mesh_sequence_vertices[0])
+    true_coef = gs.array(mesh_sequence_vertices[1] - mesh_sequence_vertices[0])
+    print(mesh_dir)
 
-                # Print the result
-                for mesh_path in mesh_paths:
-                    print(f"Mesh Path {i + 1}: {mesh_path}")
-                    vertices, faces, _ = h2_io.loadData(mesh_path)
-                    mesh_sequence_vertices.append(vertices)
-                    mesh_sequence_faces.append(faces)
-        else:
-            print("Using menstrual mesh data (from reparameterized directory)")
-            mesh_dir = project_config.reparameterized_dir
+    space = DiscreteSurfaces(faces=mesh_faces)
+    elastic_metric = ElasticMetric(
+        space=space,
+        a0=project_config.a0,
+        a1=project_config.a1,
+        b1=project_config.b1,
+        c1=project_config.c1,
+        d1=project_config.d1,
+        a2=project_config.a2,
+    )
+    optimizer = get_optimizer(
+        config.use_cuda, n_vertices=len(true_intercept), max_iter=100, tol=1e-5
+    )
+    elastic_metric.exp_solver = _ExpSolver(n_steps=config.n_steps, optimizer=optimizer)
+    space.metric = elastic_metric
 
-            # make sure there are meshes in the directory
-            mesh_string_base = os.path.join(
-                mesh_dir, f"{config.hemisphere}_structure_{config.structure_id}**.ply"
-            )
-            mesh_paths = sorted(glob.glob(mesh_string_base))
-            print(
-                f"\ne. (Sort) Found {len(mesh_paths)} .plys for ({config.hemisphere}, {config.structure_id}) in {mesh_dir}"
-            )
+    y = mesh_sequence_vertices
 
-            # load meshes
-            mesh_sequence_vertices, mesh_sequence_faces = [], []
-            first_day = int(project_config.day_range[0])
-            last_day = int(project_config.day_range[1])
-
-            days_to_ignore = []
-            for day in range(first_day, last_day + 1):
-                mesh_path = os.path.join(
-                    mesh_dir,
-                    f"{config.hemisphere}_structure_{config.structure_id}_day{day:02d}"
-                    f"_at_{config.area_threshold}.ply",
-                )
-                vertices, faces, _ = h2_io.loadData(mesh_path)
-                if vertices.shape[0] == 0:
-                    print(f"Day {day} has no data. Skipping.")
-                    print(f"DayID not to use: {day}")
-                    days_to_ignore.append(day)
-                    continue
-                mesh_sequence_vertices.append(vertices)
-                print("vertices.shape ", vertices.shape)
-                mesh_sequence_faces.append(faces)
-            days_to_ignore = gs.array(days_to_ignore)
-
-        mesh_sequence_vertices = gs.array(mesh_sequence_vertices)
-
-        # parameterized = all(
-        # faces == mesh_sequence_faces[0] for faces in mesh_sequence_faces)
-        for faces in mesh_sequence_faces:
-            if (faces != mesh_sequence_faces[0]).all():
-                raise ValueError("Meshes are not parameterized")
-
-        mesh_faces = gs.array(mesh_sequence_faces[0])
-        true_intercept = gs.array(mesh_sequence_vertices[0])
-        true_coef = gs.array(mesh_sequence_vertices[1] - mesh_sequence_vertices[0])
-        print(mesh_dir)
-
-        space = DiscreteSurfaces(faces=mesh_faces)
-        elastic_metric = ElasticMetric(
-            space=space,
-            a0=project_config.a0,
-            a1=project_config.a1,
-            b1=project_config.b1,
-            c1=project_config.c1,
-            d1=project_config.d1,
-            a2=project_config.a2,
-        )
-        optimizer = get_optimizer(
-            config.use_cuda, n_vertices=len(true_intercept), max_iter=100, tol=1e-5
-        )
-        elastic_metric.exp_solver = _ExpSolver(
-            n_steps=config.n_steps, optimizer=optimizer
-        )
-        space.metric = elastic_metric
-
-        y = mesh_sequence_vertices
-
+    if project_config.dataset_name == "menstrual_mesh":
         # load all hormones
         hormones_path = os.path.join(project_config.data_dir, "hormones.csv")
         df = pd.read_csv(hormones_path, delimiter=",")
-        days_used = df[df["dayID"] < project_config.day_range[1] + 1]
-        days_used = days_used[days_used["dayID"] > project_config.day_range[0] - 1]
-        if days_to_ignore is not None:
-            for day in days_to_ignore:
-                day = int(day)
-                days_used = days_used[days_used["dayID"] != day]
-                print("Hormones excluded from day: ", day)
-        print(days_used)
-        all_hormone_levels = days_used
+    if project_config.dataset_name == "pregnancy_mesh":
+        hormones_path = os.path.join(project_config.data_dir, "28Baby_Hormones.csv")
+        df = pd.read_csv(hormones_path, delimiter=",")
+        df["dayID"] = [int(entry.split("-")[1]) for entry in df["sessionID"]]
+        df = df.drop(df[df["dayID"] == 27].index)  # sess 27 is a repeat of sess 26
+        # df = df[df["dayID"] != 27]  # sess 27 is a repeat of sess 26
 
-        print(f"space faces: {space.faces.shape}")
-        print(f"y shape: {y.shape}")
-        print(f"X shape: {all_hormone_levels.shape}")
-        print(f"true intercept shape: {true_intercept.shape}")
-        print(f"true coef shape: {true_coef.shape}")
+    df = df[df["dayID"] < project_config.day_range[1] + 1]
+    df = df[df["dayID"] > project_config.day_range[0] - 1]
+    if days_to_ignore is not None:
+        for day in days_to_ignore:
+            day = int(day)
+            df = df.drop(df[df["dayID"] == day].index).reset_index(drop=True)
+            print("Hormones excluded from day: ", day)
+    print(df)
 
-        return space, y, all_hormone_levels, true_intercept, true_coef
-    else:
-        raise ValueError(f"Unknown dataset name {config.dataset_name}")
+    print(f"space faces: {space.faces.shape}")
+    print(f"y shape: {y.shape}")
+    print(f"X shape: {df.shape}")
+    print(f"true intercept shape: {true_intercept.shape}")
+    print(f"true coef shape: {true_coef.shape}")
+
+    if project_config.dataset_name == "pregnancy_mesh":
+        print("df index: ", df.index)
+        missing_days = df[df.isnull().any(axis=1)].index
+        print(f"Missing days: {missing_days}")
+
+        # Remove rows with missing hormone values from the dataframe
+        df = df.dropna()
+
+        # Remove corresponding brain meshes from the array
+        y = np.delete(y, missing_days, axis=0)
+
+    print(f"space faces: {space.faces.shape}")
+    print(f"y shape: {y.shape}")
+    print(f"X shape: {df.shape}")
+    print(f"true intercept shape: {true_intercept.shape}")
+    print(f"true coef shape: {true_coef.shape}")
+
+    all_hormone_levels = df
+
+    return space, y, vertex_colors, all_hormone_levels, true_intercept, true_coef
 
 
 def load_mesh(mesh_type, n_subdivisions, config):

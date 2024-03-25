@@ -6,20 +6,32 @@ import open3d as o3d
 from scipy.io import loadmat, savemat
 
 
-def decimate_mesh(V, F, target):
+def decimate_mesh(V, F, target, colors = None):
     """
     Decimates mesh given by V,F to have number of faces approximately equal to target
+
+    Parameters
+    ----------
+    V : np.ndarray
+        Vertices of the mesh.
+    F : np.ndarray
+        Faces of the mesh.
+    target : int
+        Number of faces to have after decimation.
+    colors : np.ndarray
+        Colors of the mesh. Expected to be of shape (n, 3).
     """
-    mesh = getMeshFromData([V, F])
-    mesh = mesh.simplify_quadric_decimation(target)
+    mesh = getMeshFromData([V, F], color = colors)
+    mesh = mesh.simplify_quadric_decimation(target)  # does that keep the colors?
     VS = np.asarray(
         mesh.vertices, dtype=np.float64
     )  # get vertices of the mesh as a numpy array
     FS = np.asarray(mesh.triangles, np.int64)  # get faces of the mesh as a numpy array
-    return VS, FS
+    colors = np.asarray(mesh.vertex_colors)
+    return VS, FS, colors
 
 
-def subdivide_mesh(V, F, Rho=None, order=1):
+def subdivide_mesh(V, F, color=None, order=1):
     """
     Performs midpoint subdivision. Order determines the number of iterations
 
@@ -28,16 +40,25 @@ def subdivide_mesh(V, F, Rho=None, order=1):
 
     The number of faces is multiplied by 4.
     The number of vertices is approximately multiplied by 4.
+
+    Parameters
+    ----------
+    V : np.ndarray
+        Vertices of the mesh.
+    F : np.ndarray
+        Faces of the mesh.
+    Rho : np.ndarray
+        Vertex colors.
     """
-    mesh = getMeshFromData([V, F], Rho=Rho)
+    mesh = getMeshFromData([V, F], color=color)
     mesh = mesh.subdivide_midpoint(number_of_iterations=order)
     VS = np.asarray(
         mesh.vertices, dtype=np.float64
     )  # get vertices of the mesh as a numpy array
     FS = np.asarray(mesh.triangles, np.int64)  # get faces of the mesh as a numpy array
-    if Rho is not None:
-        RhoS = np.asarray(mesh.vertex_colors, np.float64)[:, 0]
-        return VS, FS, RhoS
+    if color is not None:
+        colorS = np.asarray(mesh.vertex_colors, np.float64)[:, 0]
+        return VS, FS, colorS
 
     return VS, FS
 
@@ -107,6 +128,7 @@ def makeGeodMeshes(
     F,
     o_source=None,
     o_target=None,
+    color=None,
     Rho=None,
     offset=0,
     offsetstep=2.5,
@@ -139,7 +161,10 @@ def makeGeodMeshes(
         newmesh.normalize_normals()
         colors_np = np.asarray(newmesh.vertex_normals)
         colors_np = (colors_np + 1) / 2
-        mesh.vertex_colors = o3d.utility.Vector3dVector(colors_np)
+        if color is not None:
+            mesh.vertex_colors = o3d.utility.Vector3dVector(color)
+        else:
+            mesh.vertex_colors = o3d.utility.Vector3dVector(colors_np)
         if Rho is not None:
             ls_Rho = np.append(ls_Rho, np.ones((N,), np.float64))
         mesh.translate((-stepsize, 0, offset * offsetstep), relative=False)
@@ -162,6 +187,8 @@ def makeGeodMeshes(
                 np.stack((Rhot, Rhot, Rhot), axis=1) * colors_np
             )
             ls_Rho = np.append(ls_Rho, Rhot)
+        elif color is not None:
+            mesh.vertex_colors = o3d.utility.Vector3dVector(color)
         else:
             mesh.vertex_colors = o3d.utility.Vector3dVector(colors_np)
         mesh.translate((i * stepsize, 0, offset * offsetstep), relative=False)
@@ -175,7 +202,10 @@ def makeGeodMeshes(
         newmesh.normalize_normals()
         colors_np = np.asarray(newmesh.vertex_normals)
         colors_np = (colors_np + 1) / 2
-        mesh.vertex_colors = o3d.utility.Vector3dVector(colors_np)
+        if color is not None:
+            mesh.vertex_colors = o3d.utility.Vector3dVector(color)
+        else:
+            mesh.vertex_colors = o3d.utility.Vector3dVector(colors_np)
         if Rho is not None:
             ls_Rho = np.append(ls_Rho, np.ones((N,), np.float64))
         mesh.translate((Nt * stepsize, 0, offset * offsetstep), relative=False)

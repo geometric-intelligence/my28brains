@@ -33,7 +33,7 @@ import geomstats.backend as gs
 
 import H2_SurfaceMatch.utils.input_output as h2_io
 import H2_SurfaceMatch.utils.utils
-import project_menstrual.default_config as default_config
+import project_pregnancy.default_config as default_config
 import src.datasets.utils as data_utils
 import src.setcwd
 from H2_SurfaceMatch.utils.input_output import plotGeodesic
@@ -48,6 +48,7 @@ os.environ["GEOMSTATS_BACKEND"] = "pytorch"
 (
     space,
     y,
+    vertex_colors,
     all_hormone_levels,
     true_intercept,
     true_coef,
@@ -68,28 +69,22 @@ test_indices = np.sort(test_indices)
 
 # TODO: instead, save these values in main_2, and then load them here. or, figure out how to predict the mesh using just the intercept and coef learned here, and then load them.
 
-progesterone_levels = gs.array(all_hormone_levels["Prog"].values)
-estrogen_levels = gs.array(all_hormone_levels["Estro"].values)
-dheas_levels = gs.array(all_hormone_levels["DHEAS"].values)
-lh_levels = gs.array(all_hormone_levels["LH"].values)
-fsh_levels = gs.array(all_hormone_levels["FSH"].values)
-shbg_levels = gs.array(all_hormone_levels["SHBG"].values)
+progesterone_levels = gs.array(all_hormone_levels["prog"].values)
+estrogen_levels = gs.array(all_hormone_levels["estro"].values)
+lh_levels = gs.array(all_hormone_levels["lh"].values)
+# gest_week = gs.array(all_hormone_levels["gestWeek"].values)
 
 progesterone_average = gs.mean(progesterone_levels)
 estrogen_average = gs.mean(estrogen_levels)
-dheas_average = gs.mean(dheas_levels)
 lh_average = gs.mean(lh_levels)
-fsh_average = gs.mean(fsh_levels)
-shbg_average = gs.mean(shbg_levels)
+# gest_week_average = gs.mean(gest_week)
 
 X_multiple = gs.vstack(
     (
         progesterone_levels,
         estrogen_levels,
-        dheas_levels,
         lh_levels,
-        fsh_levels,
-        shbg_levels,
+        # gest_week,
     )
 ).T  # NOTE: copilot thinks this should be transposed.
 
@@ -108,40 +103,11 @@ mr_score_array = training.compute_R2(y, X_multiple, test_indices, train_indices)
 # Parameters for sliders
 
 hormones_info = {
-    "progesterone": {"min_value": 0, "max_value": 15, "step": 1},
-    "FSH": {"min_value": 0, "max_value": 15, "step": 1},
-    "LH": {"min_value": 0, "max_value": 50, "step": 5},
-    "estrogen": {"min_value": 0, "max_value": 250, "step": 10},
-    "DHEAS": {"min_value": 0, "max_value": 300, "step": 10},
-    "SHBG": {"min_value": 0, "max_value": 70, "step": 5},
+    "progesterone": {"min_value": 1, "max_value": 103, "step": 10},
+    "LH": {"min_value": 1, "max_value": 8, "step": 1},
+    "estrogen": {"min_value": 3, "max_value": 10200, "step": 100},
+    # "gest_week": {"min_value": -3, "max_value": 162, "step": 10},
 }
-
-
-# def gaussian_smoothing(point_cloud, k=10, sigma=1.0):
-#     # Build a KDTree for efficient neighbor searches
-#     tree = KDTree(point_cloud)
-
-#     # Query the KDTree for the k nearest neighbors of each point
-#     distances, indices = tree.query(
-#         point_cloud, k=k + 1
-#     )  # +1 because a point is its own nearest neighbor
-
-#     # Compute Gaussian weights based on distances
-#     weights = np.exp(-(distances**2) / (2 * sigma**2))
-#     weights[:, 0] = 0  # Exclude the point itself (distance=0) from its neighbors
-
-#     # Normalize weights
-#     weights /= weights.sum(axis=1)[:, np.newaxis]
-
-#     # Compute the new points as weighted averages of neighbors
-#     new_points = np.zeros_like(point_cloud)
-#     for i, neighbors in enumerate(indices):
-#         new_points[i] = np.sum(
-#             point_cloud[neighbors] * weights[i, :, np.newaxis], axis=0
-#         )
-
-#     return new_points
-
 
 app = Dash(__name__)  # , external_stylesheets=external_stylesheets)
 
@@ -187,22 +153,6 @@ app.layout = html.Div(
                         )
                     },
                 ),
-                html.H6("DHEAS"),
-                dcc.Slider(
-                    id="DHEAS-slider",
-                    min=hormones_info["DHEAS"]["min_value"],
-                    max=hormones_info["DHEAS"]["max_value"],
-                    step=hormones_info["DHEAS"]["step"],
-                    value=dheas_average,
-                    marks={
-                        str(i): str(i)
-                        for i in range(
-                            hormones_info["DHEAS"]["min_value"],
-                            hormones_info["DHEAS"]["max_value"],
-                            hormones_info["DHEAS"]["step"],
-                        )
-                    },
-                ),
                 html.H6("LH ng/ml"),
                 dcc.Slider(
                     id="LH-slider",
@@ -219,38 +169,22 @@ app.layout = html.Div(
                         )
                     },
                 ),
-                html.H6("FSH ng/ml"),
-                dcc.Slider(
-                    id="FSH-slider",
-                    min=hormones_info["FSH"]["min_value"],
-                    max=hormones_info["FSH"]["max_value"],
-                    step=hormones_info["FSH"]["step"],
-                    value=fsh_average,
-                    marks={
-                        str(i): str(i)
-                        for i in range(
-                            hormones_info["FSH"]["min_value"],
-                            hormones_info["FSH"]["max_value"],
-                            hormones_info["FSH"]["step"],
-                        )
-                    },
-                ),
-                html.H6("SHBG"),
-                dcc.Slider(
-                    id="SHBG-slider",
-                    min=hormones_info["SHBG"]["min_value"],
-                    max=hormones_info["SHBG"]["max_value"],
-                    step=hormones_info["SHBG"]["step"],
-                    value=shbg_average,
-                    marks={
-                        str(i): str(i)
-                        for i in range(
-                            hormones_info["SHBG"]["min_value"],
-                            hormones_info["SHBG"]["max_value"],
-                            hormones_info["SHBG"]["step"],
-                        )
-                    },
-                ),
+                # html.H6("Gestation Week"),
+                # dcc.Slider(
+                #     id="gest_week-slider",
+                #     min=hormones_info["gest_week"]["min_value"],
+                #     max=hormones_info["gest_week"]["max_value"],
+                #     step=hormones_info["gest_week"]["step"],
+                #     value=gest_week_average,
+                #     marks={
+                #         str(i): str(i)
+                #         for i in range(
+                #             hormones_info["gest_week"]["min_value"],
+                #             hormones_info["gest_week"]["max_value"],
+                #             hormones_info["gest_week"]["step"],
+                #         )
+                #     },
+                # ),
             ],
             style={"width": "60%", "display": "inline-block"},
         ),
@@ -261,30 +195,24 @@ app.layout = html.Div(
 @callback(
     Output("mesh-plot", "figure"),
     Input("progesterone-slider", "value"),
-    Input("FSH-slider", "value"),
     Input("LH-slider", "value"),
     Input("estrogen-slider", "value"),
-    Input("SHBG-slider", "value"),
-    Input("DHEAS-slider", "value"),
+    # Input("gest_week-slider", "value"),
 )
-def plot_hormone_levels_plotly(progesterone, FSH, LH, estrogen, SHBG, DHEAS):
+def plot_hormone_levels_plotly(progesterone, LH, estrogen):  # , gest_week):
     """Update the mesh plot based on the hormone levels."""
     progesterone = gs.array(progesterone)
-    FSH = gs.array(FSH)
     LH = gs.array(LH)
     estrogen = gs.array(estrogen)
-    SHBG = gs.array(SHBG)
-    DHEAS = gs.array(DHEAS)
+    # gest_week = gs.array(gest_week)
 
     # Predict Mesh
     X_multiple = gs.vstack(
         (
             progesterone,
             estrogen,
-            DHEAS,
             LH,
-            FSH,
-            SHBG,
+            # gest_week,
         )
     ).T
 
@@ -311,7 +239,8 @@ def plot_hormone_levels_plotly(progesterone, FSH, LH, estrogen, SHBG, DHEAS):
                 y=y,
                 z=z,
                 colorbar_title="z",
-                colorscale=[[0, "gold"], [0.5, "mediumturquoise"], [1, "magenta"]],
+                # colorscale=[[0, "gold"], [0.5, "mediumturquoise"], [1, "magenta"]],
+                vertexcolor=vertex_colors,
                 # i, j and k give the vertices of triangles
                 i=i,
                 j=j,

@@ -44,9 +44,13 @@ gitroot_path = subprocess.check_output(
 os.chdir(gitroot_path[:-1])
 work_dir = os.getcwd()  # code/my28brains/
 code_dir = os.path.dirname(work_dir)  # code/
-raw_dir = "/home/data/28andMeOC_correct"
+raw_dir = "/home/data/pregnancy/Segmentations"
+raw_end_day = 26
+day_dirs = [os.path.join(raw_dir, f"BB{i:02d}") for i in range(1, raw_end_day + 1)]
+blank_days = [15]
+
 project_dir = os.path.join(
-    os.getcwd(), "project_menstrual"
+    os.getcwd(), "project_pregnancy"
 )  # code/my28brains/project_regression/
 src_dir = os.path.join(os.getcwd(), "src")
 h2_dir = os.path.join(os.getcwd(), "H2_SurfaceMatch")
@@ -68,6 +72,7 @@ torch_dtype = torch.float64
 stepsize = {
     "synthetic_mesh": 55,
     "menstrual_mesh": 6,
+    "pregnancy_mesh": 6,
 }
 
 # 1. Preprocessing Parameters
@@ -75,7 +80,7 @@ stepsize = {
 run_type = "base"  # can either be "base" for base result or "exp" for testing.
 
 # Brain hemispheres and anatomical structures
-hemisphere = ["left"]  # , "right"]
+hemispheres = ["left"]  # , "right"]
 structure_ids = [-1]
 
 # Face area threshold for non-degenerate meshes:
@@ -87,7 +92,7 @@ area_thresholds = [0.00]  # 0.0001, 0.001, 0.01, 0.1, 1.0]
 # for all mesh in the interpolation
 # Every mesh will have the same number of vertices and faces.
 i_template = 0
-template_day = 2
+template_day_index = 2
 
 # WORKING
 initial_decimation_fact = 10  # was 10
@@ -100,7 +105,7 @@ scaling_factor = 2 * initial_decimation_fact
 # first menstrual cycle is day 1-30 (pre-pill)
 
 
-day_range = [2, 11]  # TODO: CHANGE. this is for menstrual
+day_range = [1, 26]
 
 # NOTE: hormone file is "28Baby_Hormones.csv"
 
@@ -108,7 +113,13 @@ run_interpolate = False
 
 # 2. Regression Parameters
 
-dataset_name = ["menstrual_mesh"]
+dataset_name = "pregnancy_mesh"
+hormone_name = "Prog"  # hormone to use for lr and poly regression
+sort = False
+train_test_split = 0.8
+use_cuda = False
+
+poly_degree = 3
 
 
 linear_residuals = [

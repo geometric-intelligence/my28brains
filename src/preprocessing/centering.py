@@ -116,7 +116,11 @@ def center_whole_hippocampus(mesh):
     hippocampus_center = np.mean(vertices, axis=0)
     centered_vertices = vertices - hippocampus_center
     return (
-        trimesh.Trimesh(vertices=centered_vertices, faces=mesh.faces),
+        trimesh.Trimesh(
+            vertices=centered_vertices,
+            faces=mesh.faces,
+            vertex_colors=mesh.visual.vertex_colors,
+        ),
         hippocampus_center,
     )
 
@@ -139,7 +143,11 @@ def center_substructure(mesh, hippocampus_center):
     """
     vertices = mesh.vertices
     centered_vertices = vertices - hippocampus_center
-    return trimesh.Trimesh(vertices=centered_vertices, faces=mesh.faces)
+    return trimesh.Trimesh(
+        vertices=centered_vertices,
+        faces=mesh.faces,
+        vertex_colors=mesh.visual.vertex_colors,
+    )
 
 
 def register_mesh(mesh, base_mesh):
